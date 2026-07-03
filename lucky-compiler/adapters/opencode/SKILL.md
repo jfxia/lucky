@@ -1,88 +1,127 @@
 ---
 name: lucky-executor
-description: Execute Lucky programs via the Lucky Tool Protocol. Use this skill when working with Lucky workflows (.lk files), running Lucky agent pipelines, or executing Lucky IR programs.
+description: Write, check, run, format, and compile Lucky programs (.lk files). Use this skill for all Lucky language operations — creating agents, workflows, goals, tasks, and executing Lucky programs.
 tools:
   - name: lucky_run
-    description: Run a Lucky program using a pre-compiled IR file.
+    description: Run a Lucky program from a .lk source file or inline source code.
     parameters:
-      ir_path:
+      file:
         type: string
-        description: Path to the .lir IR JSON file.
-        required: true
+        description: Path to the .lk source file.
+        required: false
+      source:
+        type: string
+        description: Inline Lucky source code to compile and run.
+        required: false
       goal:
         type: string
-        description: Goal name to pursue (entry point into the program).
+        description: Goal name to pursue (entry point).
         required: false
-      context:
-        type: object
-        description: Execution context dictionary (e.g. user, repo, branch).
-        required: false
-  - name: lucky_status
-    description: Check the status of a running Lucky execution.
+
+  - name: lucky_check
+    description: Check a Lucky program for syntax errors.
     parameters:
-      exec_id:
+      file:
         type: string
-        description: Execution ID returned by lucky_run.
-        required: true
-  - name: lucky_approve
-    description: Respond to a Lucky human-approval request.
-    parameters:
-      approval_id:
-        type: string
-        description: Approval request ID.
-        required: true
-      decision:
-        type: string
-        description: Decision — approve, reject, or modify.
-        required: true
-      reason:
-        type: string
-        description: Reason for the decision.
+        description: Path to the .lk source file.
         required: false
+      source:
+        type: string
+        description: Inline Lucky source code to check.
+        required: false
+
+  - name: lucky_ir
+    description: Compile a Lucky program to IR (HIR and MIR JSON output).
+    parameters:
+      file:
+        type: string
+        description: Path to the .lk source file.
+        required: false
+      source:
+        type: string
+        description: Inline Lucky source code to compile.
+        required: false
+
+  - name: lucky_format
+    description: Format a Lucky source file.
+    parameters:
+      file:
+        type: string
+        description: Path to the .lk source file to format.
+        required: false
+      source:
+        type: string
+        description: Inline Lucky source code to format.
+        required: false
+
+  - name: lucky_init
+    description: Initialize a new Lucky project with scaffolding.
+    parameters:
+      path:
+        type: string
+        description: Directory path for the new project.
+        required: true
 ---
 
 # Lucky Executor
 
-This skill allows OpenCode to execute Lucky programs through the Lucky Tool Protocol (LTP).
+This skill enables full Lucky language support in OpenCode: writing, checking, running, formatting, compiling, and initializing Lucky programs.
 
 ## When to Use
 
 Use this skill whenever the user mentions or the task involves:
 
 - **Lucky** programs, workflows, or pipelines
-- **.lk** source files or **.lir** IR files
+- **.lk** source files
 - Lucky **agents** or multi-agent orchestration
 - Running a Lucky **workflow** or **goal**
-- Approving a Lucky **deployment gate** or human-in-the-loop step
-- Checking the **status** of a running Lucky execution
+- Creating **Lucky projects** (`lucky init`)
+- **Compiling** Lucky to IR
+- **Formatting** Lucky code
+- **Checking** Lucky syntax
 
-Trigger words: Lucky, .lk, .lir, workflow, agent, goal, Lucky IR, LTP.
+Trigger words: Lucky, .lk, workflow, agent, goal, task, Lucky language.
 
-## How It Works
+## Tools
 
-1. The user provides a path to a Lucky IR file (`.lir`), a goal name, and optionally a context dictionary.
-2. Call `lucky_run` to compile (if needed) and execute the program against the Lucky runtime.
-3. If the execution pauses for human approval, use `lucky_approve` to respond.
-4. Use `lucky_status` to poll an async execution's progress.
+### lucky_run — Run a Lucky program
 
-## Execution Flow
-
-```
-User request
-    ↓
-lucky_run(ir_path, goal, context)
-    ↓
-LTP client → Lucky runtime → executes the Lucky IR DAG
-    ↓
-Result: { result, cost, outputs, duration_ms, execution_id }
+```python
+lucky_run(file="main.lk")                    # Run from file
+lucky_run(source="project X\nuse DeepSeek\ngoal G ...")  # Run inline source
 ```
 
-## Server Configuration
+### lucky_check — Check for errors
 
-By default, `run.py` spawns a Lucky runtime via stdio (`lucky serve --transport stdio`).
-Set the environment variable `LUCKY_SERVER_URL` to use an existing HTTP server instead.
+```python
+lucky_check(file="main.lk")
+lucky_check(source="task T { steps ...")
+```
+
+### lucky_ir — Compile to IR
+
+```python
+lucky_ir(file="main.lk")    # Returns HIR + MIR JSON
+```
+
+### lucky_format — Format source
+
+```python
+lucky_format(file="main.lk")
+lucky_format(source="task  T   {  steps ...")  # Returns formatted source
+```
+
+### lucky_init — Create project
+
+```python
+lucky_init(path="./my-lucky-project")
+```
+
+## Configuration
+
+Set `LUCKY_BIN` environment variable to point to the Lucky CLI binary:
 
 ```bash
-export LUCKY_SERVER_URL="http://localhost:9700"
-export LUCKY_SERVER_TOKEN="ltp-token-xyz"
+# Default: looks for 'lucky' on PATH
+export LUCKY_BIN="/path/to/lucky"
 ```

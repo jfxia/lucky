@@ -5,157 +5,208 @@ OpenCode Lucky Executor — run.py
 Implements the lucky_run, lucky_status, and lucky_approve tool functions
 that OpenCode calls when the lucky-executor skill is activated.
 
-Uses the LTP client (adapters/ltp_client.py) to communicate with a
-Lucky runtime via stdio or HTTP.
+Uses the Lucky CLI binary directly for reliable operation.
 """
-
 import json
 import os
+import subprocess
 import sys
+import tempfile
+import uuid
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from ltp_client import LtpClient, LtpError
-
-
-def _get_client():
-    server_url = os.environ.get("LUCKY_SERVER_URL")
-    token = os.environ.get("LUCKY_SERVER_TOKEN")
-
-    if server_url:
-        return LtpClient.http(server_url, token=token)
-    else:
-        cmd = os.environ.get("LUCKY_SERVER_COMMAND", "lucky serve --transport stdio").split()
-        return LtpClient.stdio(cmd)
+# Path to the Lucky CLI binary — customize if needed
+LUCKY_BIN = os.environ.get("LUCKY_BIN", "lucky")
 
 
-def lucky_run(ir_path, goal=None, context=None):
+def _run_lucky(args, input_text=None):
+    """Run the Lucky CLI binary and return stdout, stderr, exit code."""
+    cmd = [LUCKY_BIN] + args
+    result = subprocess.run(
+        cmd,
+        input=input_text,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    return result.stdout, result.stderr, result.returncode
+
+
+def lucky_run(source=None, ir_path=None, goal=None, context=None):
     """
-    Run a Lucky program from a .lir IR file.
+    Run a Lucky program from source code or a .lk file.
 
     Args:
-        ir_path (str): Path to the .lir JSON IR file.
+        source (str, optional): Lucky source code string.
+        ir_path (str, optional): Path to a .lk source file.
         goal (str, optional): Goal name to pursue.
         context (dict, optional): Execution context.
 
     Returns:
-        dict with keys: execution_id, status, result, outputs, cost, duration_ms.
+        dict with keys: execution_id, status, result, output, duration_ms.
     """
-    client = _get_client()
+    exec_id = str(uuid.uuid4())[:8]
 
     try:
-        init_result = client.initialize(
-            client_name="OpenCode-lucky-executor",
-            client_version="0.1.0",
-        )
+        if ir_path:
+            args = ["run", ir_path]
+        elif source:
+            # Write source to temp file
+            tmp = tempfile.NamedTemporaryFile(
+                mode="w", suffix=".lk", delete=False, encoding="utf-8"
+            )
+            tmp.write(source)
+            tmp.close()
+            args = ["run", tmp.name]
+        else:
+            return {"execution_id": exec_id, "status": "error",
+                    "error": "Either source or ir_path is required"}
 
-        with open(ir_path, "r") as f:
-            ir = json.load(f)
+        stdout, stderr, code = _run_lucky(args)
 
-        client.load_ir(ir)
-
-        result = client.execute(
-            goal=goal,
-            context=context or {},
-            mode="sync",
-        )
-
-        return result
-    except LtpError as e:
-        return {
-            "execution_id": None,
-            "status": "error",
-            "result": "failure",
-            "error": {"code": e.code, "message": e.message, "data": e.data},
-        }
+        if code == 0:
+            return {
+                "execution_id": exec_id,
+                "status": "completed",
+                "result": "success",
+                "output": stdout.strip(),
+                "stderr": stderr.strip(),
+                "duration_ms": 0,
+            }
+        else:
+            return {
+                "execution_id": exec_id,
+                "status": "failed",
+                "result": "failure",
+                "error": stderr.strip() or "Exit code {}".format(code),
+            }
+    except subprocess.TimeoutExpired:
+        return {"execution_id": exec_id, "status": "error",
+                "error": "Execution timed out"}
     except FileNotFoundError:
-        return {
-            "execution_id": None,
-            "status": "error",
-            "result": "failure",
-            "error": {"code": -32603, "message": f"IR file not found: {ir_path}"},
-        }
+        return {"execution_id": exec_id, "status": "error",
+                "error": "Lucky binary not found: {}".format(LUCKY_BIN)}
     except Exception as e:
-        return {
-            "execution_id": None,
-            "status": "error",
-            "result": "failure",
-            "error": {"code": -32603, "message": str(e)},
-        }
-    finally:
-        client.close()
+        return {"execution_id": exec_id, "status": "error",
+                "error": str(e)}
 
 
-def lucky_status(exec_id):
+def lucky_check(source=None, file_path=None):
     """
-    Check the status of a Lucky execution.
+    Check a Lucky program for syntax errors.
 
     Args:
-        exec_id (str): Execution ID returned by lucky_run.
+        source (str, optional): Lucky source code.
+        file_path (str, optional): Path to a .lk file.
 
     Returns:
-        dict with keys: execution_id, status, progress, current_node,
-                        elapsed_ms, estimated_remaining_ms, node_states, cost.
+        dict with keys: valid, errors, warnings.
     """
-    client = _get_client()
-
     try:
-        client.initialize(
-            client_name="OpenCode-lucky-executor",
-            client_version="0.1.0",
-        )
-        return client.get_status(exec_id)
-    except LtpError as e:
+        if file_path:
+            args = ["check", file_path]
+        elif source:
+            tmp = tempfile.NamedTemporaryFile(
+                mode="w", suffix=".lk", delete=False, encoding="utf-8"
+            )
+            tmp.write(source)
+            tmp.close()
+            args = ["check", tmp.name]
+        else:
+            return {"valid": False, "errors": ["No source provided"]}
+
+        stdout, stderr, code = _run_lucky(args)
+
+        errors = []
+        if code != 0:
+            for line in stderr.split("\n"):
+                if "error" in line.lower():
+                    errors.append(line.strip())
+
         return {
-            "execution_id": exec_id,
-            "status": "error",
-            "error": {"code": e.code, "message": e.message, "data": e.data},
+            "valid": code == 0,
+            "errors": errors,
+            "warnings": [],
         }
     except Exception as e:
-        return {
-            "execution_id": exec_id,
-            "status": "error",
-            "error": {"code": -32603, "message": str(e)},
-        }
-    finally:
-        client.close()
+        return {"valid": False, "errors": [str(e)], "warnings": []}
 
 
-def lucky_approve(approval_id, decision, reason=""):
+def lucky_ir(source=None, file_path=None):
     """
-    Respond to a Lucky human-approval request.
+    Compile a Lucky program to IR JSON.
 
     Args:
-        approval_id (str): Approval request ID.
-        decision (str): approve, reject, or modify.
-        reason (str, optional): Reason for the decision.
+        source (str, optional): Lucky source code.
+        file_path (str, optional): Path to a .lk file.
 
     Returns:
-        dict with keys: acknowledged (bool), approval_id (str).
+        dict with keys: hir_json, mir_json, error.
     """
-    client = _get_client()
-
     try:
-        client.initialize(
-            client_name="OpenCode-lucky-executor",
-            client_version="0.1.0",
-        )
-        result = client.respond_approval(approval_id, decision, reason)
-        return result
-    except LtpError as e:
-        return {
-            "approval_id": approval_id,
-            "acknowledged": False,
-            "error": {"code": e.code, "message": e.message, "data": e.data},
-        }
+        if file_path:
+            args = ["ir", file_path]
+        elif source:
+            tmp = tempfile.NamedTemporaryFile(
+                mode="w", suffix=".lk", delete=False, encoding="utf-8"
+            )
+            tmp.write(source)
+            tmp.close()
+            args = ["ir", tmp.name]
+        else:
+            return {"error": "No source provided"}
+
+        stdout, stderr, code = _run_lucky(args)
+
+        if code == 0:
+            try:
+                ir = json.loads(stdout)
+                return {"hir_json": ir.get("hir"), "mir_json": ir.get("mir")}
+            except json.JSONDecodeError:
+                return {"hir_json": stdout, "mir_json": None}
+        else:
+            return {"error": stderr.strip()}
     except Exception as e:
-        return {
-            "approval_id": approval_id,
-            "acknowledged": False,
-            "error": {"code": -32603, "message": str(e)},
-        }
-    finally:
-        client.close()
+        return {"error": str(e)}
+
+
+def lucky_format(source=None, file_path=None):
+    """
+    Format a Lucky source file.
+
+    Returns:
+        dict with keys: formatted, error.
+    """
+    try:
+        if file_path:
+            args = ["fmt", file_path]
+            stdout, stderr, code = _run_lucky(args)
+            return {"formatted": code == 0, "error": stderr.strip() if code != 0 else None}
+        elif source:
+            tmp = tempfile.NamedTemporaryFile(
+                mode="w", suffix=".lk", delete=False, encoding="utf-8"
+            )
+            tmp.write(source)
+            tmp.close()
+            args = ["fmt", tmp.name]
+            stdout, stderr, code = _run_lucky(args)
+            if code == 0:
+                with open(tmp.name, "r") as f:
+                    formatted = f.read()
+                return {"formatted": True, "source": formatted}
+            return {"formatted": False, "error": stderr.strip()}
+        else:
+            return {"error": "No source provided"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def lucky_init(path):
+    """Initialize a new Lucky project."""
+    try:
+        stdout, stderr, code = _run_lucky(["init", path])
+        return {"success": code == 0, "path": path, "output": stdout.strip()}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 # ── CLI entry point (for standalone testing) ─────────────────────
@@ -164,34 +215,45 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="OpenCode Lucky Executor — run Lucky programs via LTP"
+        description="OpenCode Lucky Executor — run Lucky programs"
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
     run_parser = sub.add_parser("run", help="Run a Lucky program")
-    run_parser.add_argument("ir_path", help="Path to .lir IR file")
+    run_parser.add_argument("file", help="Path to .lk file or inline source", nargs="?")
+    run_parser.add_argument("--source", "-s", help="Inline Lucky source code")
     run_parser.add_argument("--goal", "-g", help="Goal to pursue")
-    run_parser.add_argument("--context", "-c", help="Context as JSON string")
 
-    status_parser = sub.add_parser("status", help="Check execution status")
-    status_parser.add_argument("exec_id", help="Execution ID")
+    check_parser = sub.add_parser("check", help="Check syntax")
+    check_parser.add_argument("file", help="Path to .lk file", nargs="?")
 
-    approve_parser = sub.add_parser("approve", help="Respond to approval")
-    approve_parser.add_argument("approval_id", help="Approval ID")
-    approve_parser.add_argument("decision", choices=["approve", "reject", "modify"])
-    approve_parser.add_argument("--reason", "-r", default="", help="Reason")
+    ir_parser = sub.add_parser("ir", help="Compile to IR")
+    ir_parser.add_argument("file", help="Path to .lk file", nargs="?")
+
+    fmt_parser = sub.add_parser("fmt", help="Format source")
+    fmt_parser.add_argument("file", help="Path to .lk file", nargs="?")
+
+    init_parser = sub.add_parser("init", help="Initialize project")
+    init_parser.add_argument("path", help="Project path")
 
     args = parser.parse_args()
 
     if args.command == "run":
-        context = json.loads(args.context) if args.context else None
-        result = lucky_run(args.ir_path, goal=args.goal, context=context)
+        result = lucky_run(
+            source=args.source,
+            ir_path=args.file if not args.source else None,
+            goal=args.goal,
+        )
         print(json.dumps(result, indent=2))
-
-    elif args.command == "status":
-        result = lucky_status(args.exec_id)
+    elif args.command == "check":
+        result = lucky_check(file_path=args.file)
         print(json.dumps(result, indent=2))
-
-    elif args.command == "approve":
-        result = lucky_approve(args.approval_id, args.decision, args.reason)
+    elif args.command == "ir":
+        result = lucky_ir(file_path=args.file)
+        print(json.dumps(result, indent=2))
+    elif args.command == "fmt":
+        result = lucky_format(file_path=args.file)
+        print(json.dumps(result, indent=2))
+    elif args.command == "init":
+        result = lucky_init(args.path)
         print(json.dumps(result, indent=2))
