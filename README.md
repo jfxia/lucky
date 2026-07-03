@@ -4,6 +4,8 @@
 
 Lucky is a goal-oriented orchestration language for AI agents. Unlike traditional programming languages designed around CPU execution and deterministic algorithms, Lucky is designed around goal execution — the coordination of autonomous AI agents that reason, plan, and act under explicit human supervision.
 
+> **📖 New to Lucky?** Start with the [Quickstart Guide](docs/quickstart.md) or follow the [Tutorial](docs/tutorial.md).
+
 Most programming languages today assume:
 
 * Humans write code.
