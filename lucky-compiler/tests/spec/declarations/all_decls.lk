@@ -1,9 +1,9 @@
 project DeclTest
 
-use Claude
+use DeepSeek
 
 agent ResearchAgent
-    model Claude
+    model DeepSeek
     memory ProjectMemory
     tools
         Browser, Search, HTTP
@@ -116,4 +116,4 @@ type Result
     Failure { error: String }
 
 pub agent ExportedAgent
-    model Claude
+    model DeepSeek

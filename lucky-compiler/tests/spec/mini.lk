@@ -1,7 +1,7 @@
 project MiniTest
 
 agent Helper
-    model Claude
+    model DeepSeek
 
 task Hello
     input

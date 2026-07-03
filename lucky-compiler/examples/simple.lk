@@ -1,7 +1,7 @@
 project Minimal
 
 agent Helper
-    model Claude
+    model DeepSeek
     memory ProjectMemory
 
 task Greet

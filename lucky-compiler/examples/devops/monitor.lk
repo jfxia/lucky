@@ -1,0 +1,214 @@
+project DevOpsMonitor
+
+use DeepSeek
+
+# ── A monitoring and alerting system that watches system ──────
+# metrics, detects anomalies, correlates incidents, and
+# executes automated remediation.
+
+model MonitorModel(
+    provider = "openai",
+    version = "gpt-4o-mini",
+    temperature = 0.1,
+)
+
+# ── Agents ────────────────────────────────────────────────────
+
+agent MetricCollector
+    model MonitorModel
+    tools
+        HTTP, Shell, Filesystem
+    permissions
+        allow http.get
+        allow shell.exec
+        allow filesystem.write(./metrics/*)
+    policy
+        retry 2
+        timeout 2m
+
+agent AnomalyDetector
+    model MonitorModel
+    tools
+        Filesystem
+    permissions
+        allow filesystem.read
+    prompt AnomalyPrompt
+
+agent IncidentResponder
+    model MonitorModel
+    tools
+        Shell, HTTP, Filesystem
+    permissions
+        allow shell.exec
+        allow http.post
+        allow filesystem.write
+    prompt IncidentPrompt
+
+agent AlertManager
+    model MonitorModel
+    tools
+        HTTP
+    permissions
+        allow http.post
+    prompt AlertPrompt
+
+# ── Memory ────────────────────────────────────────────────────
+
+memory MetricHistory
+    scope project
+    backend vector
+    dimensions 64
+
+# ── Prompts ───────────────────────────────────────────────────
+
+prompt AnomalyPrompt
+    role
+        You detect anomalies in system metrics.
+    rules
+        - Compare current values against historical baselines.
+        - Flag deviations beyond 3 standard deviations.
+        - Detect trend changes (sudden spikes or drops).
+        - Correlate anomalies across multiple metrics.
+
+prompt IncidentPrompt
+    role
+        You determine automated remediation actions.
+    rules
+        - For known issues, execute the corresponding runbook.
+        - For new issues, suggest diagnostic steps.
+        - Always prioritize service restoration over root cause.
+        - Log all actions taken for audit.
+
+prompt AlertPrompt
+    role
+        You format and route alerts to the appropriate channels.
+    rules
+        - Critical: page on-call engineer immediately.
+        - Warning: send to Slack #ops channel.
+        - Info: log to monitoring dashboard.
+
+# ── Tasks ─────────────────────────────────────────────────────
+
+task CollectMetrics
+    input
+        endpoints: List<Map<String, String>>
+    output
+        metrics: List<Map<String, Any>>
+    steps
+        let results = []
+        for endpoint in endpoints
+            let response = HTTP.get(endpoint["url"])
+            let data = parse_metrics(response)
+            results = results.append(data)
+            MetricHistory.remember(
+                "{endpoint['name']}:{data['timestamp']}",
+                data,
+            )
+        return results
+
+task DetectAnomalies
+    input
+        current_metrics: List<Map<String, Any>>
+    output
+        anomalies: List<Map<String, Any>>
+    steps
+        let found = []
+        for metric in current_metrics
+            let history = MetricHistory.similar(
+                metric["name"],
+                limit = 100,
+            )
+            let baseline = compute_baseline(history)
+            let deviation = abs(metric["value"] - baseline["mean"]) / baseline["stddev"]
+
+            if deviation > 3.0
+                found = found.append({
+                    "metric": metric["name"],
+                    "value": metric["value"],
+                    "baseline_mean": baseline["mean"],
+                    "deviations": deviation,
+                    "severity": if deviation > 5.0 { "critical" } else { "warning" },
+                    "timestamp": metric["timestamp"],
+                })
+        return found
+
+task ExecuteRunbook
+    input
+        anomaly: Map<String, Any>
+    output
+        action: String
+        result: String
+    steps
+        let action = match anomaly["metric"]
+            "cpu_usage" if anomaly["value"] > 90 => "restart_high_cpu_services"
+            "memory_usage" if anomaly["value"] > 85 => "clear_cache_and_restart"
+            "disk_usage" if anomaly["value"] > 90 => "rotate_logs_and_cleanup"
+            "error_rate" if anomaly["value"] > 10 => "rollback_last_deploy"
+            _ => "diagnose_and_escalate"
+
+        let result = match action
+            "restart_high_cpu_services" => Shell.exec("systemctl restart app-worker")
+            "clear_cache_and_restart" => Shell.exec("redis-cli FLUSHDB && systemctl restart app")
+            "rotate_logs_and_cleanup" => Shell.exec("logrotate -f /etc/logrotate.d/app && rm -rf /tmp/app-*")
+            "rollback_last_deploy" => Shell.exec("./rollback.sh")
+            _ => "manual_intervention_required"
+
+        return { "action": action, "result": result }
+
+task SendAlert
+    input
+        anomalies: List<Map<String, Any>>
+    steps
+        for anomaly in anomalies
+            if anomaly["severity"] == "critical"
+                HTTP.post("https://api.pagerduty.com/incidents", {
+                    "service": anomaly["metric"],
+                    "description": "{anomaly['metric']} is at {anomaly['value']} ({anomaly['deviations']}σ from baseline)",
+                    "severity": "critical",
+                })
+            else
+                HTTP.post("https://hooks.slack.com/services/T.../B.../xxx", {
+                    "text": "�?{anomaly['metric']}: {anomaly['value']} ({anomaly['deviations']}σ)",
+                    "channel": "#ops",
+                })
+
+# ── Workflow ──────────────────────────────────────────────────
+
+workflow MonitorCycle
+    context
+        endpoints: List<Map<String, String>>
+
+    CollectMetrics(endpoints = context.endpoints)
+        ->
+    DetectAnomalies(current_metrics = context.metrics)
+        ->
+    if context.anomalies.len() > 0
+        parallel
+            for anomaly in context.anomalies
+                if anomaly["severity"] == "critical"
+                    ExecuteRunbook(anomaly = anomaly)
+        wait
+            ->
+        SendAlert(anomalies = context.anomalies)
+    else
+        log.info("All metrics nominal")
+
+# ── Reactive Monitoring ───────────────────────────────────────
+
+when
+    deployment_complete
+    new_service_added
+    config_changed
+run
+    MetricHistory.clear()
+    Shell.exec("systemctl restart lucky-monitor")
+
+# ── Goal ──────────────────────────────────────────────────────
+
+goal SystemHealth
+    success
+        metrics_collected
+        anomalies_detected
+        remediation_executed
+        alerts_sent
+    workflow MonitorCycle

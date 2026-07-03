@@ -6,7 +6,7 @@ project MyProject
     agent MyAgent
 
         memory: MainMemory
-        model: ClaudeFast
+        model: DeepSeekFast
         tools: Shell, Git, Filesystem
         policy: DefaultPolicy
         prompt: DefaultPrompt

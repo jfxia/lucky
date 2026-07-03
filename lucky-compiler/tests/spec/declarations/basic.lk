@@ -1,9 +1,9 @@
 project DeclTest
 
-use Claude
+use DeepSeek
 
 agent ResearchAgent
-    model Claude
+    model DeepSeek
     memory ProjectMemory
     tools
         Browser, Search

@@ -1,0 +1,222 @@
+project SecurityAudit
+
+use DeepSeek
+
+# ── A comprehensive security audit workflow that scans ─────────
+# code, dependencies, infrastructure, and configurations.
+
+model SecurityModel(
+    provider = "deepseek",
+    version = "deepseek-v4",
+    temperature = 0.1,
+    max_tokens = 8192,
+)
+
+# ── Agents ────────────────────────────────────────────────────
+
+agent StaticAnalyzer
+    model SecurityModel
+    tools
+        Filesystem, Git, Shell
+    permissions
+        allow filesystem.read
+        allow git.*
+        allow shell.exec
+    prompt StaticAnalysisPrompt
+
+agent DependencyScanner
+    model SecurityModel
+    tools
+        Filesystem, HTTP, Shell
+    permissions
+        allow filesystem.read
+        allow http.get
+        allow shell.exec
+    prompt DependencyPrompt
+
+agent SecretDetector
+    model SecurityModel
+    tools
+        Filesystem, Git
+    permissions
+        allow filesystem.read
+        allow git.log
+    prompt SecretPrompt
+
+agent ComplianceChecker
+    model SecurityModel
+    tools
+        Filesystem
+    permissions
+        allow filesystem.read
+    prompt CompliancePrompt
+
+agent ReportGenerator
+    model SecurityModel
+    tools
+        Filesystem, HTTP
+    permissions
+        allow filesystem.write
+        allow http.post
+
+# ── Prompts ───────────────────────────────────────────────────
+
+prompt StaticAnalysisPrompt
+    role
+        You are a security static analysis expert.
+        Scan {language} code for vulnerabilities.
+    rules
+        - OWASP Top 10: injection, broken auth, sensitive data exposure,
+          XXE, broken access control, security misconfiguration,
+          XSS, insecure deserialization, vulnerable components,
+          insufficient logging.
+        - Check CWE Top 25 patterns.
+        - Flag unsafe function calls specific to {language}.
+        - Rate findings: critical, high, medium, low, info.
+    format
+        Return SARIF-compatible findings.
+
+prompt DependencyPrompt
+    role
+        You audit third-party dependencies for known vulnerabilities.
+    rules
+        - Check each dependency version against the CVE database.
+        - Identify outdated packages with known exploits.
+        - Flag licenses that may cause compliance issues.
+        - Recommend minimal secure versions.
+
+prompt SecretPrompt
+    role
+        You scan code repositories for exposed secrets.
+    rules
+        - Detect API keys, tokens, passwords, private keys.
+        - Check for .env files in commit history.
+        - Scan configuration files for hardcoded credentials.
+        - Flag PII (personally identifiable information) patterns.
+
+prompt CompliancePrompt
+    role
+        You verify compliance with {framework} requirements.
+    rules
+        - Map each requirement to evidence in the codebase.
+        - Identify gaps in data handling, access control, logging.
+        - Generate a compliance score per section.
+    format
+        Return a compliance matrix.
+
+# ── Memory ────────────────────────────────────────────────────
+
+memory SecurityFindings
+    scope project
+    backend vector
+
+# ── Tasks ─────────────────────────────────────────────────────
+
+task ScanGitHistory
+    input
+        repo_path: String
+        lookback_days: Int
+    output
+        full_history: List<Map<String, Any>>
+    steps
+        Git.checkout(repo_path)
+        let commits = Git.log(count = lookback_days * 10)
+        let history = []
+        for commit in commits
+            let diff = Git.show(commit.hash)
+            history = history.append({
+                "hash": commit.hash,
+                "message": commit.message,
+                "author": commit.author,
+                "timestamp": commit.timestamp,
+                "diff": diff,
+            })
+        return history
+
+task GenerateReport
+    input
+        static_findings: List<Map<String, Any>>
+        dep_findings: List<Map<String, Any>>
+        secret_findings: List<Map<String, Any>>
+        compliance: Map<String, Any>
+    output
+        report_path: String
+    steps
+        let critical = 0
+        let high = 0
+        let medium = 0
+        let low = 0
+
+        for finding in static_findings
+            match finding["severity"]
+                "critical" => critical = critical + 1
+                "high" => high = high + 1
+
+        let report = "Security Audit Report\n"
+            + "=====================\n\n"
+            + "## Summary\n"
+            + "- Critical: {critical}\n"
+            + "- High: {high}\n"
+            + "- Medium: {medium}\n"
+            + "- Low: {low}\n\n"
+            + "## Static Analysis\n"
+            + "{format_findings(static_findings)}\n\n"
+            + "## Dependencies\n"
+            + "{format_findings(dep_findings)}\n\n"
+            + "## Secrets\n"
+            + "Found: {len(secret_findings)}\n\n"
+            + "## Compliance\n"
+            + "Score: {compliance.score}%\n"
+
+        Filesystem.write("./security_audit.md", report)
+        return "./security_audit.md"
+
+# ── Workflow ──────────────────────────────────────────────────
+
+workflow FullSecurityAudit
+    context
+        repo_path: String
+        language: String = "Python"
+        framework: String = "SOC2"
+        lookback_days: Int = 90
+
+    ScanGitHistory(
+        repo_path = context.repo_path,
+        lookback_days = context.lookback_days,
+    )
+        ->
+    parallel
+        StaticAnalyzer(
+            code = context.full_history,
+            language = context.language,
+        )
+        DependencyScanner(
+            manifest = context.repo_path + "/requirements.txt",
+        )
+        SecretDetector(
+            history = context.full_history,
+            repo_path = context.repo_path,
+        )
+        ComplianceChecker(
+            code = context.full_history,
+            framework = context.framework,
+        )
+    wait
+        ->
+    GenerateReport(
+        static_findings = context.static_findings,
+        dep_findings = context.dep_findings,
+        secret_findings = context.secret_findings,
+        compliance = context.compliance,
+    )
+
+# ── Goal ──────────────────────────────────────────────────────
+
+goal AuditSecurity
+    success
+        static_analysis_complete
+        dependencies_checked
+        secrets_scanned
+        compliance_verified
+        report_generated
+    workflow FullSecurityAudit

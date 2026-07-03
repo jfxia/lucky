@@ -5,7 +5,7 @@ import some.module.{Tool1, Tool2}
 prompt DefaultPrompt
 
 agent MyAgent
-    model: ClaudeFast  tools: Shell, Git, Filesystem
+    model: DeepSeekFast  tools: Shell, Git, Filesystem
     memory: MainMemory
     permissions: allow Shell.*  deny Network.*
     policy: DefaultPolicy

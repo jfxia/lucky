@@ -1,0 +1,202 @@
+project ResearchAssistant
+
+use DeepSeek
+
+# ── An AI research assistant that investigates topics, ─────────
+# cross-references sources, fact-checks claims, and generates
+# structured reports with citations.
+
+model ResearchModel(
+    provider = "deepseek",
+    version = "deepseek-v4",
+    temperature = 0.4,
+    max_tokens = 8192,
+)
+
+# ── Agents ────────────────────────────────────────────────────
+
+agent Searcher
+    model ResearchModel
+    tools
+        Search, Browser, HTTP
+    permissions
+        allow search.*
+        allow browser.navigate
+        allow browser.extract
+        allow http.get
+    policy
+        timeout 5m
+
+agent Synthesizer
+    model ResearchModel
+    tools
+        Filesystem
+    permissions
+        allow filesystem.write
+    prompt SynthesisPrompt
+
+agent FactChecker
+    model ResearchModel
+    tools
+        Search, Browser
+    permissions
+        allow search.*
+        allow browser.*
+    policy
+        retry 2
+
+agent ReportWriter
+    model ResearchModel
+    tools
+        Filesystem
+    permissions
+        allow filesystem.write
+    prompt WriterPrompt
+
+# ── Memory ────────────────────────────────────────────────────
+
+memory ResearchMemory
+    scope project
+    backend vector
+    dimensions 1536
+
+# ── Prompts ───────────────────────────────────────────────────
+
+prompt SynthesisPrompt
+    role
+        You synthesize research findings from multiple sources.
+        Topic: {topic}
+        Depth: {depth}
+    rules
+        - Identify consensus and disagreement across sources.
+        - Highlight key findings with supporting evidence.
+        - Note any gaps in the research.
+    format
+        Return structured findings with source citations.
+
+prompt WriterPrompt
+    role
+        You write research reports in {format} format.
+    rules
+        - Start with an executive summary.
+        - Organize findings by theme.
+        - Include a conclusion with actionable insights.
+        - Cite all sources with URLs.
+
+# ── Tasks ─────────────────────────────────────────────────────
+
+task SearchPhase
+    input
+        topic: String
+        keywords: List<String>
+        max_sources: Int
+    output
+        sources: List<Map<String, String>>
+    steps
+        let results = []
+        for keyword in keywords
+            let query = "{topic} {keyword}"
+            let search_results = Search.search(query, max_results = 5)
+            for result in search_results.results
+                results = results.append({
+                    "title": result.title,
+                    "url": result.url,
+                    "snippet": result.content,
+                })
+        return results
+
+task ExtractContent
+    input
+        sources: List<Map<String, String>>
+    output
+        documents: List<Map<String, String>>
+    steps
+        let docs = []
+        for source in sources
+            Browser.navigate(source["url"])
+            let content = Browser.extract("article, main, .content")
+            let doc = {
+                "title": source["title"],
+                "url": source["url"],
+                "content": content,
+            }
+            docs = docs.append(doc)
+            # Store in memory for future reference
+            ResearchMemory.remember(source["url"], doc)
+        return docs
+
+task CrossReference
+    input
+        documents: List<Map<String, String>>
+    output
+        cross_refs: Map<String, List<String>>
+    steps
+        let refs = {}
+        for doc in documents
+            let similar = ResearchMemory.similar(doc["content"], limit = 3)
+            refs[doc["title"]] = similar
+        return refs
+
+task GenerateReport
+    input
+        findings: List<Map<String, String>>
+        citations: List<Map<String, String>>
+        format: String
+    output
+        report_path: String
+    steps
+        let report = ReportWriter(
+            findings = findings,
+            citations = citations,
+            format = format,
+        )
+        Filesystem.write("./research_report.md", report)
+        return "./research_report.md"
+
+# ── Workflow ──────────────────────────────────────────────────
+
+workflow DeepResearch
+    context
+        topic: String
+        keywords: List<String>
+        depth: String = "deep"
+        max_sources: Int = 20
+        output_format: String = "markdown"
+
+    SearchPhase(
+        topic = context.topic,
+        keywords = context.keywords,
+        max_sources = context.max_sources,
+    )
+        ->
+    ExtractContent(sources = context.sources)
+        ->
+    parallel
+        Synthesizer(
+            documents = context.documents,
+            topic = context.topic,
+            depth = context.depth,
+        )
+        FactChecker(
+            documents = context.documents,
+            claims = context.key_claims,
+        )
+    wait
+        ->
+    CrossReference(documents = context.documents)
+        ->
+    GenerateReport(
+        findings = context.synthesis,
+        citations = context.citations,
+        format = context.output_format,
+    )
+
+# ── Goal ──────────────────────────────────────────────────────
+
+goal ResearchTopic
+    success
+        sources_collected
+        content_extracted
+        facts_verified
+        report_generated
+    workflow DeepResearch

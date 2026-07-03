@@ -16,7 +16,7 @@ task RecoverTask
 
 # Error: unknown keyword in agent body (parser should skip and continue)
 agent BadAgent
-    model Claude
+    model DeepSeek
     badkeyword 123
     tools
         Filesystem

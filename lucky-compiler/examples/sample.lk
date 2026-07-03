@@ -1,19 +1,19 @@
 project WebsiteBuilder
 
-use Claude
+use DeepSeek
 
 agent Planner
-    model Claude
+    model DeepSeek
     tools
         Search, Browser
 
 agent Coder
-    model Claude
+    model DeepSeek
     tools
         Filesystem, Git, Shell
 
 agent Reviewer
-    model Claude
+    model DeepSeek
     prompt ReviewPrompt
 
 goal BuildLandingPage

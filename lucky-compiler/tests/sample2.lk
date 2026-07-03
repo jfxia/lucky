@@ -1,4 +1,4 @@
-﻿project MyProject
+project MyProject
 
 
 import some.module.{Tool1, Tool2}
@@ -9,7 +9,7 @@ prompt DefaultPrompt
 
 agent MyAgent
     memory: MainMemory
-    model: ClaudeFast
+    model: DeepSeekFast
     tools: Shell,   Git,    Filesystem
     policy: DefaultPolicy
     prompt: DefaultPrompt

@@ -1,0 +1,196 @@
+project DocGenerator
+
+use DeepSeek
+
+# ── Auto-generates API docs, READMEs, changelogs, and tutorials ─
+# from code repositories.
+
+model DocsModel(
+    provider = "deepseek",
+    version = "deepseek-v4",
+    temperature = 0.3,
+)
+
+# ── Agents ────────────────────────────────────────────────────
+
+agent ApiDocWriter
+    model DocsModel
+    tools
+        Filesystem, Git
+    permissions
+        allow filesystem.read
+        allow filesystem.write(./docs/*)
+    prompt ApiDocPrompt
+
+agent ReadmeWriter
+    model DocsModel
+    tools
+        Filesystem, Git
+    permissions
+        allow filesystem.read
+        allow filesystem.write
+    prompt ReadmePrompt
+
+agent ChangelogWriter
+    model DocsModel
+    tools
+        Git
+    permissions
+        allow git.log
+        allow filesystem.write
+    prompt ChangelogPrompt
+
+agent TutorialWriter
+    model DocsModel
+    tools
+        Filesystem, Search
+    permissions
+        allow filesystem.read
+        allow filesystem.write
+        allow search.*
+    prompt TutorialPrompt
+
+# ── Prompts ───────────────────────────────────────────────────
+
+prompt ApiDocPrompt
+    role
+        You generate API documentation for {language} code.
+    rules
+        - Document all public functions, classes, and methods.
+        - Include parameter types, return types, and examples.
+        - Note any deprecations or breaking changes.
+        - Follow {doc_style} documentation style.
+    format
+        Generate Markdown files, one per module.
+
+prompt ReadmePrompt
+    role
+        You write project README files.
+    rules
+        - Include: title, description, installation, quickstart,
+          usage examples, configuration, contributing.
+        - Make it friendly and accessible to new users.
+        - Include badges (build status, version, license).
+
+prompt ChangelogPrompt
+    role
+        You generate changelogs from git history.
+    rules
+        - Categorize commits: feat, fix, docs, refactor, perf, test, chore.
+        - Group by version tags.
+        - Write user-facing descriptions, not raw commit messages.
+    format
+        Keep a Changelog (https://keepachangelog.com) format.
+
+prompt TutorialPrompt
+    role
+        You write step-by-step tutorials.
+    rules
+        - Start with prerequisites and setup.
+        - Build up complexity gradually.
+        - Every code snippet should be runnable.
+        - Include expected output for each step.
+
+# ── Tasks ─────────────────────────────────────────────────────
+
+task DiscoverModules
+    input
+        src_dir: String
+    output
+        modules: List<Map<String, Any>>
+    steps
+        let files = Filesystem.glob("{src_dir}/**/*.{py,rs,js,ts,go,lk}")
+        let modules = []
+        for file in files
+            let content = Filesystem.read(file)
+            modules = modules.append({
+                "path": file,
+                "content": content,
+                "language": infer_language(file),
+            })
+        return modules
+
+task GenerateApiDocs
+    input
+        modules: List<Map<String, Any>>
+    output
+        doc_files: List<String>
+    steps
+        Filesystem.create_dir("./docs/api")
+        let generated = []
+        for module in modules
+            let doc_content = ApiDocWriter(
+                code = module["content"],
+                language = module["language"],
+                doc_style = "JSDoc",
+            )
+            let doc_path = "./docs/api/{module['path']}.md"
+            Filesystem.write(doc_path, doc_content)
+            generated = generated.append(doc_path)
+        return generated
+
+task GenerateReadme
+    input
+        project_name: String
+        modules: List<Map<String, Any>>
+    output
+        readme_path: String
+    steps
+        let readme = ReadmeWriter(
+            project_name = project_name,
+            modules = modules,
+        )
+        Filesystem.write("./README.md", readme)
+        return "./README.md"
+
+task GenerateChangelog
+    input
+        version: String
+        previous_version: String
+    output
+        changelog_path: String
+    steps
+        let commits = Git.log(
+            range = "{previous_version}..HEAD",
+        )
+        let changelog = ChangelogWriter(
+            commits = commits,
+            version = version,
+            previous_version = previous_version,
+        )
+        let path = "./CHANGELOG.md"
+        Filesystem.write(path, changelog)
+        return path
+
+# ── Workflow ──────────────────────────────────────────────────
+
+workflow GenerateDocs
+    context
+        src_dir: String = "./src"
+        project_name: String
+        version: String
+        previous_version: String
+
+    DiscoverModules(src_dir = context.src_dir)
+        ->
+    parallel
+        GenerateApiDocs(modules = context.modules)
+        GenerateReadme(
+            project_name = context.project_name,
+            modules = context.modules,
+        )
+        GenerateChangelog(
+            version = context.version,
+            previous_version = context.previous_version,
+        )
+    wait
+
+# ── Goal ──────────────────────────────────────────────────────
+
+goal DocumentProject
+    success
+        modules_discovered
+        api_docs_generated
+        readme_generated
+        changelog_generated
+    workflow GenerateDocs

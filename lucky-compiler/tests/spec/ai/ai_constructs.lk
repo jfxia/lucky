@@ -1,10 +1,10 @@
 project AITest
 
-use Claude
+use DeepSeek
 
 model MainModel(
     provider = "anthropic",
-    version = "claude-sonnet-4-20250514",
+    version = "DeepSeek-sonnet-4-20250514",
     temperature = 0.7,
     max_tokens = 4096
 )
@@ -75,7 +75,7 @@ task AIOperations
         let summary = ai.summarize("long text", SummarizeOptions(max_words = 50))
         let sentiment = ai.sentiment("I love this!")
 
-        ask Claude:
+        ask DeepSeek:
             Explain the architecture.
 
         reason deep

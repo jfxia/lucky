@@ -1,0 +1,215 @@
+project DatabaseMigration
+
+use DeepSeek
+
+# ── A database migration system with schema versioning, ──────
+# validation, transaction support, and automatic rollback.
+
+model MigrationModel(
+    provider = "openai",
+    version = "gpt-4o-mini",
+    temperature = 0.0,
+)
+
+# ── Agents ────────────────────────────────────────────────────
+
+agent SchemaValidator
+    model MigrationModel
+    tools
+        Database, Filesystem
+    permissions
+        allow database.query
+        allow filesystem.read
+    prompt ValidationPrompt
+
+agent MigrationRunner
+    model MigrationModel
+    tools
+        Database, Filesystem
+    permissions
+        allow database.execute
+        allow filesystem.read
+    policy
+        retry 1
+        checkpoint before retry
+
+agent DataVerifier
+    model MigrationModel
+    tools
+        Database
+    permissions
+        allow database.query
+    prompt VerifierPrompt
+
+agent BackupManager
+    model MigrationModel
+    tools
+        Database, Shell
+    permissions
+        allow database.query
+        allow shell.exec
+    policy
+        timeout 30m
+
+# ── Tasks ─────────────────────────────────────────────────────
+
+task DiscoverMigrations
+    input
+        migrations_dir: String
+    output
+        pending: List<Map<String, Any>>
+    steps
+        let applied = Database.query("SELECT version FROM schema_migrations")
+        let applied_versions = []
+        for row in applied
+            applied_versions = applied_versions.append(row["version"])
+
+        let files = Filesystem.list(migrations_dir)
+        let pending = []
+        for file in files
+            if file.ends_with(".sql") and not applied_versions.contains(file)
+                let content = Filesystem.read("{migrations_dir}/{file}")
+                pending = pending.append({
+                    "version": file,
+                    "content": content,
+                })
+
+        # Sort by version name
+        pending = pending.sort_by(fn m => m["version"])
+        return pending
+
+task ValidateMigration
+    input
+        migration: Map<String, Any]
+    output
+        valid: Bool
+        issues: List<String]
+    steps
+        let schema = Database.query("SELECT table_name, column_name, data_type FROM information_schema.columns")
+        let issues = []
+
+        # Check for destructive operations
+        if migration["content"] contains "DROP TABLE"
+            issues = issues.append("Migration contains DROP TABLE")
+        if migration["content"] contains "TRUNCATE"
+            issues = issues.append("Migration contains TRUNCATE")
+
+        # Validate SQL syntax with a dry-run
+        let test_result = Database.query("EXPLAIN {migration['content']}")
+
+        return { "valid": len(issues) == 0, "issues": issues }
+
+task CreateBackup
+    input
+        tables: List<String]
+    output
+        backup_path: String
+    steps
+        let timestamp = time.now().format("%Y%m%d_%H%M%S")
+        let backup_path = "./backups/backup_{timestamp}.sql"
+
+        Shell.exec("pg_dump -t {tables} -f {backup_path}")
+
+        Filesystem.write(
+            "./backups/backup_{timestamp}_manifest.json",
+            { "tables": tables, "timestamp": timestamp, "path": backup_path },
+        )
+        return backup_path
+
+task RunMigration
+    input
+        migration: Map<String, Any]
+    steps
+        let backup_path = context.backup_path
+
+        transaction
+            for statement in migration["content"].split(";")
+                if statement.trim().len() > 0
+                    Database.execute(statement.trim())
+            Database.execute(
+                "INSERT INTO schema_migrations (version, applied_at) VALUES ('{migration['version']}', NOW())"
+            )
+        return "applied"
+
+task VerifyMigration
+    input
+        migration: Map<String, Any]
+    output
+        verified: Bool
+        report: Map<String, Any]
+    steps
+        # Check row counts
+        let counts_before = context.row_counts_before
+        let counts_after = Database.query(
+            "SELECT table_name, COUNT(*) as cnt FROM information_schema.tables GROUP BY table_name"
+        )
+
+        let issues = []
+        for row in counts_after:
+            table = row["table_name"]
+            after = row["cnt"]
+            before = counts_before[table] or 0
+
+            if after < before * 0.5
+                issues = issues.append("Table {table} lost {(before - after) * 100 / before}% of rows")
+
+        return {
+            "verified": len(issues) == 0,
+            "report": { "issues": issues, "counts_before": counts_before, "counts_after": counts_after },
+        }
+
+# ── Workflow ──────────────────────────────────────────────────
+
+workflow RunMigrations
+    context
+        migrations_dir: String = "./migrations"
+        target_version: String
+
+    DiscoverMigrations(migrations_dir = context.migrations_dir)
+        ->
+    if context.pending.len() == 0
+        log.info("No pending migrations")
+        return
+
+    BackupManager(tables = ["*"])
+        ->
+    for migration in context.pending
+        if context.target_version and migration["version"] > context.target_version
+            break
+
+        ValidateMigration(migration = migration)
+            ->
+        if not context.valid
+            log.error("Migration {migration['version']} validation failed: {context.issues}")
+            break
+
+        SchemaValidator(migration = migration)
+            ->
+        RunMigration(migration = migration)
+            ->
+        VerifyMigration(migration = migration)
+            ->
+        if not context.verified
+            log.error("Migration {migration['version']} verification failed!")
+            attempt
+                Shell.exec("psql -f {context.backup_path}")
+                Database.execute(
+                    "DELETE FROM schema_migrations WHERE version = '{migration['version']}'"
+                )
+                log.info("Rolled back to backup")
+            recover
+                human escalate "Migration rollback failed for {migration['version']}"
+            break
+
+    log.info("Migrated {context.migrated_count} of {context.pending.len()} pending migrations")
+
+# ── Goal ──────────────────────────────────────────────────────
+
+goal MigrateDatabase
+    success
+        migrations_discovered
+        backup_created
+        migrations_validated
+        migrations_applied
+        migrations_verified
+    workflow RunMigrations
