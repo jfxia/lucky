@@ -32,6 +32,24 @@ In Lucky:
 
 **-Compilation produces an execution graph (Lucky IR)** instead of native machine code
 
+---
+
+### Key Capabilities
+
+**Multi-Agent Orchestration.** Define agents with models, tools, memory, and permissions. Compose them into workflows with `->` for sequential chains, or let them run in parallel at the same indentation level. Use `parallel`/`wait` for fork-join, `swarm` for mass fan-out, `if`/`else` for branching.
+
+**AI-Native Language Primitives.** Declare models (`model DeepSeek(...)`), switch them (`use GPT`), write structured prompts (`prompt Reviewer { role ...; rules ... }`), and call LLMs inline (`ask DeepSeek: summarize this`). No SDKs, no API wrappers.
+
+**Context Auto-Propagation.** Declare workflow-level context once. It flows automatically to every agent and task in the chain. Each task's output becomes context for downstream tasks. No manual parameter threading.
+
+**Capability Security.** Every agent runs with explicit `allow`/`deny` permissions. Permissions inherit lexically and can only be restricted, never expanded. Built-in approval gates pause execution for human sign-off on critical operations.
+
+**Declarative Error Recovery.** Replace try/catch with `attempt`/`recover` chains: retry with exponential backoff, fallback to alternative agents, escalate to human operators.
+
+**Portable IR.** Lucky compiles to a language-neutral Intermediate Representation (a DAG of execution nodes). The same IR runs across Claude Code, Codex CLI, OpenCode, Cursor, and Dify via the Lucky Tool Protocol (LTP).
+
+**Developer Toolchain.** CLI with 14 commands (init, check, compile, fmt, ir, run, test, debug, pkg, serve, lsp), VS Code extension with syntax highlighting and snippets, LSP server, DAP debugger, formatter, test framework, and package manager.
+
 
 ---
 
