@@ -1,0 +1,166 @@
+{
+    "name": "Lucky",
+    "scopeName": "source.lucky",
+    "patterns": [
+        { "include": "#comments" },
+        { "include": "#strings" },
+        { "include": "#numbers" },
+        { "include": "#keywords" },
+        { "include": "#operators" },
+        { "include": "#identifiers" }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.documentation.lucky",
+                    "match": "^##.*$"
+                },
+                {
+                    "name": "comment.line.number-sign.lucky",
+                    "match": "#.*$"
+                }
+            ]
+        },
+        "strings": {
+            "patterns": [
+                {
+                    "name": "string.quoted.double.lucky",
+                    "begin": "\"\"\"",
+                    "end": "\"\"\"",
+                    "patterns": [
+                        { "include": "#string_interpolation" }
+                    ]
+                },
+                {
+                    "name": "string.quoted.double.lucky",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        { "include": "#string_interpolation" }
+                    ]
+                }
+            ]
+        },
+        "string_interpolation": {
+            "patterns": [
+                {
+                    "name": "constant.character.escape.lucky",
+                    "match": "\\\\."
+                },
+                {
+                    "name": "meta.embedded.expression.lucky",
+                    "begin": "\\\\\\{",
+                    "end": "\\}",
+                    "patterns": [
+                        { "include": "$self" }
+                    ]
+                }
+            ]
+        },
+        "numbers": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.float.lucky",
+                    "match": "\\b[0-9][0-9_]*\\.[0-9][0-9_]*(?:[eE][+-]?[0-9]+)?\\b"
+                },
+                {
+                    "name": "constant.numeric.hex.lucky",
+                    "match": "\\b0[xX][0-9a-fA-F_]+\\b"
+                },
+                {
+                    "name": "constant.numeric.binary.lucky",
+                    "match": "\\b0[bB][01_]+\\b"
+                },
+                {
+                    "name": "constant.numeric.integer.lucky",
+                    "match": "\\b[0-9][0-9_]*\\b"
+                }
+            ]
+        },
+        "keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.lucky",
+                    "match": "\\b(if|else|match|loop|for|while|in|when|then|run|parallel|await|break|continue|return|attempt|recover|retry|fallback|human|abort|skip|swarm)\\b"
+                },
+                {
+                    "name": "keyword.declaration.lucky",
+                    "match": "\\b(agent|task|workflow|goal|prompt|memory|knowledge|context|tool|model|policy|permission|permissions|approval|project|import|type|pub|capability)\\b"
+                },
+                {
+                    "name": "keyword.other.lucky",
+                    "match": "\\b(let|const|use|input|output|steps|success|allow|deny|fn|ask|reason|select|where|order|by|group|limit|skip|deep|fast|none|true|false|null|unknown|error|and|or|not|as|stateful)\\b"
+                },
+                {
+                    "name": "constant.language.boolean.lucky",
+                    "match": "\\b(true|false)\\b"
+                },
+                {
+                    "name": "constant.language.null.lucky",
+                    "match": "\\b(null|unknown)\\b"
+                },
+                {
+                    "name": "support.type.primitive.lucky",
+                    "match": "\\b(Bool|Int|Float|Decimal|String|Bytes|Char|Time|Duration|UUID|URI|Version|Path)\\b"
+                },
+                {
+                    "name": "support.type.collection.lucky",
+                    "match": "\\b(List|Set|Map|Queue|Stack|Graph|Tree|Stream|Channel|Promise)\\b"
+                },
+                {
+                    "name": "support.type.ai.lucky",
+                    "match": "\\b(Agent|Task|Workflow|Goal|Prompt|Memory|Knowledge|Context|Tool|Model|Artifact|Result|Capability|Approval|Embedding|Observation|Plan|Reasoning|Probabilistic|Secret)\\b"
+                },
+                {
+                    "name": "support.function.builtin.lucky",
+                    "match": "\\b(clone|commit|push|deploy|search|summarize|extract|review|compare|rank|filter|map|reduce|sort|select)\\b"
+                }
+            ]
+        },
+        "operators": {
+            "patterns": [
+                {
+                    "name": "keyword.operator.arrow.lucky",
+                    "match": "->"
+                },
+                {
+                    "name": "keyword.operator.pipe.lucky",
+                    "match": "\\|>"
+                },
+                {
+                    "name": "keyword.operator.comparison.lucky",
+                    "match": "==|!=|<=|>=|<|>"
+                },
+                {
+                    "name": "keyword.operator.assignment.lucky",
+                    "match": "="
+                },
+                {
+                    "name": "keyword.operator.arithmetic.lucky",
+                    "match": "\\+|\\-|\\*|/|%"
+                },
+                {
+                    "name": "keyword.operator.nullable.lucky",
+                    "match": "\\.\\?|\\?\\||\\?\\["
+                },
+                {
+                    "name": "keyword.operator.range.lucky",
+                    "match": "\\.\\."
+                }
+            ]
+        },
+        "identifiers": {
+            "patterns": [
+                {
+                    "name": "entity.name.type.lucky",
+                    "match": "\\b[A-Z][a-zA-Z0-9_]*\\b"
+                },
+                {
+                    "name": "variable.other.lucky",
+                    "match": "\\b[a-z_][a-zA-Z0-9_]*\\b"
+                }
+            ]
+        }
+    }
+}

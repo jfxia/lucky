@@ -1,0 +1,156 @@
+{
+    "agent": {
+        "prefix": "agent",
+        "body": [
+            "agent ${1:Name}",
+            "    model ${2:Claude}",
+            "    memory ${3:Memory}",
+            "    tools",
+            "        ${4:Browser}, ${5:Git}",
+            "    permissions",
+            "        allow ${6:filesystem.read}",
+            "        deny ${7:shell.exec}",
+            "    policy",
+            "        retry ${8:3}",
+            "        timeout ${9:5m}"
+        ],
+        "description": "Agent declaration"
+    },
+    "task": {
+        "prefix": "task",
+        "body": [
+            "task ${1:Name}",
+            "    input",
+            "        ${2:param}: ${3:Type}",
+            "    output",
+            "        ${4:result}: ${5:Type}",
+            "    steps",
+            "        ${6:step}",
+            "        return ${7:result}"
+        ],
+        "description": "Task declaration"
+    },
+    "workflow": {
+        "prefix": "workflow",
+        "body": [
+            "workflow ${1:Name}",
+            "    ${2:Agent1}",
+            "        ->",
+            "    ${3:Agent2}",
+            "        ->",
+            "    ${4:Agent3}"
+        ],
+        "description": "Workflow declaration"
+    },
+    "goal": {
+        "prefix": "goal",
+        "body": [
+            "goal ${1:Name}",
+            "    success",
+            "        ${2:criterion}",
+            "    workflow ${3:WorkflowName}"
+        ],
+        "description": "Goal declaration"
+    },
+    "if": {
+        "prefix": "if",
+        "body": [
+            "if ${1:condition}",
+            "    ${2:action}"
+        ],
+        "description": "If statement"
+    },
+    "ifelse": {
+        "prefix": "ifelse",
+        "body": [
+            "if ${1:condition}",
+            "    ${2:action}",
+            "else",
+            "    ${3:fallback}"
+        ],
+        "description": "If/else statement"
+    },
+    "match": {
+        "prefix": "match",
+        "body": [
+            "match ${1:expr}",
+            "    ${2:pattern} => ${3:action}",
+            "    _ => ${4:default}"
+        ],
+        "description": "Match statement"
+    },
+    "parallel": {
+        "prefix": "parallel",
+        "body": [
+            "parallel",
+            "    ${1:Agent1}",
+            "    ${2:Agent2}",
+            "wait"
+        ],
+        "description": "Parallel block"
+    },
+    "attempt": {
+        "prefix": "attempt",
+        "body": [
+            "attempt",
+            "    ${1:action}",
+            "recover",
+            "    retry ${2:3}",
+            "recover",
+            "    human escalate \"${3:message}\""
+        ],
+        "description": "Attempt/recover block"
+    },
+    "pipeline": {
+        "prefix": "pipe",
+        "body": [
+            "${1:data}",
+            "    |> ${2:filter} ${3:predicate}",
+            "    |> ${4:map} fn ${5:x} => ${6:x}",
+            "    |> ${7:collect}"
+        ],
+        "description": "Pipeline expression"
+    },
+    "model": {
+        "prefix": "model",
+        "body": [
+            "model ${1:Name}(",
+            "    provider = \"${2:anthropic}\",",
+            "    version = \"${3:claude-sonnet-4-20250514}\",",
+            "    temperature = ${4:0.7},",
+            "    max_tokens = ${5:4096}",
+            ")"
+        ],
+        "description": "Model declaration"
+    },
+    "permissions": {
+        "prefix": "permissions",
+        "body": [
+            "permissions",
+            "    allow",
+            "        ${1:filesystem.read}",
+            "        ${2:git.clone}",
+            "    deny",
+            "        ${3:shell.exec}"
+        ],
+        "description": "Permissions block"
+    },
+    "let": {
+        "prefix": "let",
+        "body": "let ${1:name} = ${2:value}",
+        "description": "Let binding"
+    },
+    "fn": {
+        "prefix": "fn",
+        "body": "fn ${1:x} => ${2:x * 2}",
+        "description": "Lambda expression"
+    },
+    "ask": {
+        "prefix": "ask",
+        "body": [
+            "ask ${1:Claude}:",
+            "    ${2:prompt}"
+        ],
+        "description": "Ask LLM prompt"
+    }
+}

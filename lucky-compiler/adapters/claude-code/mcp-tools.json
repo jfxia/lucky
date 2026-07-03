@@ -1,0 +1,69 @@
+{
+  "tools": [
+    {
+      "name": "lucky_run",
+      "description": "Execute a Lucky program by compiling and running it through the Lucky LTP runtime. Provide Lucky source code and a goal to pursue.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Lucky source code to execute"
+          },
+          "goal": {
+            "type": "string",
+            "description": "The goal name to pursue (entry point in the Lucky program)"
+          },
+          "context": {
+            "type": "object",
+            "description": "Execution context dictionary with project-specific variables (e.g. repo URL, branch, user info)"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["sync", "async"],
+            "description": "Execution mode. 'sync' waits for completion and returns the result. 'async' starts execution and returns an execution_id for status polling.",
+            "default": "sync"
+          }
+        },
+        "required": ["source"]
+      }
+    },
+    {
+      "name": "lucky_status",
+      "description": "Check the status of a running Lucky program execution.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "execution_id": {
+            "type": "string",
+            "description": "The execution ID returned by a previous lucky_run call in async mode"
+          }
+        },
+        "required": ["execution_id"]
+      }
+    },
+    {
+      "name": "lucky_approve",
+      "description": "Respond to a human approval request from a running Lucky program. Use this when a Lucky execution pauses and requests approval for a sensitive action (e.g. deployment, data modification).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "approval_id": {
+            "type": "string",
+            "description": "The approval request ID to respond to"
+          },
+          "decision": {
+            "type": "string",
+            "enum": ["approve", "reject", "modify"],
+            "description": "Your decision: 'approve' to allow the action, 'reject' to deny it, or 'modify' to approve with changes"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Explanation for the decision"
+          }
+        },
+        "required": ["approval_id", "decision"]
+      }
+    }
+  ]
+}

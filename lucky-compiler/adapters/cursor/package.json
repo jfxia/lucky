@@ -1,0 +1,73 @@
+{
+  "name": "lucky-runner",
+  "displayName": "Lucky Runner",
+  "description": "Run Lucky (.lk) goal-oriented agent programs directly from Cursor",
+  "version": "0.1.0",
+  "publisher": "lucky",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": ["Programming Languages", "Other"],
+  "activationEvents": [
+    "onLanguage:lucky",
+    "onCommand:lucky.run",
+    "onCommand:lucky.status",
+    "onCommand:lucky.approve"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "lucky",
+        "aliases": ["Lucky", "lucky"],
+        "extensions": [".lk"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "lucky.run",
+        "title": "Lucky: Run Program",
+        "category": "Lucky"
+      },
+      {
+        "command": "lucky.status",
+        "title": "Lucky: Show Status",
+        "category": "Lucky"
+      },
+      {
+        "command": "lucky.approve",
+        "title": "Lucky: Approve Pending Action",
+        "category": "Lucky"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "lucky.run",
+        "key": "ctrl+shift+l",
+        "when": "editorLangId == lucky"
+      }
+    ],
+    "configuration": {
+      "title": "Lucky Runner",
+      "properties": {
+        "lucky.serverPort": {
+          "type": "number",
+          "default": 9700,
+          "description": "Port for the Lucky LTP HTTP server"
+        },
+        "lucky.serverHost": {
+          "type": "string",
+          "default": "localhost",
+          "description": "Host for the Lucky LTP HTTP server"
+        },
+        "lucky.binaryPath": {
+          "type": "string",
+          "default": "lucky",
+          "description": "Path to the lucky CLI binary"
+        }
+      }
+    }
+  }
+}

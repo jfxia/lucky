@@ -1,0 +1,69 @@
+{
+  "tools": [
+    {
+      "name": "lucky_execute",
+      "description": "Compile and execute a Lucky (.lk) program via the Lucky Tool Protocol. Returns the execution result including outputs, cost, and duration. Supports both synchronous and asynchronous execution modes.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "program": {
+            "type": "string",
+            "description": "Path to a Lucky source file (.lk)."
+          },
+          "goal": {
+            "type": "string",
+            "description": "Optional goal name to pursue. If omitted, the default goal is used."
+          },
+          "context": {
+            "type": "object",
+            "description": "Optional execution context as a JSON object with key-value pairs passed to the program."
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["sync", "async"],
+            "description": "Execution mode. 'sync' waits for completion and returns the full result. 'async' returns an execution_id immediately for later polling. Default: 'sync'.",
+            "default": "sync"
+          }
+        },
+        "required": ["program"]
+      }
+    },
+    {
+      "name": "lucky_status",
+      "description": "Get the current status of a Lucky execution. Returns the state (pending, running, completed, failed, cancelled) and result data if completed.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "execution_id": {
+            "type": "string",
+            "description": "The execution ID returned by lucky_execute when using mode='async'."
+          }
+        },
+        "required": ["execution_id"]
+      }
+    },
+    {
+      "name": "lucky_approve",
+      "description": "Respond to a human-approval request from a Lucky program. Use this when a Lucky program pauses and requests a decision.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "approval_id": {
+            "type": "string",
+            "description": "The ID of the pending approval request."
+          },
+          "decision": {
+            "type": "string",
+            "enum": ["approved", "rejected"],
+            "description": "The approval decision."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Optional explanation for the decision."
+          }
+        },
+        "required": ["approval_id", "decision"]
+      }
+    }
+  ]
+}

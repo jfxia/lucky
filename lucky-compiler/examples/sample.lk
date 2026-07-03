@@ -1,0 +1,49 @@
+project WebsiteBuilder
+
+use Claude
+
+agent Planner
+    model Claude
+    tools
+        Search, Browser
+
+agent Coder
+    model Claude
+    tools
+        Filesystem, Git, Shell
+
+agent Reviewer
+    model Claude
+    prompt ReviewPrompt
+
+goal BuildLandingPage
+
+workflow MainWorkflow
+    Planner
+        ->
+    Coder
+        ->
+    Reviewer
+
+task AnalyzeRepo
+    input
+        repo: URI
+    output
+        report: String
+    steps
+        clone repo
+        read README
+        generate report
+
+permissions
+    allow
+        filesystem.read
+        git.clone
+        browser.search
+    deny
+        filesystem.delete
+        shell.exec
+
+memory ProjectMemory
+    scope project
+    backend vector

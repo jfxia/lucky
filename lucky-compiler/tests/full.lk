@@ -1,0 +1,32 @@
+project MyProject
+
+import some.module.{Tool1, Tool2}
+
+prompt DefaultPrompt
+
+agent MyAgent
+    model: ClaudeFast  tools: Shell, Git, Filesystem
+    memory: MainMemory
+    permissions: allow Shell.*  deny Network.*
+    policy: DefaultPolicy
+    prompt: DefaultPrompt
+
+    task task ProcessDatainput: data: string, format: string
+        output: result: string
+        context: db: Database
+        policy: DataPolicy
+        steps: 
+            let x= data|> validate|> transform
+            let y= x-> next_step-> final_step
+            run Agent.task(x)
+        rollback: 
+            run RollbackAgent.undo(data)
+
+task SimpleTask
+    input: query: string
+    output: done: bool
+    steps: run Agent.search(query)
+
+workflow MainFlow
+    run Agent1.task1() |> Agent2.task2()
+    run Agent3.task3()

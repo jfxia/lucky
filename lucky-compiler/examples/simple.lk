@@ -1,0 +1,18 @@
+project Minimal
+
+agent Helper
+    model Claude
+    memory ProjectMemory
+
+task Greet
+    input
+        name: String
+    output
+        greeting: String
+    steps
+        let msg = "Hello"
+        return msg
+
+goal SayHello
+    success
+        ok

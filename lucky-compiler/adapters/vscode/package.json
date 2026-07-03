@@ -1,0 +1,142 @@
+{
+    "name": "lucky-lang",
+    "displayName": "Lucky Language",
+    "description": "Lucky language support: syntax highlighting, snippets, formatting, debugging, and task integration",
+    "version": "0.1.0",
+    "publisher": "lucky-lang",
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": ["Programming Languages", "Formatters", "Debuggers", "Snippets"],
+    "keywords": ["lucky", "agent", "ai", "workflow", "orchestration"],
+    "icon": "icon.png",
+    "activationEvents": [
+        "onLanguage:lucky",
+        "onCommand:lucky.run",
+        "onCommand:lucky.fmt",
+        "onCommand:lucky.test",
+        "onCommand:lucky.check",
+        "onCommand:lucky.debug"
+    ],
+    "main": "./extension.js",
+    "contributes": {
+        "languages": [{
+            "id": "lucky",
+            "aliases": ["Lucky", "lucky"],
+            "extensions": [".lk"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "lucky",
+            "scopeName": "source.lucky",
+            "path": "./syntaxes/lucky.tmLanguage.json"
+        }],
+        "snippets": [{
+            "language": "lucky",
+            "path": "./snippets/lucky.json"
+        }],
+        "commands": [
+            { "command": "lucky.run", "title": "Lucky: Run Program" },
+            { "command": "lucky.fmt", "title": "Lucky: Format Document" },
+            { "command": "lucky.test", "title": "Lucky: Run Tests" },
+            { "command": "lucky.check", "title": "Lucky: Check Syntax" },
+            { "command": "lucky.debug", "title": "Lucky: Start Debugging" },
+            { "command": "lucky.ir", "title": "Lucky: Compile to IR" },
+            { "command": "lucky.init", "title": "Lucky: Initialize Project" }
+        ],
+        "keybindings": [
+            { "command": "lucky.run", "key": "ctrl+shift+l", "when": "editorLangId == lucky" },
+            { "command": "lucky.fmt", "key": "ctrl+shift+i", "when": "editorLangId == lucky" }
+        ],
+        "menus": {
+            "editor/context": [
+                { "command": "lucky.run", "group": "lucky", "when": "editorLangId == lucky" },
+                { "command": "lucky.fmt", "group": "lucky", "when": "editorLangId == lucky" }
+            ]
+        },
+        "configuration": {
+            "title": "Lucky",
+            "properties": {
+                "lucky.serverPath": {
+                    "type": "string",
+                    "default": "lucky",
+                    "description": "Path to the Lucky binary"
+                },
+                "lucky.formatOnSave": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Format .lk files on save"
+                },
+                "lucky.lintOnSave": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Run diagnostics on save"
+                }
+            }
+        },
+        "taskDefinitions": [{
+            "type": "lucky",
+            "required": ["command"],
+            "properties": {
+                "command": {
+                    "type": "string",
+                    "enum": ["run", "test", "check", "fmt", "ir"],
+                    "description": "The Lucky command to run"
+                },
+                "file": {
+                    "type": "string",
+                    "description": "The .lk file to process (defaults to current file)"
+                },
+                "goal": {
+                    "type": "string",
+                    "description": "Goal to pursue (for 'run' command)"
+                }
+            }
+        }],
+        "problemMatchers": [{
+            "name": "lucky",
+            "owner": "lucky",
+            "fileLocation": ["relative", "${workspaceFolder}"],
+            "pattern": {
+                "regexp": "^(.+):\\s+(error|warning)\\s+(.+)$",
+                "file": 1,
+                "severity": 2,
+                "message": 3
+            }
+        }],
+        "debuggers": [{
+            "type": "lucky",
+            "label": "Lucky Debugger",
+            "languages": ["lucky"],
+            "adapterExecutableCommand": "lucky.debug",
+            "configurationAttributes": {
+                "launch": {
+                    "properties": {
+                        "program": {
+                            "type": "string",
+                            "description": "Path to the .lk file to debug"
+                        },
+                        "goal": {
+                            "type": "string",
+                            "description": "Goal to pursue"
+                        },
+                        "stopOnEntry": {
+                            "type": "boolean",
+                            "description": "Stop at the first node",
+                            "default": false
+                        }
+                    }
+                }
+            },
+            "initialConfigurations": [{
+                "type": "lucky",
+                "name": "Debug Lucky Program",
+                "request": "launch",
+                "program": "${file}",
+                "goal": "",
+                "stopOnEntry": false
+            }]
+        }]
+    }
+}

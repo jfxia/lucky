@@ -1,0 +1,15 @@
+[package]
+name = "lucky-compiler"
+version = "0.1.0"
+edition = "2021"
+description = "Parser and AST for the Lucky goal-oriented agent language"
+
+[dependencies]
+
+[lib]
+name = "lucky_compiler"
+path = "src/lib.rs"
+
+[[bin]]
+name = "lucky"
+path = "src/main.rs"

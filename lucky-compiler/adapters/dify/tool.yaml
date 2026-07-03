@@ -1,0 +1,104 @@
+identity:
+  name: lucky_executor
+  author: Lucky Team
+  label:
+    en_US: Lucky Program Executor
+    zh_Hans: Lucky 程序执行器
+
+description:
+  human:
+    en_US: >
+      Executes Lucky programs via the Lucky Tool Protocol (LTP).
+      Lucky is a declarative AI workflow language that compiles agents,
+      tasks, and goals into an executable DAG. This tool connects to a
+      Lucky runtime server, loads a Lucky IR (Intermediate Representation)
+      program, and executes it to completion — returning results, cost
+      information, and all outputs.
+    zh_Hans: >
+      通过 Lucky 工具协议 (LTP) 执行 Lucky 程序。
+      Lucky 是一种声明式 AI 工作流语言，将智能体、任务和目标编译成可执行的 DAG。
+      此工具连接到 Lucky 运行时服务器，加载 Lucky IR（中间表示）程序并执行至完成 —
+      返回结果、成本信息和所有输出。
+  llm: >
+    Executes a Lucky IR program via an LTP server. Supply the IR (JSON),
+    the goal name to pursue, and optional context. Returns the execution
+    result as a string, cost in USD, all node outputs, and total duration
+    in milliseconds.
+
+parameters:
+  - name: ir
+    type: string
+    required: true
+    label:
+      en_US: Lucky IR (JSON)
+      zh_Hans: Lucky IR（JSON）
+    human_description:
+      en_US: The Lucky IR program to execute, as a JSON string.
+      zh_Hans: 要执行的 Lucky IR 程序，JSON 字符串格式。
+    llm_description: >
+      The Lucky program in IR (Intermediate Representation) format as a
+      JSON string. This is produced by the Lucky compiler (lucky compile).
+    form: llm
+
+  - name: goal
+    type: string
+    required: true
+    label:
+      en_US: Goal to pursue
+      zh_Hans: 执行目标
+    human_description:
+      en_US: The name of the goal (entry point) to execute within the program.
+      zh_Hans: 程序中要执行的目标（入口点）名称。
+    llm_description: >
+      The goal name that serves as the entry point for execution.
+      Must match a goal defined in the IR program.
+    form: llm
+
+  - name: context
+    type: object
+    required: false
+    label:
+      en_US: Execution context
+      zh_Hans: 执行上下文
+    human_description:
+      en_US: Optional key-value pairs to pass as execution context.
+      zh_Hans: 可选的键值对，作为执行上下文传入。
+    llm_description: >
+      Optional JSON object of context variables passed to the Lucky runtime.
+      Typical keys: user, repo, branch, environment, or any domain-specific values.
+    form: llm
+
+  - name: mode
+    type: string
+    required: false
+    default: sync
+    options:
+      - value: sync
+        label:
+          en_US: Synchronous
+          zh_Hans: 同步
+      - value: async
+        label:
+          en_US: Asynchronous
+          zh_Hans: 异步
+    label:
+      en_US: Execution mode
+      zh_Hans: 执行模式
+    human_description:
+      en_US: >
+        Synchronous mode waits for completion and returns the full result.
+        Asynchronous mode returns immediately with an execution ID for
+        later polling.
+      zh_Hans: >
+        同步模式等待执行完成并返回完整结果。
+        异步模式立即返回执行 ID 供后续轮询。
+    llm_description: >
+      Execution mode. "sync" blocks until completion; "async" returns
+      immediately. Use "sync" unless the workflow needs to poll for
+      long-running programs.
+    form: form
+
+extra:
+  python:
+    provider_source: provider.py
+    class_name: LuckyExecutorTool

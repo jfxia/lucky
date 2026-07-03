@@ -1,0 +1,5 @@
+project Hello
+
+import foo
+
+prompt Bar

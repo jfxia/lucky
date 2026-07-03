@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "lucky-ltp": {
+      "command": "python",
+      "args": [
+        "D:\\test\\lucky\\lucky-compiler\\adapters\\claude-code\\mcp-server.py"
+      ],
+      "env": {
+        "LUCKY_LTP_SERVER": "http://localhost:9700",
+        "LUCKY_LTP_TOKEN": ""
+      },
+      "description": "Lucky language MCP server — executes Lucky programs via the Lucky Tool Protocol (LTP)",
+      "autoStart": true
+    }
+  },
+  "note": "To run Lucky programs via stdio (subprocess) instead of HTTP, change LUCKY_LTP_SERVER to 'ltp+stdio://lucky serve --transport stdio'. The lucky CLI must be installed and on PATH."
+}
