@@ -20,3 +20,6 @@ __pycache__/
 # Temp files
 *.tmp
 *.bak
+
+# Patent documents (not for public distribution)
+docs/patent/
