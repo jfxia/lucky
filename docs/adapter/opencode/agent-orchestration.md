@@ -6,16 +6,16 @@ This guide shows how to define, compose, and run multi-agent pipelines using Luc
 
 ## What is Agent Orchestration?
 
-Agent orchestration means coordinating multiple AI agents — each with its own model, tools, memory, and permissions — to accomplish a complex goal. Lucky makes this declarative: you describe **who** does **what** and **in what order**, and the runtime handles scheduling, context propagation, concurrency, and error recovery.
+Agent orchestration means coordinating multiple AI agents -- each with its own model, tools, memory, and permissions -- to accomplish a complex goal. Lucky makes this declarative: you describe **who** does **what** and **in what order**, and the runtime handles scheduling, context propagation, concurrency, and error recovery.
 
 ```
-┌──────────┐    ┌──────────┐    ┌──────────┐
-│Researcher│───→│  Planner │───→│  Coder   │
-│DeepSeek  │    │DeepSeek  │    │DeepSeek  │
-│Search    │    │Filesystem│    │Git,Shell │
-└──────────┘    └──────────┘    └──────────┘
-     │                                │
-     └────── context flows ──────────→┘
++------------+    +------------+    +------------+
+| Researcher |--->|  Planner   |--->|   Coder    |
+| DeepSeek   |    | DeepSeek   |    | DeepSeek   |
+| Search     |    | Filesystem |    | Git,Shell  |
++------------+    +------------+    +------------+
+     |                                     |
+     +------- context flows -------------->+
 ```
 
 ---
@@ -41,16 +41,11 @@ project AgentPipeline
 
 use DeepSeek
 
-# ── Model ────────────────────────────────────
-
 model DeepSeek(
     provider = "deepseek",
     version = "deepseek-v4",
     temperature = 0.3,
 )
-
-# ── Agent 1: Researcher ──────────────────────
-# Gathers information from the web
 
 agent Researcher
     model DeepSeek
@@ -62,9 +57,6 @@ agent Researcher
     policy
         timeout 5m
 
-# ── Agent 2: Planner ─────────────────────────
-# Decomposes research into actionable steps
-
 agent Planner
     model DeepSeek
     tools
@@ -73,9 +65,6 @@ agent Planner
         allow filesystem.write
     policy
         timeout 3m
-
-# ── Agent 3: Writer ──────────────────────────
-# Produces the final output
 
 agent Writer
     model DeepSeek
@@ -92,8 +81,6 @@ agent Writer
 Tasks are the work units each agent performs:
 
 ```lucky
-# ── Researcher's tasks ──────────────────────
-
 task GatherSources
     input
         topic: String
@@ -104,8 +91,6 @@ task GatherSources
         let results = Search.search(topic, max_results = max_results)
         return results
 
-# ── Planner's tasks ──────────────────────────
-
 task CreatePlan
     input
         topic: String
@@ -115,8 +100,6 @@ task CreatePlan
     steps
         let plan = "Plan for: " + topic
         return plan
-
-# ── Writer's tasks ───────────────────────────
 
 task GenerateReport
     input
@@ -131,11 +114,9 @@ task GenerateReport
 
 ### Step 4: Wire the Workflow
 
-This is where orchestration happens. The `→` arrows define execution order. Without arrows, agents run in parallel:
+This is where orchestration happens. The `->` arrows define execution order. Without arrows, agents run in parallel:
 
 ```lucky
-# ── Sequential pipeline: Research → Plan → Write ──
-
 workflow ResearchPipeline
     context
         topic: String
@@ -145,12 +126,12 @@ workflow ResearchPipeline
         topic = context.topic,
         max_results = context.max_results,
     )
-        →
+        ->
     CreatePlan(
         topic = context.topic,
         research = context.sources,
     )
-        →
+        ->
     GenerateReport(
         topic = context.topic,
         plan = context.plan,
@@ -173,27 +154,27 @@ goal ProduceReport
 ```
 # Check syntax
 lucky_check(file="agent-pipeline/main.lk")
-# → { "valid": true }
+# -> { "valid": true }
 
 # Run the pipeline
 lucky_run(file="agent-pipeline/main.lk")
-# → { "status": "completed", "result": "success" }
+# -> { "status": "completed", "result": "success" }
 ```
 
 ---
 
 ## Orchestration Patterns
 
-### Pattern 1: Sequential Chain (→)
+### Pattern 1: Sequential Chain (`->`)
 
 Each agent waits for the previous one. Data flows through context automatically.
 
 ```lucky
 workflow Sequential
     AgentA.task1()
-        →
+        ->
     AgentB.task2()    # receives AgentA's output via context
-        →
+        ->
     AgentC.task3()    # receives AgentB's output via context
 ```
 
@@ -210,22 +191,22 @@ workflow ParallelAudit
     # Workflow completes when all three finish
 ```
 
-### Pattern 3: Fan-Out → Fan-In
+### Pattern 3: Fan-Out -> Fan-In
 
 Run parallel work, then aggregate results:
 
 ```lucky
 workflow ReviewAndMerge
     FetchPR(pr_number = context.pr)
-        →
+        ->
     parallel
         SecurityReviewer.review(diff)
         StyleReviewer.review(diff)
         PerfReviewer.review(diff)
-    wait                                    # barrier
-        →
-    Aggregator.merge(findings)              # runs after all complete
-        →
+    wait
+        ->
+    Aggregator.merge(findings)
+        ->
     PostComment(pr_number = context.pr)
 ```
 
@@ -236,7 +217,7 @@ Route execution based on results:
 ```lucky
 workflow ConditionalDeploy
     RunTests()
-        →
+        ->
     if context.tests_passed
         Deployer.deploy()
     else
@@ -250,7 +231,7 @@ Run many copies of the same agent on different inputs:
 ```lucky
 workflow BatchProcess
     FetchFiles(directory = "./data")
-        →
+        ->
     swarm 20 Analyzer.process_file(files)
     # 20 instances run in parallel, each processing a different file
 ```
@@ -275,7 +256,7 @@ workflow ResilientPipeline
 
 ## Context Propagation
 
-Context flows automatically from workflow → agent → task. No manual parameter passing:
+Context flows automatically from workflow -> agent -> task. No manual parameter passing:
 
 ```lucky
 workflow BuildFeature
@@ -284,11 +265,10 @@ workflow BuildFeature
         repo: URI
         feature_spec: String
 
-    # All agents below automatically receive context.user, context.repo, etc.
     Designer.design()
-        →
+        ->
     Coder.implement()
-        →
+        ->
     Tester.verify()
 ```
 
@@ -357,12 +337,12 @@ workflow PRCheck
         pr_number: Int
 
     Git.clone(context.repo)
-        →
+        ->
     parallel
         Reviewer.review(diff = Git.diff("main"))
         Tester.run(command = "cargo test")
     wait
-        →
+        ->
     if context.review_approved and context.tests_passed
         Deployer.deploy(environment = "staging")
     else
@@ -400,7 +380,7 @@ agent A
     model DeepSeek(...)
 
 workflow W
-    A.task1() → A.task2()
+    A.task1() -> A.task2()
 
 goal G
     workflow W")
@@ -410,6 +390,6 @@ goal G
 
 ## Next Steps
 
-- [Lucky Tutorial](../tutorial.md) — Full language walkthrough
-- [Language Reference](../Lucky%20Language%20Reference%20Manual%20V0.1.md) — Complete syntax
-- [Example Programs](../../lucky-compiler/examples/) — Real-world patterns including CI/CD, research, ETL, security audit
+- [Lucky Tutorial](../tutorial.md) -- Full language walkthrough
+- [Language Reference](../Lucky%20Language%20Reference%20Manual%20V0.1.md) -- Complete syntax
+- [Example Programs](../../lucky-compiler/examples/) -- Real-world patterns including CI/CD, research, ETL, security audit
