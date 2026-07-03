@@ -639,19 +639,5 @@ Lucky is specified across five technical documents:
 
 ---
 
-# Roadmap V0.1
-
-| Phase | Goal | Deliverable | Status |
-| ----- | ---- | ----------- | ------ |
-| 1 | Design philosophy | Core concepts, semantic hierarchy, design principles | Done |
-| 2 | Language specification | Syntax, grammar, semantics, type system, execution model | Done |
-| 3 | Runtime specification | Scheduler, memory, concurrency, checkpoints, permissions, security | Done |
-| 4 | Standard library | Built-in types, collections, AI primitives, tools, agents, APIs | Done |
-| 5 | IR specification | SSA-based execution graph, optimization passes, serialization | Done |
-| 6 | Tool Protocol (LTP) | JSON-RPC protocol for cross-platform AI execution | Done |
-| 7 | Parser & AST | Lexer, parser, AST, diagnostics | Done |
-| 8 | Compiler & IR | HIR/MIR/LIR lowering pipeline, optimization passes | Done |
-| 9 | Runtime engine | Task scheduler, context propagation, memory, permissions, tool execution | Done |
-| 10 | AI integrations | Adapters for Claude Code, Codex CLI, OpenCode, Cursor, Dify | Done |
-| 11 | Ecosystem | Package manager, debugger, LSP, formatter, testing framework, VS Code extension | Done |
+*See [ROADMAP.md](ROADMAP.md) for the full v0.1 achievements and v0.2/v0.3 plans.*
 
