@@ -148,6 +148,9 @@ impl Parser {
         let mut prompt = None;
         let mut tasks = Vec::new();
 
+        // Skip the NEWLINE after the agent name
+        while self.kind() == TokenKind::Newline { self.bump(); }
+
         if self.kind() == TokenKind::Indent {
             self.bump(); // INDENT
             while !self.is_eof() && !self.at_dedent() {
@@ -168,7 +171,8 @@ impl Parser {
                     self.bump();
                     // Parse tool references: `Tools, Tool2` possibly across lines
                     loop {
-                        while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Comma {
+                        while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Comma
+                            || self.kind() == TokenKind::Indent {
                             self.bump();
                         }
                         if self.at_dedent() || !self.is_ident() && self.kind() != TokenKind::Keyword {
@@ -246,6 +250,9 @@ impl Parser {
         let mut policy = None;
         let mut steps = None;
         let mut rollback = None;
+
+        // Skip the NEWLINE after the task name
+        while self.kind() == TokenKind::Newline { self.bump(); }
 
         if self.kind() == TokenKind::Indent {
             self.bump(); // INDENT
@@ -414,6 +421,9 @@ impl Parser {
         let mut backend = None;
         let mut config = Vec::new();
 
+        // Skip the NEWLINE after the memory name
+        while self.kind() == TokenKind::Newline { self.bump(); }
+
         if self.kind() == TokenKind::Indent {
             self.bump();
             while !self.is_eof() && !self.at_dedent() {
@@ -532,6 +542,9 @@ impl Parser {
         let (name, _) = self.expect_ident("prompt name")?;
         let mut sections = Vec::new();
 
+        // Skip the NEWLINE after the prompt name
+        while self.kind() == TokenKind::Newline { self.bump(); }
+
         if self.kind() == TokenKind::Indent {
             self.bump();
             while !self.is_eof() && !self.at_dedent() {
@@ -593,6 +606,9 @@ impl Parser {
         self.bump(); // 'policy'
         let (name, _) = self.expect_ident("policy name")?;
         let mut entries = Vec::new();
+
+        // Skip the NEWLINE after the policy name
+        while self.kind() == TokenKind::Newline { self.bump(); }
 
         if self.kind() == TokenKind::Indent {
             self.bump();
@@ -674,6 +690,9 @@ impl Parser {
 
         let mut allow = Vec::new();
         let mut deny = Vec::new();
+
+        // Skip the NEWLINE after the permissions keyword
+        while self.kind() == TokenKind::Newline { self.bump(); }
 
         if self.kind() == TokenKind::Indent {
             self.bump();

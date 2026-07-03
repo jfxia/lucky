@@ -1,0 +1,21 @@
+project MiniTest
+
+agent Helper
+    model Claude
+
+task Hello
+    input
+        name: String
+    output
+        greeting: String
+    steps
+        let g = "Hello"
+        return g
+
+goal SayHi
+    success
+        done
+    workflow MainWorkflow
+
+workflow MainWorkflow
+    Hello(name = "World")
