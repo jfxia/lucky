@@ -1,0 +1,44 @@
+project ParallelFanOut
+
+use DeepSeek
+
+model DeepSeek(
+    provider = "deepseek",
+    version = "deepseek-v4",
+)
+
+agent SecurityAuditor
+    model DeepSeek
+    tools Filesystem, Git, Shell
+
+agent StyleChecker
+    model DeepSeek
+    tools Filesystem
+
+agent PerformanceProfiler
+    model DeepSeek
+    tools Filesystem, Shell
+
+task ScanRepo
+    input repo: URI
+    output findings: String
+    steps return "scanned"
+
+task LintRepo
+    input repo: URI
+    output issues: String
+    steps return "linted"
+
+task ProfileRepo
+    input repo: URI
+    output report: String
+    steps return "profiled"
+
+workflow ParallelAudit
+    ScanRepo(repo = context.repo)
+    LintRepo(repo = context.repo)
+    ProfileRepo(repo = context.repo)
+
+goal RunAudit
+    success scanned and linted and profiled
+    workflow ParallelAudit

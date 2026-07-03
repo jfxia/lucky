@@ -1,0 +1,31 @@
+project SequentialChain
+
+use DeepSeek
+
+model DeepSeek(
+    provider = "deepseek",
+    version = "deepseek-v4",
+)
+
+agent AgentA
+    model DeepSeek
+    tools Filesystem
+
+agent AgentB
+    model DeepSeek
+    tools Filesystem
+
+agent AgentC
+    model DeepSeek
+    tools Filesystem
+
+workflow Sequential
+    AgentA.task1()
+        ->
+    AgentB.task2()
+        ->
+    AgentC.task3()
+
+goal RunChain
+    success all_tasks_complete
+    workflow Sequential

@@ -1,0 +1,79 @@
+project CIBot
+
+use DeepSeek
+
+model DeepSeek(
+    provider = "deepseek",
+    version = "deepseek-v4",
+)
+
+agent Reviewer
+    model DeepSeek
+    tools Git, Filesystem
+    permissions
+        allow git.diff
+        allow git.comment
+
+agent Tester
+    model DeepSeek
+    tools Shell, Git
+    permissions
+        allow shell.exec
+        allow git.clone
+
+agent Deployer
+    model DeepSeek
+    tools Git, Shell
+    permissions
+        allow git.push(staging/*)
+        deny git.push(main)
+
+task CloneRepo
+    input repo: URI
+    steps
+        Git.clone(repo)
+
+task ReviewDiff
+    output approved: Bool
+    steps
+        let diff = Git.diff("main")
+        let approved = diff.len() > 0
+        return approved
+
+task RunTests
+    output passed: Bool
+    steps
+        let result = Shell.exec("cargo test")
+        return result.success
+
+task DeployToStaging
+    steps
+        Git.checkout("staging")
+        Git.merge("feature/*")
+        Shell.exec("docker compose up -d staging")
+
+task PostFailureComment
+    input pr_number: Int
+    steps
+        Git.comment(pr_number, "Fix issues before merge")
+
+workflow PRCheck
+    context
+        repo: URI
+        pr_number: Int
+
+    CloneRepo(repo = context.repo)
+        ->
+    parallel
+        Reviewer.ReviewDiff()
+        Tester.RunTests()
+    wait
+        ->
+    if context.approved and context.passed
+        Deployer.DeployToStaging()
+    else
+        PostFailureComment(pr_number = context.pr_number)
+
+goal AutoReview
+    success cloned and reviewed and tested and handled
+    workflow PRCheck

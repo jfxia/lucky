@@ -1,0 +1,37 @@
+project SwarmExecution
+
+use DeepSeek
+
+model DeepSeek(
+    provider = "deepseek",
+    version = "deepseek-v4",
+)
+
+agent Analyzer
+    model DeepSeek
+    tools Filesystem
+    permissions allow filesystem.read
+
+task FetchFiles
+    input directory: String
+    output files: List<String>
+    steps
+        let files = Filesystem.list(directory)
+        return files
+
+task ProcessFile
+    input file: String
+    output result: String
+    steps
+        let content = Filesystem.read(file)
+        let result = "Processed: " + file
+        return result
+
+workflow BatchProcess
+    FetchFiles(directory = "./data")
+        ->
+    swarm 20 Analyzer.process_file(files = context.files)
+
+goal ProcessAll
+    success files_fetched and swarm_complete
+    workflow BatchProcess
