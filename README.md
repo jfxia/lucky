@@ -629,11 +629,11 @@ Lucky is specified across five technical documents:
 
 | Document | Description |
 |---|---|
-| [Language Reference Manual](Lucky%20Language%20Reference%20Manual%20V0.1.md) | Syntax, types, expressions, statements, AI programming model, standard library |
-| [Runtime Specification](Lucky%20Runtime%20Specification%20V0.1.md) | Scheduler, memory model, concurrency, checkpoints, permissions, security |
-| [Standard Library](Lucky%20Standard%20Library%20Specification%20V0.1.md) | Built-in types, collections, AI primitives, tools, agents, utility modules |
-| [IR Specification](Lucky%20IR%20Specification%20V0.1.md) | SSA-based execution graph, optimization passes, serialization, backend API |
-| [Tool Protocol (LTP)](Lucky%20Tool%20Protocol%20Specification%20V0.1.md) | JSON-RPC protocol for cross-platform execution (Claude Code, Codex CLI, etc.) |
+| [Language Reference Manual](docs/Lucky%20Language%20Reference%20Manual%20V0.1.md) | Syntax, types, expressions, statements, AI programming model, standard library |
+| [Runtime Specification](docs/Lucky%20Runtime%20Specification%20V0.1.md) | Scheduler, memory model, concurrency, checkpoints, permissions, security |
+| [Standard Library](docs/Lucky%20Standard%20Library%20Specification%20V0.1.md) | Built-in types, collections, AI primitives, tools, agents, utility modules |
+| [IR Specification](docs/Lucky%20IR%20Specification%20V0.1.md) | SSA-based execution graph, optimization passes, serialization, backend API |
+| [Tool Protocol (LTP)](docs/Lucky%20Tool%20Protocol%20Specification%20V0.1.md) | JSON-RPC protocol for cross-platform execution (Claude Code, Codex CLI, etc.) |
 
 ---
 

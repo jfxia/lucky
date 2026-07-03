@@ -863,9 +863,9 @@ workflow SoftwareDevelopment
 
 ## Where to Go Next
 
-- [Language Reference Manual](../Lucky%20Language%20Reference%20Manual%20V0.1.md) — Complete syntax and semantics
-- [Standard Library Reference](../Lucky%20Standard%20Library%20Specification%20V0.1.md) — All built-in types, tools, and APIs
-- [Runtime Specification](../Lucky%20Runtime%20Specification%20V0.1.md) — Execution engine internals
-- [IR Specification](../Lucky%20IR%20Specification%20V0.1.md) — Intermediate representation and optimization
-- [Tool Protocol (LTP)](../Lucky%20Tool%20Protocol%20Specification%20V0.1.md) — Cross-platform execution protocol
+- [Language Reference Manual](Lucky%20Language%20Reference%20Manual%20V0.1.md) — Complete syntax and semantics
+- [Standard Library Reference](Lucky%20Standard%20Library%20Specification%20V0.1.md) — All built-in types, tools, and APIs
+- [Runtime Specification](Lucky%20Runtime%20Specification%20V0.1.md) — Execution engine internals
+- [IR Specification](Lucky%20IR%20Specification%20V0.1.md) — Intermediate representation and optimization
+- [Tool Protocol (LTP)](Lucky%20Tool%20Protocol%20Specification%20V0.1.md) — Cross-platform execution protocol
 - [Quickstart Guide](quickstart.md) — Fast setup reference
