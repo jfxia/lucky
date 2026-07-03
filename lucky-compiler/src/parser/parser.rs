@@ -197,7 +197,6 @@ impl Parser {
                 "Expected indented block but found '{}'. Lucky uses indentation for blocks.",
                 self.text()
             ));
-            // Recovery: try to continue parsing without INDENT
             false
         }
     }

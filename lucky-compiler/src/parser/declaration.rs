@@ -360,17 +360,29 @@ impl Parser {
         let mut success_criteria = Vec::new();
         let mut workflows = Vec::new();
 
+        // Skip the NEWLINE after the goal name
+        while self.kind() == TokenKind::Newline { self.bump(); }
+
         if self.kind() == TokenKind::Indent {
             self.bump();
             while !self.is_eof() && !self.at_dedent() {
                 if self.is_keyword("success") {
                     self.bump();
-                    while !self.is_eof() && !self.at_dedent() && !self.is_keyword("workflow") {
+                    while !self.is_eof() && !self.is_keyword("workflow") {
+                        // Allow DEDENT within the success block (e.g. nested indent for criteria)
+                        if self.at_dedent() {
+                            self.bump(); // consume the inner DEDENT
+                            // If the next token is 'workflow', break to handle it in outer loop
+                            if self.is_keyword("workflow") {
+                                break;
+                            }
+                            // Otherwise, we've exited the success section entirely
+                            break;
+                        }
                         if self.is_ident() {
                             success_criteria.push(self.text().to_string());
                         }
                         self.bump();
-                        // If we hit EOF, break out
                         if self.is_eof() { break; }
                     }
                 } else if self.is_keyword("workflow") {

@@ -691,10 +691,27 @@ tasks = []
 
 use Claude
 
+agent Helper
+    model Claude
+    tools
+        Filesystem
+
+task SayHello
+    input
+        name: String
+    output
+        greeting: String
+    steps
+        let greeting = "Hello, " + name
+        return greeting
+
 goal MainGoal
     success
-        completed
+        greeting_returned
     workflow MainWorkflow
+
+workflow MainWorkflow
+    SayHello(name = "Lucky")
 "#,
         project_name
     );
