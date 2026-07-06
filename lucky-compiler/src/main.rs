@@ -214,6 +214,14 @@ fn cmd_run(path: &str, opt: OptimizationLevel) {
     let source = read_file(path);
     let file_id = FileId(0);
 
+    // Parse CLI flags
+    let args: Vec<String> = std::env::args().collect();
+    let budget = parse_flag_f64(&args, "--budget");
+    let auto_approve = args.iter().any(|a| a == "--auto-approve");
+    let approved_gates: Vec<String> = parse_flag_values(&args, "--approve");
+    let audit_path = parse_flag_string(&args, "--audit");
+    let resume_id = parse_flag_string(&args, "--resume");
+
     // Compile and build HIR
     let result = lucky_compiler::compile_to_ir(&source, file_id, opt);
     if result.diagnostics.has_errors() {
@@ -223,23 +231,97 @@ fn cmd_run(path: &str, opt: OptimizationLevel) {
         process::exit(1);
     }
 
-    // Rebuild HIR directly via compiler pipeline
     let (module, diag) = lucky_compiler::compile(&source, FileId(1));
-    if diag.has_errors() {
-        process::exit(1);
-    }
+    if diag.has_errors() { process::exit(1); }
     let resolved = lucky_compiler::semantic::resolver::NameResolver::new().resolve_module(module);
     let hir_graph = lucky_compiler::hir::builder::HirBuilder::new().build_module(&resolved.module);
 
-    // Load model config from manifest if available
     let router = load_router(path);
 
-    // Create runtime engine and execute
     let mut engine = lucky_compiler::runtime::executor::ExecutionEngine::new();
     engine.set_backend_router(router);
+    engine.budget = budget;
+    engine.auto_approve = auto_approve;
+    engine.approved_gates = approved_gates.clone();
+
+    // Set up audit logger
+    if let Some(ref apath) = audit_path {
+        match lucky_compiler::runtime::audit::AuditLogger::open(apath) {
+            Ok(logger) => {
+                use std::sync::Mutex;
+                let shared = std::sync::Arc::new(Mutex::new(logger));
+                let s = shared.clone();
+                engine.scheduler.audit_callback = Some(Box::new(move |event: &str, node_id: Option<usize>, cost: Option<f64>, tokens: Option<u64>, detail: Option<&str>| {
+                    if let Ok(ref mut log) = s.lock() {
+                        log.log(lucky_compiler::runtime::audit::AuditEvent {
+                            timestamp: 0,
+                            event_type: event.to_string(),
+                            node_id,
+                            agent_name: None,
+                            cost,
+                            tokens,
+                            error: detail.map(|s| s.to_string()),
+                            detail: None,
+                        });
+                    }
+                }));
+            }
+            Err(e) => eprintln!("Warning: {}", e),
+        }
+    }
+
+    // Handle --resume
+    if let Some(ref rid) = resume_id {
+        match engine.checkpoint_manager.load(rid) {
+            Ok(cp) => {
+                eprintln!("Resuming from checkpoint {} ({}), cost=${:.4}, tokens={}",
+                    rid, cp.timestamp, cp.cost_data.total_usd, cp.cost_data.tokens_used);
+                engine.cost_usd = cp.cost_data.total_usd;
+                engine.tokens_used = cp.cost_data.tokens_used;
+                // Restore completed/failed from checkpoint
+                for &nid in &cp.dag_progress.completed_nodes {
+                    if let Some(state) = engine.scheduler.nodes.get_mut(&nid) {
+                        state.status = lucky_compiler::runtime::NodeStatus::Completed;
+                    }
+                    engine.scheduler.completed_nodes.insert(nid);
+                }
+                for &nid in &cp.dag_progress.failed_nodes {
+                    if let Some(state) = engine.scheduler.nodes.get_mut(&nid) {
+                        state.status = lucky_compiler::runtime::NodeStatus::Failed;
+                    }
+                    engine.scheduler.failed_nodes.insert(nid);
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to load checkpoint: {}", e);
+                process::exit(1);
+            }
+        }
+    }
+
+    // Set up approval callback
+    if !auto_approve {
+        let gates = approved_gates.clone();
+        engine.scheduler.approval_callback = Some(Box::new(move |op: &str| -> bool {
+            if gates.contains(&op.to_string()) { return true; }
+            eprintln!("  Approval required: {}", op);
+            eprint!("[approve/reject/modify]: ");
+            let _ = std::io::Write::flush(&mut std::io::stderr());
+            let mut input = String::new();
+            match std::io::stdin().read_line(&mut input) {
+                Ok(_) => {
+                    let trimmed = input.trim().to_lowercase();
+                    matches!(trimmed.as_str(), "approve" | "a" | "yes" | "y" | "modify" | "m")
+                }
+                Err(_) => false,
+            }
+        }));
+    }
 
     eprintln!("=== Lucky Runtime Execution ===");
     eprintln!("Nodes: {}, Edges: {}", hir_graph.nodes.len(), hir_graph.edges.len());
+    if let Some(b) = budget { eprintln!("Budget: ${:.4}", b); }
+    if !audit_path.is_none() { eprintln!("Audit: {}", audit_path.as_deref().unwrap_or("")); }
     eprintln!();
 
     let events = engine.run(&hir_graph);
@@ -256,6 +338,21 @@ fn cmd_run(path: &str, opt: OptimizationLevel) {
             lucky_compiler::runtime::executor::ExecutionEvent::NodeFailed { node_id, label, error } => {
                 eprintln!("  FAIL   [{}] {}: {}", node_id, label, error);
             }
+            lucky_compiler::runtime::executor::ExecutionEvent::NodeRetrying { node_id, attempt } => {
+                eprintln!("  RETRY  [{}] attempt {}", node_id, attempt + 1);
+            }
+            lucky_compiler::runtime::executor::ExecutionEvent::CostBudgetExceeded { limit, current } => {
+                eprintln!("  BUDGET EXCEEDED: ${:.4} / ${:.4}", current, limit);
+            }
+            lucky_compiler::runtime::executor::ExecutionEvent::ApprovalRequested { node_id, message } => {
+                eprintln!("  APPROVAL [{}] {}", node_id, message);
+            }
+            lucky_compiler::runtime::executor::ExecutionEvent::CheckpointCreated { id } => {
+                eprintln!("  CHECKPOINT {}", id);
+            }
+            lucky_compiler::runtime::executor::ExecutionEvent::CostUpdated { total_usd } => {
+                eprintln!("  COST    ${:.4}", total_usd);
+            }
             lucky_compiler::runtime::executor::ExecutionEvent::ExecutionCompleted { result } => {
                 eprintln!("  === Execution {} ===", result);
             }
@@ -269,10 +366,38 @@ fn cmd_run(path: &str, opt: OptimizationLevel) {
     let summary = engine.summary();
     eprintln!();
     eprintln!("{}", summary);
+    eprintln!("Total: ${:.4} | Tokens: {}", engine.cost_usd, engine.tokens_used);
 
     if summary.status == lucky_compiler::runtime::RunStatus::Failed {
         process::exit(1);
     }
+}
+
+fn parse_flag_f64(args: &[String], flag: &str) -> Option<f64> {
+    args.iter().position(|a| a == flag)
+        .and_then(|i| args.get(i + 1))
+        .and_then(|v| v.parse().ok())
+}
+
+fn parse_flag_string(args: &[String], flag: &str) -> Option<String> {
+    args.iter().position(|a| a == flag)
+        .and_then(|i| args.get(i + 1))
+        .map(|v| v.to_string())
+}
+
+fn parse_flag_values(args: &[String], flag: &str) -> Vec<String> {
+    let mut values = Vec::new();
+    let mut i = 0;
+    while i < args.len() {
+        if args[i] == flag {
+            if let Some(v) = args.get(i + 1) {
+                values.push(v.to_string());
+                i += 1;
+            }
+        }
+        i += 1;
+    }
+    values
 }
 
 fn cmd_test(paths: &[String]) {

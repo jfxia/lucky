@@ -1,6 +1,7 @@
 //! Task Scheduler — priority-based topological traversal of the execution DAG.
 
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::time::{Duration, Instant};
 use crate::hir::{HirGraph, HirNode, HirEdgeKind};
 use crate::backends::{BackendRouter, CompleteOptions};
 use super::{NodeStatus, RuntimeValue};
@@ -42,10 +43,10 @@ pub struct NodeState {
     pub max_retries: u32,
     pub started_at_ms: u64,
     pub completed_at_ms: u64,
-    /// Number of unsatisfied incoming dependencies.
     pub pending_inputs: usize,
-    /// Depth in the DAG from the entry point.
     pub depth: usize,
+    pub failure_timestamps: Vec<u64>,
+    pub backoff_ms: u64,
 }
 
 impl NodeState {
@@ -61,6 +62,8 @@ impl NodeState {
             completed_at_ms: 0,
             pending_inputs: 0,
             depth,
+            failure_timestamps: Vec::new(),
+            backoff_ms: 0,
         }
     }
 }
@@ -93,6 +96,16 @@ pub struct Scheduler {
     terminal_failure: bool,
     /// LLM backend router for executing LlmCall nodes.
     pub backend_router: Option<BackendRouter>,
+    /// Budget limit in USD (None = unlimited).
+    pub budget: Option<f64>,
+    /// Whether to auto-approve all approval gates.
+    pub auto_approve: bool,
+    /// Gates that should be auto-approved.
+    pub approved_gates: Vec<String>,
+    /// Callback for approval requests (returns true to approve).
+    pub approval_callback: Option<Box<dyn Fn(&str) -> bool>>,
+    /// Audit event callback.
+    pub audit_callback: Option<Box<dyn Fn(&str, Option<usize>, Option<f64>, Option<u64>, Option<&str>)>>,
 }
 
 impl Scheduler {
@@ -111,6 +124,11 @@ impl Scheduler {
             next_id: 0,
             terminal_failure: false,
             backend_router: None,
+            budget: None,
+            auto_approve: false,
+            approved_gates: Vec::new(),
+            approval_callback: None,
+            audit_callback: None,
         }
     }
 
@@ -251,11 +269,37 @@ impl Scheduler {
         cost_usd: &mut f64,
         tokens_used: &mut u64,
     ) -> bool {
-        // Pick the highest-priority ready node
         let node_id = match self.ready_queue.pop_front() {
             Some(id) => id,
             None => return false,
         };
+
+        // Check budget for LLM nodes
+        if let Some(budget) = self.budget {
+            if let Some(hir) = self.hir_nodes.get(&node_id) {
+                if matches!(hir, HirNode::LlmCall { .. }) {
+                    let estimated = 0.005; // est. cost per LLM call
+                    if *cost_usd + estimated > budget {
+                        if let Some(ref cb) = self.audit_callback {
+                            cb("cost_budget_exceeded", Some(node_id), Some(*cost_usd), Some(*tokens_used), None);
+                        }
+                        let err = format!(
+                            "CostBudgetExceeded: estimate ${:.4} + current ${:.4} exceeds budget ${:.4}",
+                            estimated, *cost_usd, budget
+                        );
+                        if let Some(state) = self.nodes.get_mut(&node_id) {
+                            state.status = NodeStatus::Failed;
+                            state.output = Some(RuntimeValue::Error {
+                                code: 402, message: err.clone(), recoverable: false,
+                            });
+                            self.failed_nodes.insert(node_id);
+                        }
+                        self.terminal_failure = true;
+                        return true;
+                    }
+                }
+            }
+        }
 
         self.active_nodes.insert(node_id);
         if let Some(state) = self.nodes.get_mut(&node_id) {
@@ -263,7 +307,13 @@ impl Scheduler {
             state.started_at_ms = current_time_ms();
         }
 
-        // Execute the node
+        if let Some(ref cb) = self.audit_callback {
+            let label = self.hir_nodes.get(&node_id)
+                .map(|n| format!("{:?}", std::mem::discriminant(n)))
+                .unwrap_or_else(|| "?".to_string());
+            cb("node_started", Some(node_id), Some(*cost_usd), Some(*tokens_used), Some(&label));
+        }
+
         let result = self.execute_node(node_id, ctx, memory, permissions, tools);
 
         self.active_nodes.remove(&node_id);
@@ -276,17 +326,34 @@ impl Scheduler {
                     state.output = Some(output);
                     state.completed_at_ms = current_time_ms();
                 }
-                // Signal successors
+                if let Some(ref cb) = self.audit_callback {
+                    cb("node_completed", Some(node_id), Some(*cost_usd), Some(*tokens_used), None);
+                }
                 self.signal_successors(node_id);
             }
             Err(err) => {
+                let (should_retry, delay_ms) = self.compute_retry(node_id, &err);
                 if let Some(state) = self.nodes.get_mut(&node_id) {
-                    if state.retry_count < state.max_retries
-                        && err.contains("transient") || err.contains("retry") {
+                    if should_retry {
                         state.retry_count += 1;
-                        state.status = NodeStatus::Ready;
+                        state.backoff_ms = delay_ms;
+                        let now = current_time_ms();
+                        state.failure_timestamps.push(now);
+                        state.status = NodeStatus::Pending;
                         state.pending_inputs = 0;
-                        // Re-queue with lower priority
+                        if let Some(ref cb) = self.audit_callback {
+                            cb("node_retrying", Some(node_id), Some(*cost_usd), Some(*tokens_used),
+                                Some(&format!("attempt {}/{} after {}ms", state.retry_count, state.max_retries, delay_ms)));
+                        }
+                        // Sleep for backoff delay (busy-wait for simplicity)
+                        let start = Instant::now();
+                        while start.elapsed() < Duration::from_millis(delay_ms) {
+                            std::hint::spin_loop();
+                        }
+                        // Re-queue
+                        if let Some(state) = self.nodes.get_mut(&node_id) {
+                            state.status = NodeStatus::Ready;
+                        }
                         self.ready_queue.push_back(node_id);
                     } else {
                         state.status = NodeStatus::Failed;
@@ -296,17 +363,48 @@ impl Scheduler {
                             recoverable: false,
                         });
                         self.failed_nodes.insert(node_id);
-                        // Don't signal successors on failure unless recovery is configured
+                        if let Some(ref cb) = self.audit_callback {
+                            cb("node_failed", Some(node_id), Some(*cost_usd), Some(*tokens_used),
+                                Some(&err));
+                        }
                         self.terminal_failure = true;
                     }
                 }
             }
         }
 
-        // Refresh ready queue after state changes
         self.refresh_ready_queue();
-
         true
+    }
+
+    /// Compute whether to retry and the backoff delay.
+    fn compute_retry(&self, node_id: usize, _err: &str) -> (bool, u64) {
+        let state = match self.nodes.get(&node_id) {
+            Some(s) => s,
+            None => return (false, 0),
+        };
+
+        if state.retry_count >= state.max_retries { return (false, 0); }
+
+        // Circuit breaker: fail 5+ times within 60s
+        let now = current_time_ms();
+        let window_ms: u64 = 60000;
+        let recent_failures = state.failure_timestamps.iter()
+            .filter(|&&t| now.saturating_sub(t) < window_ms)
+            .count();
+        if recent_failures >= 5 { return (false, 0); }
+
+        let base: u64 = 1000;
+        let max_delay: u64 = 600000; // 10 minutes
+        let attempt = state.retry_count as u64;
+
+        let delay = (base * (1u64 << attempt)).min(max_delay);
+
+        // Jitter: multiply by (0.5 + random(0, 1))
+        let jitter = (now % 1000) as f64 / 2000.0 + 0.5; // 0.5 to 1.0
+        let delay_ms = (delay as f64 * jitter) as u64;
+
+        (true, delay_ms)
     }
 
     /// Signal that a node's dependencies are now satisfied.
@@ -410,12 +508,26 @@ impl Scheduler {
                     system_prompt: None,
                 };
 
+                let start_cost = 0.0;
+                if let Some(ref cb) = self.audit_callback {
+                    cb("llm_called", Some(node_id), Some(start_cost), Some(0), Some(model_ref));
+                }
+
                 let response = if let Some(ref router) = self.backend_router {
                     match router.route(model_ref) {
                         Some(backend) => {
                             match backend.complete(prompt, &options) {
-                                Ok(text) => text,
+                                Ok(text) => {
+                                    let cost = backend.cost_per_1k_tokens();
+                                    if let Some(ref cb) = self.audit_callback {
+                                        cb("llm_completed", Some(node_id), Some(cost), Some(options.max_tokens as u64), Some(model_ref));
+                                    }
+                                    text
+                                }
                                 Err(e) => {
+                                    if let Some(ref cb) = self.audit_callback {
+                                        cb("llm_failed", Some(node_id), None, None, Some(&e));
+                                    }
                                     return Err(format!(
                                         "LLM call failed (model={}, provider={}): {}",
                                         model_ref, backend.name(), e
@@ -515,8 +627,27 @@ impl Scheduler {
             }
 
             HirNode::Approval { operation, .. } => {
-                // In a full implementation, this would suspend for human approval.
-                // For now, auto-approve.
+                let op = operation.clone();
+                if self.auto_approve || self.approved_gates.contains(&op) {
+                    if let Some(ref cb) = self.audit_callback {
+                        cb("approval_auto_approved", Some(node_id), None, None, Some(&op));
+                    }
+                    return Ok(RuntimeValue::Bool(true));
+                }
+                if let Some(ref cb) = self.approval_callback {
+                    if cb(&op) {
+                        if let Some(ref ac) = self.audit_callback {
+                            ac("approval_granted", Some(node_id), None, None, Some(&op));
+                        }
+                        return Ok(RuntimeValue::Bool(true));
+                    } else {
+                        if let Some(ref ac) = self.audit_callback {
+                            ac("approval_rejected", Some(node_id), None, None, Some(&op));
+                        }
+                        return Err(format!("Approval rejected for: {}", op));
+                    }
+                }
+                // No callback set — default to approve
                 Ok(RuntimeValue::Bool(true))
             }
 

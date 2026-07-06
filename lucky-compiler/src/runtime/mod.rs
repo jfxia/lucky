@@ -10,6 +10,8 @@ pub mod memory;
 pub mod permissions;
 pub mod tools;
 pub mod executor;
+pub mod checkpoint;
+pub mod audit;
 
 use std::collections::HashMap;
 use crate::diagnostics::DiagnosticBag;

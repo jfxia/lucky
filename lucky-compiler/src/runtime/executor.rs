@@ -7,6 +7,8 @@ use super::memory::MemoryManager;
 use super::permissions::PermissionEnforcer;
 use super::tools::ToolRegistry;
 use super::scheduler::Scheduler;
+use super::checkpoint::{CheckpointManager, DagProgress};
+use super::audit::AuditLogger;
 use crate::hir::HirGraph;
 use crate::backends::BackendRouter;
 use crate::diagnostics::DiagnosticBag;
@@ -24,8 +26,12 @@ pub struct ExecutionEngine {
     pub cost_usd: f64,
     pub tokens_used: u64,
     pub max_steps: usize,
+    pub budget: Option<f64>,
+    pub auto_approve: bool,
+    pub approved_gates: Vec<String>,
+    pub checkpoint_manager: CheckpointManager,
+    pub audit_logger: AuditLogger,
     step_count: usize,
-    /// Event log for observability.
     pub events: Vec<ExecutionEvent>,
 }
 
@@ -38,6 +44,7 @@ pub enum ExecutionEvent {
     CheckpointCreated { id: String },
     ApprovalRequested { node_id: usize, message: String },
     CostUpdated { total_usd: f64 },
+    CostBudgetExceeded { limit: f64, current: f64 },
     ExecutionCompleted { result: String },
     ExecutionFailed { error: String },
 }
@@ -58,6 +65,11 @@ impl ExecutionEngine {
             cost_usd: 0.0,
             tokens_used: 0,
             max_steps: 10000,
+            budget: None,
+            auto_approve: false,
+            approved_gates: Vec::new(),
+            checkpoint_manager: CheckpointManager::new(),
+            audit_logger: AuditLogger::new(),
             step_count: 0,
             events: Vec::new(),
         }

@@ -1,5 +1,5 @@
-use std::collections::{HashMap, HashSet, VecDeque};
-use crate::hir::{HirGraph, HirNode, HirEdgeKind, NodeId};
+use std::collections::{HashSet, VecDeque};
+use crate::hir::{HirGraph, HirNode, HirEdgeKind};
 
 pub fn verify_graph(graph: &HirGraph) -> Result<(), Vec<String>> {
     let mut errors = Vec::new();
