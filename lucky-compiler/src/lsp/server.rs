@@ -527,17 +527,25 @@ impl CompletionEngine {
         let prefix = &source[..offset.min(source.len())];
         let partial = word_before(prefix);
         let ctx = infer_context(source, offset);
+        let last_word = last_full_word(prefix);
         let mut items: Vec<CompletionItem> = Vec::new();
 
         let keywords = match ctx {
-            Context::TopLevel => TOP_LEVEL_KEYWORDS,
+            Context::TopLevel => {
+                let before = prefix.trim();
+                if before.ends_with("use ") {
+                    &["DeepSeek", "GPT", "Claude", "Local", "Ollama"][..]
+                } else {
+                    TOP_LEVEL_KEYWORDS
+                }
+            }
             Context::AgentBody => AGENT_BODY_KEYWORDS,
             Context::TaskBody => TASK_BODY_KEYWORDS,
             Context::Statement => STATEMENT_KEYWORDS,
         };
 
         for kw in keywords {
-            if partial.is_empty() || kw.starts_with(partial) {
+            if partial.is_empty() || kw.to_lowercase().starts_with(&partial.to_lowercase()) {
                 items.push(CompletionItem {
                     label: kw.to_string(),
                     detail: Some("keyword".into()),
@@ -547,6 +555,145 @@ impl CompletionEngine {
             }
         }
 
+        // After `model ` — suggest model names
+        if last_word == "model" && ctx == Context::AgentBody {
+            for name in &["DeepSeek", "GPT", "Claude", "Local"] {
+                if partial.is_empty() || name.to_lowercase().starts_with(&partial.to_lowercase()) {
+                    items.push(CompletionItem {
+                        label: name.to_string(),
+                        detail: Some("model".into()),
+                        kind: completion_kind("class"),
+                        insert_text: Some(name.to_string()),
+                    });
+                }
+            }
+        }
+
+        // After `tools` (or on tools line) — suggest tool names
+        if ctx == Context::AgentBody && prefix.trim_end().ends_with("tools")
+            || prefix.lines().last().unwrap_or("").trim().starts_with("tools") {
+            for tool in &["Filesystem", "Shell", "Git", "Browser", "Search", "HTTP"] {
+                if partial.is_empty() || tool.to_lowercase().starts_with(&partial.to_lowercase()) {
+                    items.push(CompletionItem {
+                        label: tool.to_string(),
+                        detail: Some("tool".into()),
+                        kind: completion_kind("class"),
+                        insert_text: Some(tool.to_string()),
+                    });
+                }
+            }
+        }
+
+        // After `memory ` — suggest memory names from the module
+        if last_word == "memory" && ctx == Context::AgentBody {
+            if let Some(m) = module {
+                for item in &m.items {
+                    if let crate::ast::ModuleItem::Memory(mem) = item {
+                        if partial.is_empty() || mem.name.to_lowercase().starts_with(&partial.to_lowercase()) {
+                            items.push(CompletionItem {
+                                label: mem.name.clone(),
+                                detail: Some("memory".into()),
+                                kind: completion_kind("class"),
+                                insert_text: Some(mem.name.clone()),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // After `:` — suggest type names
+        if prefix.trim_end().ends_with(':') {
+            for typ in &["String", "Int", "Bool", "Float", "List", "Map", "URI", "Set", "Bytes", "Artifact", "Any"] {
+                let lt = typ.to_lowercase();
+                if partial.is_empty() || lt.starts_with(&partial.to_lowercase()) {
+                    items.push(CompletionItem {
+                        label: typ.to_string(),
+                        detail: Some("type".into()),
+                        kind: completion_kind("struct"),
+                        insert_text: Some(typ.to_string()),
+                    });
+                }
+            }
+        }
+
+        // After `AgentName.` — suggest task names
+        if prefix.ends_with('.') {
+            let dot_prefix = &prefix[..prefix.len() - 1];
+            let agent_name = word_before(dot_prefix);
+            if let Some(m) = module {
+                for item in &m.items {
+                    if let crate::ast::ModuleItem::Agent(a) = item {
+                        if a.name == agent_name {
+                            for task in &a.tasks {
+                                if partial.is_empty() || task.name.to_lowercase().starts_with(&partial.to_lowercase()) {
+                                    items.push(CompletionItem {
+                                        label: task.name.clone(),
+                                        detail: Some("task method".into()),
+                                        kind: completion_kind("method"),
+                                        insert_text: Some(task.name.clone()),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // After `context.` — suggest context field names
+        if prefix.ends_with("context.") && ctx == Context::Statement {
+            if let Some(m) = module {
+                let dot_prefix = &prefix[..prefix.len() - 1];
+                let task_name = infer_current_task(source, offset);
+                for item in &m.items {
+                    if let crate::ast::ModuleItem::Task(t) = item {
+                        if t.name == task_name || task_name.is_empty() {
+                            for c in &t.context {
+                                if partial.is_empty() || c.name.to_lowercase().starts_with(&partial.to_lowercase()) {
+                                    items.push(CompletionItem {
+                                        label: c.name.clone(),
+                                        detail: Some("context field".into()),
+                                        kind: completion_kind("field"),
+                                        insert_text: Some(c.name.clone()),
+                                    });
+                                }
+                            }
+                            for c in &t.inputs {
+                                if partial.is_empty() || c.name.to_lowercase().starts_with(&partial.to_lowercase()) {
+                                    items.push(CompletionItem {
+                                        label: c.name.clone(),
+                                        detail: Some("input".into()),
+                                        kind: completion_kind("field"),
+                                        insert_text: Some(c.name.clone()),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Variable completions — track `let` bindings
+        for line in prefix.lines() {
+            let trimmed = line.trim();
+            if let Some(rest) = trimmed.strip_prefix("let ") {
+                if let Some(space) = rest.find(|c: char| c.is_whitespace() || c == ':' || c == '=') {
+                    let var_name = &rest[..space];
+                    if partial.is_empty() || var_name.to_lowercase().starts_with(&partial.to_lowercase()) {
+                        items.push(CompletionItem {
+                            label: var_name.to_string(),
+                            detail: Some("variable".into()),
+                            kind: completion_kind("variable"),
+                            insert_text: Some(var_name.to_string()),
+                        });
+                    }
+                }
+            }
+        }
+
+        // Module item completions
         if let Some(m) = module {
             for item in &m.items {
                 let (name, kind_str) = match item {
@@ -562,13 +709,15 @@ impl CompletionEngine {
                     crate::ast::ModuleItem::Type(t) => (t.name.as_str(), "type"),
                     _ => continue,
                 };
-                if partial.is_empty() || name.starts_with(partial) {
-                    items.push(CompletionItem {
-                        label: name.to_string(),
-                        detail: Some(kind_str.into()),
-                        kind: completion_kind("class"),
-                        insert_text: Some(name.to_string()),
-                    });
+                if partial.is_empty() || name.to_lowercase().starts_with(&partial.to_lowercase()) {
+                    if !items.iter().any(|i| i.label == name) {
+                        items.push(CompletionItem {
+                            label: name.to_string(),
+                            detail: Some(kind_str.into()),
+                            kind: completion_kind("class"),
+                            insert_text: Some(name.to_string()),
+                        });
+                    }
                 }
             }
         }
@@ -696,6 +845,7 @@ pub struct LspServer {
     completion_engine: CompletionEngine,
     diagnostic_engine: DiagnosticEngine,
     shutdown_requested: bool,
+    last_diag_time: u64,
 }
 
 impl LspServer {
@@ -705,6 +855,7 @@ impl LspServer {
             completion_engine: CompletionEngine,
             diagnostic_engine: DiagnosticEngine,
             shutdown_requested: false,
+            last_diag_time: 0,
         }
     }
 
@@ -847,7 +998,15 @@ impl LspServer {
             }
         }
         self.documents.update(uri, &changes);
-        self.publish_diagnostics(uri, out)
+
+        // Debounce: only publish diagnostics every 300ms
+        let now = current_ms();
+        if now.saturating_sub(self.last_diag_time) >= 300 {
+            self.last_diag_time = now;
+            self.publish_diagnostics(uri, out)
+        } else {
+            Ok(())
+        }
     }
 
     fn handle_did_close(&mut self, req: &JsonVal) {
@@ -1428,4 +1587,32 @@ fn compute_indent(line: &str, lines: &[&str], idx: usize) -> usize {
 pub fn run_lsp_server() -> io::Result<()> {
     let mut server = LspServer::new();
     server.run()
+}
+
+fn last_full_word(text: &str) -> String {
+    let trimmed = text.trim_end();
+    if let Some(pos) = trimmed.rfind(|c: char| c.is_whitespace()) {
+        trimmed[pos + 1..].to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+fn infer_current_task(source: &str, offset: usize) -> String {
+    let text = &source[..offset.min(source.len())];
+    for line in text.lines().rev() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("task ") {
+            let rest = &trimmed[5..];
+            return rest.split_whitespace().next().unwrap_or("").to_string();
+        }
+    }
+    String::new()
+}
+
+fn current_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
 }

@@ -3,6 +3,8 @@
 //! This module defines the types and entry points that an LSP server
 //! (or any IDE integration) would use to interact with the Lucky compiler.
 
+pub mod server;
+
 use crate::ast::span::Span;
 
 /// A position in a source file (LSP-compatible: zero-based line and character).

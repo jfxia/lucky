@@ -28,6 +28,8 @@ fn main() {
         eprintln!("  init                            Initialize a new Lucky project");
         eprintln!("  serve [--port 9700]             Start LTP server for external adapters");
         eprintln!("  lsp                              Start in LSP mode (stdio)");
+        eprintln!("  watch [dir] [--run]              Watch directory for changes and re-check");
+        eprintln!("  doc <dir> [-o <output>]          Generate documentation from .lk files");
         process::exit(1);
     }
 
@@ -99,6 +101,16 @@ fn main() {
         }
         "lsp" => {
             cmd_lsp();
+        }
+        "watch" => {
+            let dir = args.get(2).map(|s| s.as_str()).unwrap_or(".");
+            let run_after = args.iter().any(|a| a == "--run");
+            cmd_watch(dir, run_after);
+        }
+        "doc" => {
+            let dir = args.get(2).map(|s| s.as_str()).unwrap_or(".");
+            let out_dir = parse_flag_string(&args, "-o").unwrap_or_else(|| "docs/generated".to_string());
+            cmd_doc(dir, &out_dir);
         }
         "debug" => {
             let path = args.get(2).unwrap_or_else(|| {
@@ -867,9 +879,264 @@ workflow MainWorkflow
 }
 
 fn cmd_lsp() {
-    eprintln!("LSP mode is not yet implemented. This is a stub.");
-    process::exit(0);
+    use lucky_compiler::lsp::server::LspServer;
+    let mut server = LspServer::new();
+    if let Err(e) = server.run() {
+        eprintln!("LSP server error: {}", e);
+        process::exit(1);
+    }
 }
+
+fn cmd_watch(dir_path: &str, run_after: bool) {
+    use std::fs;
+    use std::path::Path;
+    use std::time::{Duration, SystemTime};
+
+    let dir = Path::new(dir_path);
+    if !dir.exists() {
+        eprintln!("Directory not found: {}", dir_path);
+        process::exit(1);
+    }
+
+    let mut last_checked = SystemTime::now();
+    eprintln!("Watching {} for changes... (Ctrl+C to stop)", dir.display());
+    eprintln!();
+
+    loop {
+        let mut any_changed = false;
+        let mut changed_files = Vec::new();
+
+        match fs::read_dir(dir) {
+            Ok(entries) => {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.extension().map_or(true, |e| e != "lk") { continue; }
+                    if let Ok(meta) = path.metadata() {
+                        if let Ok(mod_time) = meta.modified() {
+                            if mod_time > last_checked {
+                                any_changed = true;
+                                changed_files.push(path);
+                            }
+                        }
+                    }
+                }
+            }
+            Err(_) => {}
+        }
+
+        if any_changed {
+            last_checked = SystemTime::now();
+            // ANSI clear screen
+            eprint!("\x1b[2J\x1b[H");
+            eprintln!("{BOLD}Recompiling...{RESET}\n");
+
+            let mut all_ok = true;
+            for path in &changed_files {
+                let source = match fs::read_to_string(path) {
+                    Ok(s) => s,
+                    Err(e) => { eprintln!("Error reading {}: {}", path.display(), e); all_ok = false; continue; }
+                };
+                let file_id = lucky_compiler::ast::span::FileId(0);
+                let (_module, diagnostics) = lucky_compiler::compile(&source, file_id);
+
+                if diagnostics.has_errors() {
+                    all_ok = false;
+                    let path_str = path.to_string_lossy();
+                    lucky_compiler::diagnostics::print_diagnostics(
+                        &diagnostics.diagnostics, &source, &path_str,
+                    );
+                }
+                if !diagnostics.is_empty() {
+                    eprintln!("  {} — {} diagnostics", path.display(), diagnostics.diagnostics.len());
+                }
+            }
+
+            if all_ok {
+                eprintln!("{BOLD}OK{RESET} — all checks passed\n");
+
+                if run_after {
+                    for path in &changed_files {
+                        let path_str = path.to_string_lossy();
+                        eprintln!("Running {}...\n", path_str);
+                        cmd_run(&path_str, lucky_compiler::mir::optimize::OptimizationLevel::O2);
+                    }
+                }
+            }
+        }
+
+        std::thread::sleep(Duration::from_millis(500));
+    }
+}
+
+fn cmd_doc(dir_path: &str, out_dir: &str) {
+    use std::fs;
+    use std::path::Path;
+
+    let dir = Path::new(dir_path);
+    if !dir.exists() {
+        eprintln!("Directory not found: {}", dir_path);
+        process::exit(1);
+    }
+
+    fs::create_dir_all(out_dir).unwrap_or_else(|e| {
+        eprintln!("Cannot create output dir '{}': {}", out_dir, e);
+        process::exit(1);
+    });
+
+    let mut lk_files = Vec::new();
+    let mut visited = std::collections::HashSet::new();
+    collect_lk_files(dir, &mut lk_files, &mut visited);
+
+    if lk_files.is_empty() {
+        eprintln!("No .lk files found in {}", dir.display());
+        return;
+    }
+
+    let mut index_content = String::new();
+    index_content.push_str("# Lucky API Documentation\n\n");
+    index_content.push_str("Generated from `.lk` source files.\n\n");
+    index_content.push_str("## Index\n\n");
+
+    for path in &lk_files {
+        let source = match fs::read_to_string(path) {
+            Ok(s) => s, Err(_) => continue,
+        };
+        let file_id = lucky_compiler::ast::span::FileId(0);
+        let (module, _) = lucky_compiler::compile(&source, file_id);
+
+        let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("unknown");
+        let out_path = Path::new(out_dir).join(format!("{}.md", stem));
+        index_content.push_str(&format!("- [{}]({}.md)\n", stem, stem));
+
+        let mut doc = String::new();
+        doc.push_str(&format!("# {}\n\n", stem));
+        doc.push_str(&format!("> Source: `{}`\n\n", path.display()));
+
+        for item in &module.items {
+            match item {
+                lucky_compiler::ast::ModuleItem::Agent(d) => {
+                    doc.push_str(&format!("## Agent: {}\n\n", d.name));
+                    if let Some(ref m) = d.model {
+                        doc.push_str(&format!("- **Model:** `{}`\n", m.to_string()));
+                    }
+                    if !d.tools.is_empty() {
+                        let ts: Vec<String> = d.tools.iter().map(|t| format!("`{}`", t.to_string())).collect();
+                        doc.push_str(&format!("- **Tools:** {}\n", ts.join(", ")));
+                    }
+                    if let Some(ref p) = d.permissions {
+                        let allows: Vec<String> = p.allow.iter().map(|e| e.path.join(".")).collect();
+                        let denies: Vec<String> = p.deny.iter().map(|e| e.path.join(".")).collect();
+                        if !allows.is_empty() {
+                            doc.push_str(&format!("- **Allows:** {}\n", allows.join(", ")));
+                        }
+                        if !denies.is_empty() {
+                            doc.push_str(&format!("- **Denies:** {}\n", denies.join(", ")));
+                        }
+                    }
+                    doc.push('\n');
+                }
+                lucky_compiler::ast::ModuleItem::Task(d) => {
+                    doc.push_str(&format!("### Task: {}\n\n", d.name));
+                    if !d.inputs.is_empty() {
+                        doc.push_str("**Inputs:**\n\n");
+                        doc.push_str("| Name | Type |\n|------|------|\n");
+                        for inp in &d.inputs {
+                            let typ = inp.typ.as_ref().map(|t| format!("{:?}", t)).unwrap_or_else(|| "Any".into());
+                            doc.push_str(&format!("| `{}` | {} |\n", inp.name, typ));
+                        }
+                        doc.push('\n');
+                    }
+                    if !d.outputs.is_empty() {
+                        doc.push_str("**Outputs:**\n\n");
+                        doc.push_str("| Name | Type |\n|------|------|\n");
+                        for out in &d.outputs {
+                            let typ = out.typ.as_ref().map(|t| format!("{:?}", t)).unwrap_or_else(|| "Any".into());
+                            doc.push_str(&format!("| `{}` | {} |\n", out.name, typ));
+                        }
+                        doc.push('\n');
+                    }
+                }
+                lucky_compiler::ast::ModuleItem::Workflow(d) => {
+                    doc.push_str(&format!("### Workflow: {}\n\n", d.name));
+                    doc.push_str("```\n");
+                    let steps: Vec<String> = d.body.stmts.iter().enumerate().map(|(i, _)| {
+                        if i + 1 < d.body.stmts.len() {
+                            format!("  [{}] ---> [{}]", i, i + 1)
+                        } else {
+                            format!("  [{}]", i)
+                        }
+                    }).collect();
+                    for step in &steps { doc.push_str(&format!("{}\n", step)); }
+                    doc.push_str("```\n\n");
+                }
+                lucky_compiler::ast::ModuleItem::Goal(d) => {
+                    doc.push_str(&format!("### Goal: {}\n\n", d.name));
+                    if !d.success_criteria.is_empty() {
+                        doc.push_str("**Success criteria:**\n\n");
+                        for c in &d.success_criteria {
+                            doc.push_str(&format!("- {}\n", c));
+                        }
+                        doc.push('\n');
+                    }
+                    if !d.workflows.is_empty() {
+                        doc.push_str(&format!("**Workflows:** {}\n\n", d.workflows.join(", ")));
+                    }
+                }
+                lucky_compiler::ast::ModuleItem::Model(d) => {
+                    doc.push_str(&format!("### Model: {}\n\n", d.name));
+                    for (k, _) in &d.config {
+                        doc.push_str(&format!("- **{}**\n", k));
+                    }
+                    doc.push('\n');
+                }
+                lucky_compiler::ast::ModuleItem::Memory(d) => {
+                    doc.push_str(&format!("### Memory: {}\n\n", d.name));
+                    if let Some(ref s) = d.scope { doc.push_str(&format!("- **Scope:** {}\n", s)); }
+                    if let Some(ref b) = d.backend { doc.push_str(&format!("- **Backend:** {}\n", b)); }
+                    doc.push('\n');
+                }
+                lucky_compiler::ast::ModuleItem::Policy(d) => {
+                    doc.push_str(&format!("### Policy: {}\n\n", d.name));
+                    doc.push_str("| Entry | Value |\n|-------|-------|\n");
+                    for entry in &d.entries {
+                        doc.push_str(&format!("| `{:?}` | |\n", entry));
+                    }
+                    doc.push('\n');
+                }
+                _ => {}
+            }
+        }
+
+        fs::write(&out_path, &doc).unwrap_or_else(|e| {
+            eprintln!("Failed to write {}: {}", out_path.display(), e);
+        });
+    }
+
+    let index_path = Path::new(out_dir).join("index.md");
+    fs::write(&index_path, &index_content).unwrap_or_else(|e| {
+        eprintln!("Failed to write index: {}", e);
+    });
+
+    eprintln!("Generated {} doc files in {}", lk_files.len(), out_dir);
+}
+
+fn collect_lk_files(dir: &std::path::Path, files: &mut Vec<std::path::PathBuf>, visited: &mut std::collections::HashSet<std::path::PathBuf>) {
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
+            if !visited.insert(canonical.clone()) { continue; }
+            if path.is_dir() {
+                collect_lk_files(&path, files, visited);
+            } else if path.extension().map_or(false, |e| e == "lk") {
+                files.push(path);
+            }
+        }
+    }
+}
+
+const BOLD: &str = "\x1b[1m";
+const RESET: &str = "\x1b[0m";
 
 fn load_router(lk_path: &str) -> backends::BackendRouter {
     use std::path::Path;
