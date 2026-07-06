@@ -2,6 +2,7 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use crate::hir::{HirGraph, HirNode, HirEdgeKind};
+use crate::backends::{BackendRouter, CompleteOptions};
 use super::{NodeStatus, RuntimeValue};
 use super::context::ContextManager;
 use super::memory::MemoryManager;
@@ -90,6 +91,8 @@ pub struct Scheduler {
     next_id: usize,
     /// Whether there's been a terminal failure.
     terminal_failure: bool,
+    /// LLM backend router for executing LlmCall nodes.
+    pub backend_router: Option<BackendRouter>,
 }
 
 impl Scheduler {
@@ -107,6 +110,7 @@ impl Scheduler {
             max_depth: 0,
             next_id: 0,
             terminal_failure: false,
+            backend_router: None,
         }
     }
 
@@ -398,12 +402,45 @@ impl Scheduler {
             }
 
             HirNode::LlmCall { model_ref, prompt_ref, .. } => {
-                // Stub: in production this would call the LLM backend
                 let prompt = prompt_ref.as_deref().unwrap_or("?");
+                let options = CompleteOptions {
+                    temperature: 0.7,
+                    max_tokens: 4096,
+                    stop_sequences: Vec::new(),
+                    system_prompt: None,
+                };
+
+                let response = if let Some(ref router) = self.backend_router {
+                    match router.route(model_ref) {
+                        Some(backend) => {
+                            match backend.complete(prompt, &options) {
+                                Ok(text) => text,
+                                Err(e) => {
+                                    return Err(format!(
+                                        "LLM call failed (model={}, provider={}): {}",
+                                        model_ref, backend.name(), e
+                                    ));
+                                }
+                            }
+                        }
+                        None => {
+                            let models = if let Some(ref r) = self.backend_router {
+                                r.list_models().join(", ")
+                            } else {
+                                "(no backends configured)".to_string()
+                            };
+                            return Err(format!(
+                                "No backend registered for model '{}'. Available models: {}",
+                                model_ref, models
+                            ));
+                        }
+                    }
+                } else {
+                    format!("[LLM response from {} for prompt '{}']", model_ref, prompt)
+                };
+
                 Ok(RuntimeValue::Probabilistic {
-                    value: Box::new(RuntimeValue::String(
-                        format!("[LLM response from {} for prompt '{}']", model_ref, prompt)
-                    )),
+                    value: Box::new(RuntimeValue::String(response)),
                     confidence: 0.9,
                 })
             }

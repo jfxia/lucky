@@ -3,6 +3,7 @@ use std::fs;
 use std::process;
 
 use lucky_compiler::ast::span::FileId;
+use lucky_compiler::backends;
 use lucky_compiler::mir::optimize::OptimizationLevel;
 use lucky_compiler::test_runner;
 
@@ -230,8 +231,12 @@ fn cmd_run(path: &str, opt: OptimizationLevel) {
     let resolved = lucky_compiler::semantic::resolver::NameResolver::new().resolve_module(module);
     let hir_graph = lucky_compiler::hir::builder::HirBuilder::new().build_module(&resolved.module);
 
+    // Load model config from manifest if available
+    let router = load_router(path);
+
     // Create runtime engine and execute
     let mut engine = lucky_compiler::runtime::executor::ExecutionEngine::new();
+    engine.set_backend_router(router);
 
     eprintln!("=== Lucky Runtime Execution ===");
     eprintln!("Nodes: {}, Edges: {}", hir_graph.nodes.len(), hir_graph.edges.len());
@@ -735,4 +740,28 @@ workflow MainWorkflow
 fn cmd_lsp() {
     eprintln!("LSP mode is not yet implemented. This is a stub.");
     process::exit(0);
+}
+
+fn load_router(lk_path: &str) -> backends::BackendRouter {
+    use std::path::Path;
+
+    let lk = Path::new(lk_path);
+    let dir = lk.parent().unwrap_or(Path::new("."));
+    let manifest_path = dir.join("lucky.toml");
+
+    if manifest_path.exists() {
+        match lucky_compiler::pkg::manifest::parse_manifest_with_models(&manifest_path) {
+            Ok((_manifest, models)) => {
+                if !models.is_empty() {
+                    eprintln!("Loaded {} model(s) from manifest", models.len());
+                    return backends::load_router_from_manifest(&models);
+                }
+            }
+            Err(e) => {
+                eprintln!("Warning: failed to parse manifest: {}", e);
+            }
+        }
+    }
+
+    backends::create_default_router()
 }

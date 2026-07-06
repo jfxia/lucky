@@ -8,6 +8,7 @@ pub mod hir;
 pub mod mir;
 pub mod ir_serialize;
 pub mod runtime;
+pub mod backends;
 pub mod pkg;
 pub mod test_runner;
 pub mod format;

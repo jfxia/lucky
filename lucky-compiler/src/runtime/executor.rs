@@ -8,6 +8,7 @@ use super::permissions::PermissionEnforcer;
 use super::tools::ToolRegistry;
 use super::scheduler::Scheduler;
 use crate::hir::HirGraph;
+use crate::backends::BackendRouter;
 use crate::diagnostics::DiagnosticBag;
 
 /// The execution engine wraps the scheduler and provides a higher-level
@@ -68,6 +69,10 @@ impl ExecutionEngine {
         self.status = RunStatus::Running;
         self.step_count = 0;
         self.events.clear();
+    }
+
+    pub fn set_backend_router(&mut self, router: BackendRouter) {
+        self.scheduler.backend_router = Some(router);
     }
 
     /// Execute one step: dispatch a node and process its result.

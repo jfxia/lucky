@@ -90,7 +90,7 @@
 |---|---|---|
 | Model adapter trait | S | Abstract interface for `complete()`, `complete_stream()`, health check |
 | Anthropic adapter | M | Claude API via HTTP, messages format, tool-use support |
-| OpenAI adapter | M | GPT-4o via HTTP, chat completions, function calling |
+| OpenAI adapter | M | GPT5.6 via HTTP, chat completions, function calling |
 | Ollama adapter | S | Local models via HTTP API |
 | Model routing config | S | `lucky.toml` [models] section with API keys, rate limits, defaults |
 | Response streaming | M | Stream LLM tokens to context as they arrive |
@@ -120,7 +120,7 @@
 | Milestone | Weeks | Content |
 |---|---|---|
 | **M1** | 1-2 | Compiler fixes + HIR builder complete + type checker |
-| **M2** | 3-4 | LLM backends (Anthropic + OpenAI) + model routing |
+| **M2** | 3-4 | LLM backends (Anthropic + OpenAI + Deepseek) + model routing |
 | **M3** | 5-6 | LSP completions + diagnostics + watch mode |
 | **M4** | 7-8 | Checkpoint + approval + audit + error messages |
 | **M5** | 9-10 | MIR lowering + streaming + Ollama adapter + `lucky doc` |
