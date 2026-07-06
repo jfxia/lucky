@@ -60,6 +60,8 @@ Lucky **is** for:
 
 ---
 
+### Key Capabilities
+
 **Multi-Agent Orchestration.** Define agents with models, tools, memory, and permissions. Compose them into workflows with `->` for sequential chains, or let them run in parallel at the same indentation level. Use `parallel`/`wait` for fork-join, `swarm` for mass fan-out, `if`/`else` for branching.
 
 **AI-Native Language Primitives.** Declare models (`model DeepSeek(...)`), switch them (`use GPT`), write structured prompts (`prompt Reviewer { role ...; rules ... }`), and call LLMs inline (`ask DeepSeek: summarize this`). No SDKs, no API wrappers.
@@ -81,15 +83,10 @@ Lucky **is** for:
 
 ---
 
-# Lucky
+# Philosophy
 
-> **Lucky = Language for AI Agents**
 
 > *"Think in goals, not syntax."*
-
----
-
-# Philosophy
 
 Lucky is **not another systems language**.
 
