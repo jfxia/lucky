@@ -35,6 +35,10 @@ impl BasicBlock {
     pub fn set_terminator(&mut self, terminator: TerminatorInst) {
         self.terminator = terminator;
     }
+
+    pub fn is_terminated(&self) -> bool {
+        !matches!(self.terminator, TerminatorInst::Unreachable)
+    }
 }
 
 #[derive(Debug, Clone)]

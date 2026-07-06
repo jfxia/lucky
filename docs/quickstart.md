@@ -127,11 +127,54 @@ lucky fmt main.lk
 lucky ir main.lk
 ```
 
-This outputs the HIR and MIR JSON representations, useful for inspection and debugging.
+This outputs the HIR and MIR JSON representations. The MIR now contains real SSA basic blocks with proper instructions (Alloca, Store, AgentInvoke, LlmComplete, ToolInvoke) and control flow terminators (Br, CondBr, Ret).
 
 ---
 
-## 8. Write a Test
+## 8. Configure LLM Backends
+
+Lucky v0.2 supports real LLM API calls. Set up your API keys:
+
+```toml
+# lucky.toml
+[project]
+name = "hello-world"
+version = "0.1.0"
+
+[models.deepseek-v4]
+provider = "deepseek"
+
+[models.gpt-4o]
+provider = "openai"
+
+[runtime]
+budget_usd = 10.0
+```
+
+```bash
+# Set API keys
+export DEEPSEEK_API_KEY="sk-xxx"    # or: $env:DEEPSEEK_API_KEY="sk-xxx" on Windows
+export OPENAI_API_KEY="sk-xxx"
+
+# View resolved config
+lucky config
+
+# Run with real LLM backend
+lucky run main.lk
+
+# Run with streaming output
+lucky run main.lk --stream
+
+# Run with cost budget
+lucky run main.lk --budget 5.00
+
+# Run with audit trail
+lucky run main.lk --audit execution.jsonl
+```
+
+---
+
+## 9. Write a Test
 
 Create `hello.test.lk`:
 
@@ -164,7 +207,7 @@ Results: 2 passed, 0 failed, 0 skipped
 
 ---
 
-## 9. Key Concepts at a Glance
+## 10. Key Concepts at a Glance
 
 | Concept | What It Is | Example |
 |---|---|---|
@@ -189,6 +232,25 @@ Results: 2 passed, 0 failed, 0 skipped
 
 ---
 
+## 11. v0.2 CLI Commands
+
+```bash
+# Watch for file changes and auto re-check
+lucky watch . --run
+
+# Generate documentation from .lk files
+lucky doc . -o docs/api
+
+# Show resolved configuration
+lucky config
+
+# Run with production runtime features
+lucky run main.lk --budget 5.00 --stream --audit audit.jsonl
+lucky run main.lk --auto-approve --approve "before deploy"
+```
+
+---
+
 ## Built-in Tools
 
 Lucky ships with these tools ready to use:
@@ -206,13 +268,13 @@ Lucky ships with these tools ready to use:
 
 ## AI Models
 
-Lucky has first-class model support. Declare and switch models at the language level:
+Lucky v0.2 supports three LLM backends with real API calls (no stubs). Declare models at the language level and set API keys in the environment:
 
 ```lucky
-model Claude(
-    provider = "anthropic",
-    version = "claude-sonnet-4-20250514",
-    temperature = 0.7,
+model DeepSeek(
+    provider = "deepseek",
+    version = "deepseek-v4",
+    temperature = 0.3,
 )
 
 model GPT(
@@ -220,10 +282,28 @@ model GPT(
     version = "gpt-4o",
 )
 
-use Claude          # Set default
+model LocalLLM(
+    provider = "ollama",
+    version = "llama3",
+)
+
+use DeepSeek         # Set default
 
 agent Researcher
-    use GPT         # Override for this agent
+    use GPT          # Override for this agent
+```
+
+**API Keys** (set via environment variables):
+- DeepSeek: `DEEPSEEK_API_KEY=sk-xxx`
+- OpenAI: `OPENAI_API_KEY=sk-xxx`
+- Ollama: No key needed (runs on `localhost:11434`)
+
+```bash
+# Run with real LLM
+DEEPSEEK_API_KEY=sk-xxx lucky run main.lk
+
+# Stream tokens as they arrive
+lucky run main.lk --stream
 ```
 
 ---

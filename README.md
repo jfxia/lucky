@@ -48,7 +48,13 @@ In Lucky:
 
 **Portable IR.** Lucky compiles to a language-neutral Intermediate Representation (a DAG of execution nodes). The same IR runs across Claude Code, Codex CLI, OpenCode, Cursor, and Dify via the Lucky Tool Protocol (LTP).
 
-**Developer Toolchain.** CLI with 14 commands (init, check, compile, fmt, ir, run, test, debug, pkg, serve, lsp), VS Code extension with syntax highlighting and snippets, LSP server, DAP debugger, formatter, test framework, and package manager.
+**Developer Toolchain.** CLI with 16 commands (init, check, compile, fmt, ir, run, test, debug, pkg, serve, lsp, watch, doc, config), VS Code extension with syntax highlighting and snippets, LSP server with context-aware completions and real-time diagnostics, DAP debugger, formatter, test framework, and package manager.
+
+**LLM Backend Integration.** Real API calls to DeepSeek, OpenAI, and Ollama via custom TLS 1.2 + manual HTTP/1.1 over `TcpStream` (zero dependencies). Streaming support with `--stream` flag. Model routing via `lucky.toml [models]` section.
+
+**Production Runtime.** Checkpoint/restore execution state, CLI-based human approval with approve/reject/modify, cost budget enforcement (`--budget`), execution audit trail (`--audit` JSONL), retry with exponential backoff + jitter + circuit breaker.
+
+**Rich Developer Experience.** ANSI-colored error messages with source context and fix suggestions (Levenshtein distance matching), `lucky watch` for auto-rebuild on file changes, `lucky doc` to generate Markdown documentation from `.lk` source files, `lucky config` to inspect resolved configuration.
 
 
 ---
@@ -652,10 +658,19 @@ Lucky is specified across five technical documents:
 | [Language Reference Manual](docs/Lucky%20Language%20Reference%20Manual%20V0.1.md) | Syntax, types, expressions, statements, AI programming model, standard library |
 | [Runtime Specification](docs/Lucky%20Runtime%20Specification%20V0.1.md) | Scheduler, memory model, concurrency, checkpoints, permissions, security |
 | [Standard Library](docs/Lucky%20Standard%20Library%20Specification%20V0.1.md) | Built-in types, collections, AI primitives, tools, agents, utility modules |
-| [IR Specification](docs/Lucky%20IR%20Specification%20V0.1.md) | SSA-based execution graph, optimization passes, serialization, backend API |
+| [IR Specification](docs/Lucky%20IR%20Specification%20V0.1.md) | SSA-based execution graph, 30+ opcodes, optimization passes, serialization |
 | [Tool Protocol (LTP)](docs/Lucky%20Tool%20Protocol%20Specification%20V0.1.md) | JSON-RPC protocol for cross-platform execution (Claude Code, Codex CLI, etc.) |
+
+## v0.2 Highlights
+
+| Category | Features |
+|---|---|
+| **Compiler** | Complete HIR builder (all 18 node types), type checker, MIR lowering (SSA basic blocks + CFG), IR verifier (acyclicity, reachability, integrity) |
+| **LLM Backends** | DeepSeek (custom TLS 1.2), OpenAI (GPT-4o), Ollama (local models); streaming; `DEEPSEEK_API_KEY` / `OPENAI_API_KEY` env vars |
+| **Runtime** | Checkpoint/restore, CLI human approval, cost budget enforcement, JSONL audit trail, exponential backoff retry + circuit breaker |
+| **DX** | Context-aware LSP completions (tools, models, task methods, types), real-time diagnostics (300ms debounce), ANSI rich errors with fix suggestions, `lucky watch`, `lucky doc`, `lucky config` |
 
 ---
 
-*See [ROADMAP.md](ROADMAP.md) for the full v0.1 achievements and v0.2/v0.3 plans.*
+*See [ROADMAP.md](ROADMAP.md) for the full v0.1 and v0.2 achievements and v0.3 plans.*
 

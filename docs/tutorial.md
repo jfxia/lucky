@@ -867,5 +867,92 @@ workflow SoftwareDevelopment
 - [Standard Library Reference](Lucky%20Standard%20Library%20Specification%20V0.1.md) — All built-in types, tools, and APIs
 - [Runtime Specification](Lucky%20Runtime%20Specification%20V0.1.md) — Execution engine internals
 - [IR Specification](Lucky%20IR%20Specification%20V0.1.md) — Intermediate representation and optimization
+
+---
+
+## v0.2 Runtime Features
+
+### LLM Backends
+
+Lucky v0.2 supports three real LLM backends — DeepSeek, OpenAI, and Ollama. Configure them in `lucky.toml`:
+
+```toml
+[models.deepseek-v4]
+provider = "deepseek"
+```
+
+Set API keys as environment variables (`DEEPSEEK_API_KEY`, `OPENAI_API_KEY`) and run:
+
+```bash
+DEEPSEEK_API_KEY=sk-xxx lucky run main.lk
+lucky run main.lk --stream      # Streaming output
+```
+
+### Checkpoint & Resume
+
+Save and restore execution state:
+
+```bash
+lucky run main.lk
+# ... execution state saved to .lucky/checkpoints/
+
+lucky run main.lk --resume <checkpoint_id>
+```
+
+### Budget Enforcement
+
+Set a cost limit for LLM calls:
+
+```bash
+lucky run main.lk --budget 5.00
+# Cancels execution when cost exceeds $5.00
+```
+
+### Audit Trail
+
+Log every execution event to a JSONL file:
+
+```bash
+lucky run main.lk --audit execution.jsonl
+# Produces structured audit log with timestamps, costs, and errors
+```
+
+### Human Approval
+
+Pause execution for manual approval:
+
+```bash
+lucky run main.lk                    # Prompts for each approval gate
+lucky run main.lk --auto-approve     # Skip all prompts
+lucky run main.lk --approve "deploy" # Auto-approve specific gates
+```
+
+### Watch Mode
+
+Auto-recheck files on change:
+
+```bash
+lucky watch . --run
+```
+
+### Documentation Generator
+
+Generate Markdown docs from `.lk` source files:
+
+```bash
+lucky doc . -o docs/api
+```
+
+### Configuration Inspector
+
+View resolved project configuration:
+
+```bash
+lucky config
+```
+
+### Retry with Backoff
+
+Nodes with `retry N` automatically retry with exponential backoff + jitter. A circuit breaker prevents retry storms (5 failures in 60s stops retrying).
 - [Tool Protocol (LTP)](Lucky%20Tool%20Protocol%20Specification%20V0.1.md) — Cross-platform execution protocol
 - [Quickstart Guide](quickstart.md) — Fast setup reference

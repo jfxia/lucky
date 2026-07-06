@@ -72,58 +72,59 @@
 
 ---
 
-## v0.2 — Production Ready (Planned)
+## v0.2 — Production Ready (Completed)
 
 ### A) Production-Ready Compiler (30%)
 
-| Feature | Effort | Description |
-|---|---|---|
-| Fix remaining parser edge cases | S | Workflow arrows, commas in tools lists, multi-line strings |
-| Complete HIR builder | M | Generate real nodes+edges from all declaration types |
-| Type checker pass | M | Validate type compatibility on data edges, detect undefined refs |
-| MIR lowering | M | Convert HIR task nodes to SSA basic blocks with proper CFG |
-| IR verifier | S | Validate graph acyclicity, reachability, type consistency before execution |
+| Feature | Effort | Description | Status |
+|---|---|---|---|
+| Fix remaining parser edge cases | S | Workflow arrows, commas in tools lists, multi-line strings | **Done** |
+| Complete HIR builder | M | Generate real nodes+edges from all declaration types | **Done** |
+| Type checker pass | M | Validate type compatibility on data edges, detect undefined refs | **Done** |
+| MIR lowering | M | Convert HIR task/workflow nodes to SSA basic blocks with proper CFG | **Done** |
+| IR verifier | S | Validate graph acyclicity, reachability, type consistency before execution | **Done** |
 
 ### B) Real LLM Backend Integration (25%)
 
-| Feature | Effort | Description |
-|---|---|---|
-| Model adapter trait | S | Abstract interface for `complete()`, `complete_stream()`, health check |
-| Anthropic adapter | M | Claude API via HTTP, messages format, tool-use support |
-| OpenAI adapter | M | GPT5.6 via HTTP, chat completions, function calling |
-| Ollama adapter | S | Local models via HTTP API |
-| Model routing config | S | `lucky.toml` [models] section with API keys, rate limits, defaults |
-| Response streaming | M | Stream LLM tokens to context as they arrive |
+| Feature | Effort | Description | Status |
+|---|---|---|---|
+| Model adapter trait | S | Abstract interface for `complete()`, `complete_stream()`, health check | **Done** |
+| DeepSeek adapter | M | DeepSeek API via custom TLS 1.2 + manual HTTP/1.1 over TcpStream | **Done** |
+| OpenAI adapter | M | GPT-4o via HTTP, chat completions | **Done** |
+| Ollama adapter | S | Local models via plain HTTP API | **Done** |
+| Model routing config | S | `lucky.toml` [models] section with API keys, rate limits, defaults | **Done** |
+| Response streaming | M | Stream LLM tokens via `complete_stream()` + `--stream` flag | **Done** |
 
 ### C) Developer Experience (25%)
 
-| Feature | Effort | Description |
-|---|---|---|
-| Working LSP completions | M | Keyword completion, agent/task name, type-aware suggestions |
-| Working LSP diagnostics | M | Real-time errors as you type, updated on save |
-| Watch mode | S | `lucky watch` recompiles and re-runs on file changes |
-| Rich error messages | M | Source context with underlines, fix suggestions for common mistakes |
-| `lucky doc` | M | Generate Markdown docs from source (agent/task descriptions, schemas) |
+| Feature | Effort | Description | Status |
+|---|---|---|---|
+| Working LSP completions | M | Keyword completion, agent/task name, type-aware, tools, model, context | **Done** |
+| Working LSP diagnostics | M | Real-time errors as you type, 300ms debounce on changes | **Done** |
+| Watch mode | S | `lucky watch` polls .lk files, rechecks on change | **Done** |
+| Rich error messages | M | ANSI colors, source context with underlines, fix suggestions (Levenshtein) | **Done** |
+| `lucky doc` | M | Generate Markdown docs from .lk files (agents, tasks, workflows, tables) | **Done** |
+| `lucky config` | S | Show resolved configuration from lucky.toml + environment | **Done** |
 
 ### D) Production Runtime (20%)
 
-| Feature | Effort | Description |
-|---|---|---|
-| Checkpoint system | M | Snapshot DAG state + context + memory to disk, restore on resume |
-| CLI-based human approval | M | `lucky run` pauses and prompts user for approval decisions |
-| Cost budget enforcement | S | Track token usage against budget, pause/cancel on exceed |
-| Execution audit trail | S | Log every node dispatch, tool call, LLM request to structured log |
-| Retry with actual backoff | S | Exponential backoff between retry attempts, circuit breaker |
+| Feature | Effort | Description | Status |
+|---|---|---|---|
+| Checkpoint system | M | Snapshot DAG state + context + memory to JSON disk, `--resume` | **Done** |
+| CLI-based human approval | M | `lucky run` pauses for approve/reject/modify, `--auto-approve` | **Done** |
+| Cost budget enforcement | S | `--budget USD` tracks and enforces cost limits per LLM call | **Done** |
+| Execution audit trail | S | `--audit PATH` JSONL log with timestamps, events, costs, errors | **Done** |
+| Retry with actual backoff | S | Exponential backoff + jitter, circuit breaker (5 failures/60s) | **Done** |
 
 ### Proposed Timeline
 
-| Milestone | Weeks | Content |
-|---|---|---|
-| **M1** | 1-2 | Compiler fixes + HIR builder complete + type checker |
-| **M2** | 3-4 | LLM backends (Anthropic + OpenAI + Deepseek) + model routing |
-| **M3** | 5-6 | LSP completions + diagnostics + watch mode |
-| **M4** | 7-8 | Checkpoint + approval + audit + error messages |
-| **M5** | 9-10 | MIR lowering + streaming + Ollama adapter + `lucky doc` |
+| Milestone | Weeks | Content | Status |
+|---|---|---|---|
+| **M1** | 1-2 | Compiler fixes + HIR builder complete + type checker | **Done** |
+| **M2** | 3-4 | LLM backends (DeepSeek + OpenAI + Ollama) + custom TLS + routing | **Done** |
+| **M3** | 5-6 | LSP completions + diagnostics + watch mode | **Done** |
+| **M4** | 7-8 | Checkpoint + approval + audit + rich error messages | **Done** |
+| **M5** | 9-10 | MIR lowering + streaming + Ollama adapter + `lucky doc` + config | **Done** |
 
 ---
 
@@ -142,4 +143,4 @@
 
 ---
 
-*Last updated: July 2026*
+*Last updated: July 2026 — v0.2 complete*

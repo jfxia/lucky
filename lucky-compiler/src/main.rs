@@ -20,6 +20,9 @@ fn main() {
         eprintln!("  fmt <file> [--check]             Format a .lk file (--check to verify only)");
         eprintln!("  ir <file> [--opt O2]            Compile to IR (JSON)");
         eprintln!("  run <file> [--opt O2]           Compile and execute a .lk file");
+        eprintln!("           [--budget USD] [--stream]  Runtime options");
+        eprintln!("           [--audit PATH] [--resume ID]");
+        eprintln!("           [--auto-approve] [--approve GATE]");
         eprintln!("  test <path> [<path> ...]        Discover and run *.test.lk files");
         eprintln!("  debug <file>                    Start DAP debug server for a .lk file");
         eprintln!("  pkg install <name>              Install a Lucky package");
@@ -30,6 +33,7 @@ fn main() {
         eprintln!("  lsp                              Start in LSP mode (stdio)");
         eprintln!("  watch [dir] [--run]              Watch directory for changes and re-check");
         eprintln!("  doc <dir> [-o <output>]          Generate documentation from .lk files");
+        eprintln!("  config                           Show resolved configuration");
         process::exit(1);
     }
 
@@ -111,6 +115,9 @@ fn main() {
             let dir = args.get(2).map(|s| s.as_str()).unwrap_or(".");
             let out_dir = parse_flag_string(&args, "-o").unwrap_or_else(|| "docs/generated".to_string());
             cmd_doc(dir, &out_dir);
+        }
+        "config" => {
+            cmd_config();
         }
         "debug" => {
             let path = args.get(2).unwrap_or_else(|| {
@@ -233,6 +240,7 @@ fn cmd_run(path: &str, opt: OptimizationLevel) {
     let approved_gates: Vec<String> = parse_flag_values(&args, "--approve");
     let audit_path = parse_flag_string(&args, "--audit");
     let resume_id = parse_flag_string(&args, "--resume");
+    let stream_output = args.iter().any(|a| a == "--stream");
 
     // Compile and build HIR
     let result = lucky_compiler::compile_to_ir(&source, file_id, opt);
@@ -255,6 +263,7 @@ fn cmd_run(path: &str, opt: OptimizationLevel) {
     engine.budget = budget;
     engine.auto_approve = auto_approve;
     engine.approved_gates = approved_gates.clone();
+    engine.stream_output = stream_output;
 
     // Set up audit logger
     if let Some(ref apath) = audit_path {
@@ -876,6 +885,65 @@ workflow MainWorkflow
     eprintln!("  memory/            Memory configs");
     eprintln!();
     eprintln!("Next: lucky run main.lk");
+}
+
+fn cmd_config() {
+    use std::path::Path;
+    let manifest_path = Path::new("lucky.toml");
+
+    println!("Lucky v0.2.0 Configuration");
+    println!("==========================");
+
+    if manifest_path.exists() {
+        match lucky_compiler::pkg::manifest::parse_manifest_with_models(manifest_path) {
+            Ok((manifest, models)) => {
+                if let Some(ref pkg) = manifest.package {
+                    println!("Project: {} v{}", pkg.name, pkg.version);
+                    if let Some(ref desc) = pkg.description {
+                        println!("  Description: {}", desc);
+                    }
+                }
+                println!();
+                if !models.is_empty() {
+                    println!("Models:");
+                    for (name, config) in &models {
+                        println!("  [{}]", name);
+                        println!("    Provider: {}", config.provider);
+                        if let Some(ref ep) = config.endpoint {
+                            println!("    Endpoint: {}", ep);
+                        }
+                        println!("    Temperature: {}", config.temperature);
+                        println!("    Max tokens: {}", config.max_tokens);
+                    }
+                    println!();
+                }
+                if !manifest.dependencies.is_empty() {
+                    println!("Dependencies:");
+                    for (name, ver) in &manifest.dependencies {
+                        println!("  {} = {}", name, ver);
+                    }
+                    println!();
+                }
+                println!("Exports: {:?}", manifest.exports);
+            }
+            Err(e) => eprintln!("Failed to parse manifest: {}", e),
+        }
+    } else {
+        println!("No lucky.toml found — using defaults.");
+        println!();
+        println!("Default models:");
+        println!("  deepseek-v4 → DeepSeek (DEEPSEEK_API_KEY)");
+        println!("  gpt-4o      → OpenAI (OPENAI_API_KEY)");
+        println!("  llama3      → Ollama (localhost:11434)");
+    }
+
+    println!();
+    println!("Environment:");
+    for var in &["DEEPSEEK_API_KEY", "OPENAI_API_KEY"] {
+        let val = std::env::var(var).unwrap_or_default();
+        let display = if val.is_empty() { "(not set)" } else { "*** (set)" };
+        println!("  {}: {}", var, display);
+    }
 }
 
 fn cmd_lsp() {

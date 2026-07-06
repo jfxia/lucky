@@ -27,49 +27,227 @@ impl MirLowering {
     }
 
     pub fn lower_graph(mut self, hir_graph: &hir::HirGraph) -> Vec<Function> {
-        // Walk through HIR nodes and lower Task nodes to MIR functions
+        // Walk through HIR nodes and lower them to MIR functions
         for node in &hir_graph.nodes {
-            if let hir::HirNode::Task { task_ref, steps, .. } = node {
-                self.lower_task_from_hir(task_ref, steps);
+            match node {
+                hir::HirNode::Task { task_ref, inputs, outputs, steps, .. } => {
+                    self.lower_task_from_hir(task_ref, inputs, outputs, steps, hir_graph);
+                }
+                hir::HirNode::Workflow { workflow_ref, context, body, .. } => {
+                    self.lower_workflow_from_hir(workflow_ref, context, body, hir_graph);
+                }
+                hir::HirNode::AgentInvoke { agent_ref, task_ref, .. } => {
+                    let name = format!("{}.{}", agent_ref, task_ref);
+                    self.lower_invoke_stub(&name);
+                }
+                _ => {}
             }
         }
         self.functions
     }
 
-    pub fn lower_task_from_hir(&mut self, name: &str, steps: &[hir::NodeId]) {
+    pub fn lower_task_from_hir(
+        &mut self,
+        name: &str,
+        inputs: &[(String, String)],
+        outputs: &[(String, String)],
+        steps: &[hir::NodeId],
+        hir_graph: &hir::HirGraph,
+    ) {
         let func_id = self.current_func_id;
         self.current_func_id += 1;
 
         let entry_id = self.alloc_block_id();
-        let params: Vec<(String, IrType)> = Vec::new(); // simplified
-        let return_type = IrType::Void;
+        let params: Vec<(String, IrType)> = inputs.iter()
+            .map(|(n, t)| (n.clone(), IrType::StringType))
+            .collect();
+        let return_type = if outputs.is_empty() { IrType::Void } else { IrType::StringType };
         let mut function = Function::new(
-            func_id,
-            name.to_string(),
-            params.clone(),
-            return_type.clone(),
-            entry_id,
+            func_id, name.to_string(), params.clone(), return_type.clone(), entry_id,
         );
 
-        let mut entry_block = BasicBlock::new(entry_id);
-        self.current_block = Some(entry_id);
+        let entry_block_id = entry_id;
+        let mut entry_block = BasicBlock::new(entry_block_id);
+        self.current_block = Some(entry_block_id);
 
-        // Create a simple function body
-        let ret_reg = self.alloc_reg_id();
-        entry_block.instructions.push(Instruction::new(
-            Opcode::RetOp,
-            vec![],
-            IrType::Void,
-            ret_reg,
-        ));
-        entry_block.terminator = TerminatorInst::Ret { value: None };
-        function.blocks.push(entry_block);
+        // Allocate stack space for inputs
+        for (inp_name, _) in inputs {
+            let alloca_reg = self.alloc_reg_id();
+            entry_block.push_instruction(Instruction::new(
+                Opcode::Alloca, vec![Operand::Symbol(inp_name.clone())],
+                IrType::StringType, alloca_reg,
+            ));
+        }
+
+        // Walk step nodes from HIR and lower them
+        let mut prev_block_id = entry_block_id;
+        let mut current_block = entry_block;
+        for &step_id in steps {
+            if let Some(hir_node) = hir_graph.nodes.get(step_id) {
+                self.lower_single_hir_node(hir_node, &mut current_block, hir_graph);
+            }
+        }
+
+        // Add return if not already terminated
+        if !current_block.is_terminated() {
+            let ret_reg = self.alloc_reg_id();
+            current_block.push_instruction(Instruction::new(
+                Opcode::RetOp, vec![], IrType::Void, ret_reg,
+            ));
+            current_block.set_terminator(TerminatorInst::Ret { value: None });
+        }
+
+        function.blocks.push(current_block);
         self.functions.push(function);
     }
 
-    /// Legacy method kept for compatibility.
-    pub fn lower_task_compat(&mut self, _name: &str) {
-        // Stub — full lowering from AST is deferred to future work.
+    fn lower_single_hir_node(
+        &mut self,
+        node: &hir::HirNode,
+        block: &mut BasicBlock,
+        hir_graph: &hir::HirGraph,
+    ) {
+        match node {
+            hir::HirNode::Let { name, value, .. } => {
+                let reg = self.alloc_reg_id();
+                block.push_instruction(Instruction::new(
+                    Opcode::Alloca, vec![Operand::Symbol(name.clone())],
+                    IrType::StringType, reg,
+                ));
+                let store_reg = self.alloc_reg_id();
+                block.push_instruction(Instruction::new(
+                    Opcode::Store, vec![Operand::Reg(reg), Operand::Symbol(value.clone())],
+                    IrType::Void, store_reg,
+                ));
+            }
+            hir::HirNode::Return { value, .. } => {
+                let val = value.as_ref().map(|v| Operand::Symbol(v.clone()));
+                let ret_reg = self.alloc_reg_id();
+                block.push_instruction(Instruction::new(
+                    Opcode::RetOp, vec![], IrType::Void, ret_reg,
+                ));
+                block.set_terminator(TerminatorInst::Ret { value: val });
+            }
+            hir::HirNode::LlmCall { model_ref, prompt_ref, .. } => {
+                let reg = self.alloc_reg_id();
+                let prompt = prompt_ref.as_deref().unwrap_or("?");
+                block.push_instruction(Instruction::new(
+                    Opcode::LlmComplete,
+                    vec![Operand::Symbol(model_ref.clone()), Operand::Symbol(prompt.to_string())],
+                    IrType::StringType, reg,
+                ));
+            }
+            hir::HirNode::ToolCall { tool_ref, method, .. } => {
+                let reg = self.alloc_reg_id();
+                let m = method.as_deref().unwrap_or("invoke");
+                block.push_instruction(Instruction::new(
+                    Opcode::ToolInvoke,
+                    vec![Operand::Symbol(tool_ref.clone()), Operand::Symbol(m.to_string())],
+                    IrType::Void, reg,
+                ));
+            }
+            hir::HirNode::AgentInvoke { agent_ref, task_ref, .. } => {
+                let reg = self.alloc_reg_id();
+                block.push_instruction(Instruction::new(
+                    Opcode::AgentInvoke,
+                    vec![Operand::Symbol(agent_ref.clone()), Operand::Symbol(task_ref.clone())],
+                    IrType::Void, reg,
+                ));
+            }
+            _ => {
+                let reg = self.alloc_reg_id();
+                block.push_instruction(Instruction::new(
+                    Opcode::Call,
+                    vec![Operand::Symbol("noop".into())],
+                    IrType::Void, reg,
+                ));
+            }
+        }
+    }
+
+    fn lower_workflow_from_hir(
+        &mut self,
+        name: &str,
+        _context: &[(String, String)],
+        body: &[hir::NodeId],
+        hir_graph: &hir::HirGraph,
+    ) {
+        let func_id = self.current_func_id;
+        self.current_func_id += 1;
+
+        let entry_id = self.alloc_block_id();
+        let mut function = Function::new(
+            func_id, name.to_string(), Vec::new(), IrType::Void, entry_id,
+        );
+
+        let mut block = BasicBlock::new(entry_id);
+        let mut prev_id = entry_id;
+
+        for &step_id in body {
+            if let Some(hir_node) = hir_graph.nodes.get(step_id) {
+                match hir_node {
+                    hir::HirNode::AgentInvoke { agent_ref, task_ref, .. } => {
+                        let call_reg = self.alloc_reg_id();
+                        block.push_instruction(Instruction::new(
+                            Opcode::AgentInvoke,
+                            vec![Operand::Symbol(agent_ref.clone()), Operand::Symbol(task_ref.clone())],
+                            IrType::Void, call_reg,
+                        ));
+                    }
+                    hir::HirNode::ToolCall { tool_ref, method, .. } => {
+                        let m = method.as_deref().unwrap_or("invoke");
+                        let call_reg = self.alloc_reg_id();
+                        block.push_instruction(Instruction::new(
+                            Opcode::ToolInvoke,
+                            vec![Operand::Symbol(tool_ref.clone()), Operand::Symbol(m.to_string())],
+                            IrType::Void, call_reg,
+                        ));
+                    }
+                    hir::HirNode::LlmCall { model_ref, prompt_ref, .. } => {
+                        let prompt = prompt_ref.as_deref().unwrap_or("?");
+                        let call_reg = self.alloc_reg_id();
+                        block.push_instruction(Instruction::new(
+                            Opcode::LlmComplete,
+                            vec![Operand::Symbol(model_ref.clone()), Operand::Symbol(prompt.to_string())],
+                            IrType::StringType, call_reg,
+                        ));
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        let ret_reg = self.alloc_reg_id();
+        block.push_instruction(Instruction::new(
+            Opcode::RetOp, vec![], IrType::Void, ret_reg,
+        ));
+        block.set_terminator(TerminatorInst::Ret { value: None });
+
+        function.blocks.push(block);
+        self.functions.push(function);
+    }
+
+    fn lower_invoke_stub(&mut self, name: &str) {
+        let func_id = self.current_func_id;
+        self.current_func_id += 1;
+        let entry_id = self.alloc_block_id();
+        let mut function = Function::new(
+            func_id, name.to_string(), Vec::new(), IrType::Void, entry_id,
+        );
+        let mut block = BasicBlock::new(entry_id);
+        let reg = self.alloc_reg_id();
+        block.push_instruction(Instruction::new(
+            Opcode::AgentInvoke,
+            vec![Operand::Symbol(name.to_string())],
+            IrType::Void, reg,
+        ));
+        let ret_reg = self.alloc_reg_id();
+        block.push_instruction(Instruction::new(
+            Opcode::RetOp, vec![], IrType::Void, ret_reg,
+        ));
+        block.set_terminator(TerminatorInst::Ret { value: None });
+        function.blocks.push(block);
+        self.functions.push(function);
     }
 
     fn lower_statement(&mut self, stmt: &Stmt, block: &mut BasicBlock) {
