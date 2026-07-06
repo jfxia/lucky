@@ -89,12 +89,24 @@ pub fn print_diagnostics(diagnostics: &[Diagnostic], source: &str, filename: &st
 }
 
 fn get_line_number(source: &str, offset: usize) -> usize {
-    source[..offset.min(source.len())].chars().filter(|c| *c == '\n').count() + 1
+    let offset = offset.min(source.len());
+    let safe_offset = find_char_boundary(source, offset);
+    source[..safe_offset].chars().filter(|c| *c == '\n').count() + 1
 }
 
 fn get_column(source: &str, offset: usize) -> usize {
-    let line_start = source[..offset.min(source.len())].rfind('\n').map(|i| i + 1).unwrap_or(0);
-    offset - line_start + 1
+    let offset = offset.min(source.len());
+    let safe_offset = find_char_boundary(source, offset);
+    let line_start = source[..safe_offset].rfind('\n').map(|i| i + 1).unwrap_or(0);
+    offset.saturating_sub(line_start) + 1
+}
+
+fn find_char_boundary(source: &str, offset: usize) -> usize {
+    let mut o = offset.min(source.len());
+    while o > 0 && !source.is_char_boundary(o) {
+        o -= 1;
+    }
+    o
 }
 
 fn get_line_by_number(source: &str, line: usize) -> String {

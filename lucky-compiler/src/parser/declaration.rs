@@ -16,8 +16,14 @@ impl Parser {
         };
 
         let mut items = Vec::new();
+        let mut safety = 0;
 
-        while !self.is_eof() {
+        while !self.is_eof() && !self.is_stuck() {
+            safety += 1;
+            if safety > 1000 {
+                self.error(format!("parse_module: safety limit exceeded near '{}'", self.text()));
+                break;
+            }
             while self.kind() == TokenKind::Newline { self.bump(); }
             if self.is_eof() { break; }
 
@@ -39,7 +45,7 @@ impl Parser {
             "tool", "model", "prompt", "policy", "type", "context",
             "permissions", "approval", "pub", "project",
         ];
-        while !self.is_eof() {
+        while !self.is_eof() && !self.is_stuck() {
             if self.kind() == TokenKind::Keyword && decl_keywords.contains(&self.text()) {
                 return;
             }
@@ -105,6 +111,11 @@ impl Parser {
             self.bump();
             let mut names = Vec::new();
             while !self.is_eof() && self.kind() != TokenKind::RBrace {
+                while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent
+                    || self.kind() == TokenKind::Dedent {
+                    self.bump();
+                }
+                if self.kind() == TokenKind::RBrace || self.is_eof() { break; }
                 if let Some((name, _)) = self.expect_ident("import name") {
                     names.push(name);
                 }
@@ -151,7 +162,10 @@ impl Parser {
 
         if self.kind() == TokenKind::Indent {
             self.bump(); // INDENT
+            let mut agent_safety = 0;
             while !self.is_eof() && !self.at_dedent() {
+                agent_safety += 1;
+                if agent_safety > 20000 { break; }
                 // Check for top-level declarations at the same level (end of agent body)
                 if self.kind() == TokenKind::Keyword && !self.is_keyword("model")
                     && !self.is_keyword("memory") && !self.is_keyword("tools")
@@ -173,8 +187,7 @@ impl Parser {
                             || self.kind() == TokenKind::Indent {
                             self.bump();
                         }
-                        if self.at_dedent() {
-                            self.bump();
+                        if self.at_dedent() || !self.is_ident() && self.kind() != TokenKind::Keyword {
                             break;
                         }
                         if !self.is_ident() && self.kind() != TokenKind::Keyword {
@@ -194,11 +207,17 @@ impl Parser {
                     permissions = Some(self.parse_permission_decl()?);
                 } else if self.is_keyword("policy") {
                     self.bump();
+                    while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+                        self.bump();
+                    }
                     if let Some((n, s)) = self.expect_ident("policy name") {
                         policy = Some(QualifiedName::simple(&n, s));
                     }
                 } else if self.is_keyword("prompt") {
                     self.bump();
+                    while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+                        self.bump();
+                    }
                     if let Some((n, s)) = self.expect_ident("prompt name") {
                         prompt = Some(QualifiedName::simple(&n, s));
                     }
@@ -392,7 +411,7 @@ impl Parser {
             while !self.is_eof() && !self.at_dedent() {
                 if self.is_keyword("success") {
                     self.bump();
-                    while !self.is_eof() && !self.is_keyword("workflow") {
+                    while !self.is_eof() && !self.is_keyword("workflow") && !self.is_stuck() {
                         // Allow DEDENT within the success block (e.g. nested indent for criteria)
                         if self.at_dedent() {
                             self.bump(); // consume the inner DEDENT
@@ -508,6 +527,11 @@ impl Parser {
         if self.kind() == TokenKind::LParen {
             self.bump();
             while !self.is_eof() && self.kind() != TokenKind::RParen {
+                while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent
+                    || self.kind() == TokenKind::Dedent {
+                    self.bump();
+                }
+                if self.kind() == TokenKind::RParen || self.is_eof() { break; }
                 if let Some((key, _)) = self.expect_ident("tool param key") {
                     if self.kind() == TokenKind::Eq {
                         self.bump();
@@ -535,6 +559,11 @@ impl Parser {
         if self.kind() == TokenKind::LParen {
             self.bump();
             while !self.is_eof() && self.kind() != TokenKind::RParen {
+                while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent
+                    || self.kind() == TokenKind::Dedent {
+                    self.bump();
+                }
+                if self.kind() == TokenKind::RParen || self.is_eof() { break; }
                 if let Some((key, _)) = self.expect_ident("model config key") {
                     if self.kind() == TokenKind::Eq {
                         self.bump();
@@ -572,7 +601,7 @@ impl Parser {
                 } else if self.is_keyword("rules") {
                     self.bump();
                     let mut items = Vec::new();
-                    while !self.at_dedent() && self.kind() != TokenKind::Newline {
+                    while !self.at_dedent() && self.kind() != TokenKind::Newline && !self.is_stuck() {
                         items.push(self.collect_text_block());
                     }
                     sections.push(PromptSection::Rules { items, span: start });
@@ -603,7 +632,7 @@ impl Parser {
 
     fn collect_text_block(&mut self) -> String {
         let mut lines = Vec::new();
-        while !self.is_eof() && !self.at_dedent() && !self.is_keyword("role")
+        while !self.is_eof() && !self.at_dedent() && !self.is_keyword("role") && !self.is_stuck()
             && !self.is_keyword("rules") && !self.is_keyword("context")
             && !self.is_keyword("examples") && !self.is_keyword("format") {
             if self.kind() == TokenKind::Newline {
@@ -640,7 +669,7 @@ impl Parser {
                 self.bump();
                 let value = self.parse_expr();
                 // Skip remaining tokens on this line (e.g., unit specifiers like `10m`)
-                while !self.at_dedent() && self.kind() != TokenKind::Newline && !self.is_eof() {
+                while !self.at_dedent() && self.kind() != TokenKind::Newline && !self.is_stuck() && !self.is_eof() && !self.is_stuck() {
                     self.bump();
                 }
 
@@ -682,6 +711,11 @@ impl Parser {
         if self.kind() == TokenKind::Lt {
             self.bump();
             while !self.is_eof() && self.kind() != TokenKind::Gt {
+                while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent
+                    || self.kind() == TokenKind::Dedent {
+                    self.bump();
+                }
+                if self.kind() == TokenKind::Gt || self.is_eof() { break; }
                 if let Some((n, _)) = self.expect_ident("type parameter") {
                     type_params.push(n);
                 }
@@ -734,7 +768,10 @@ impl Parser {
                 self.bump();
                 current_is_allow = true;
                 // Parse allow entries until NEWLINE or DEDENT
-                while self.kind() != TokenKind::Newline && !self.at_dedent() {
+                let mut perm_safety = 0;
+                while self.kind() != TokenKind::Newline && !self.at_dedent() && !self.is_stuck() {
+                    perm_safety += 1;
+                    if perm_safety > 10000 { break; }
                     if self.is_keyword("allow") || self.is_keyword("deny") { break; }
                     let entry = self.parse_permission_entry();
                     allow_entries.push(entry);
@@ -743,7 +780,10 @@ impl Parser {
             } else if self.is_keyword("deny") {
                 self.bump();
                 current_is_allow = false;
-                while self.kind() != TokenKind::Newline && !self.at_dedent() {
+                let mut deny_safety = 0;
+                while self.kind() != TokenKind::Newline && !self.at_dedent() && !self.is_stuck() {
+                    deny_safety += 1;
+                    if deny_safety > 10000 { break; }
                     if self.is_keyword("allow") || self.is_keyword("deny") { break; }
                     let entry = self.parse_permission_entry();
                     deny_entries.push(entry);
@@ -810,7 +850,7 @@ impl Parser {
                 if self.is_keyword("before") {
                     self.bump();
                     let mut op_parts = Vec::new();
-                    while !self.at_dedent() && self.is_ident() {
+                    while !self.at_dedent() && self.is_ident() && !self.is_stuck() {
                         op_parts.push(self.text().to_string());
                         self.bump();
                     }

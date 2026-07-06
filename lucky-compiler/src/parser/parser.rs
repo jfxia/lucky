@@ -9,9 +9,14 @@ pub struct Parser {
     pos: usize,
     pub diagnostics: DiagnosticBag,
     file_id: FileId,
-    /// For error recovery: skip to the next token after one of these kinds
     sync_tokens: Vec<TokenKind>,
+    /// Safety counter — incremented on every bump().
+    step_count: usize,
+    /// Set when parser exceeds max steps to force early exit.
+    stuck: bool,
 }
+
+const MAX_PARSER_STEPS: usize = 100_000;
 
 impl Parser {
     pub fn new(tokens: Vec<Token>, file_id: FileId) -> Self {
@@ -21,6 +26,8 @@ impl Parser {
             diagnostics: DiagnosticBag::new(),
             file_id,
             sync_tokens: vec![TokenKind::Newline, TokenKind::Eof],
+            step_count: 0,
+            stuck: false,
         }
     }
 
@@ -47,7 +54,7 @@ impl Parser {
     }
 
     pub fn is_eof(&self) -> bool {
-        self.kind() == TokenKind::Eof
+        self.stuck || self.kind() == TokenKind::Eof
     }
 
     pub fn is(&self, kind: TokenKind) -> bool {
@@ -64,10 +71,21 @@ impl Parser {
 
     /// Advance one token.
     pub fn bump(&mut self) -> &Token {
+        self.step_count += 1;
+        if self.step_count > MAX_PARSER_STEPS && !self.stuck {
+            self.stuck = true;
+            self.pos = self.tokens.len();
+            self.error("Parser stuck: exceeded maximum step count".to_string());
+        }
         if !self.is_eof() {
             self.pos += 1;
         }
         self.current()
+    }
+
+    /// Check if the parser has exceeded safety limits.
+    pub fn is_stuck(&self) -> bool {
+        self.stuck
     }
 
     /// Advance and return the span of the consumed token.
@@ -203,7 +221,7 @@ impl Parser {
 
     /// Check if we've reached DEDENT (end of current block).
     pub fn at_dedent(&self) -> bool {
-        self.kind() == TokenKind::Dedent
+        self.stuck || self.kind() == TokenKind::Dedent
     }
 
     /// Consume DEDENT token if present.
