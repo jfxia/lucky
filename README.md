@@ -34,7 +34,31 @@ In Lucky:
 
 ---
 
-### Key Capabilities
+### When to Use Lucky
+
+Lucky is designed for a specific class of problems — ones where the "business logic" isn't a computation but a conversation with AI. You write Lucky when:
+
+**You're orchestrating multiple AI agents.** A single LLM call can answer a question. But a real software project needs code review, security audit, test generation, and documentation — each done by a specialized agent, coordinated in sequence or parallel. Lucky makes that orchestration the language itself, not a library bolted onto Python.
+
+**You need auditability, not just automation.** Lucky logs every decision, every tool call, and every approval to a structured audit trail. You can checkpoint execution state and resume from any point. Cost budgets are enforced at the language runtime level. When something goes wrong, you know exactly which agent did what, when, and why.
+
+**You want guardrails, not just prompts.** Agents run with explicit `allow`/`deny` permissions. Critical operations require human approval — not as an afterthought, but as a language-level construct. Recovery is declarative: retry with exponential backoff, fallback to another agent, escalate to a human. No try/catch spaghetti.
+
+**Your workflow is valuable IP independent of any single LLM provider.** Model declarations live in `lucky.toml`, not hardcoded in scripts. Switch from DeepSeek to OpenAI to a local Ollama model without touching your orchestration logic. The IR is portable across execution platforms.
+
+Lucky is **not** for:
+- Crunching numbers or building web servers (use Rust, Go, Python)
+- Real-time systems or embedded devices
+- Single-shot LLM queries ("summarize this article")
+
+Lucky **is** for:
+- CI/CD bots that review, test, and deploy code
+- Research pipelines that investigate, analyze, and report
+- Document generation workflows with multi-stage review
+- Security auditing across multiple dimensions
+- Any multi-step process where AI agents coordinate under human oversight
+
+---
 
 **Multi-Agent Orchestration.** Define agents with models, tools, memory, and permissions. Compose them into workflows with `->` for sequential chains, or let them run in parallel at the same indentation level. Use `parallel`/`wait` for fork-join, `swarm` for mass fan-out, `if`/`else` for branching.
 
