@@ -310,12 +310,20 @@ impl Parser {
                     "steps" => {
                         self.bump();
                         while self.kind() == TokenKind::Newline { self.bump(); }
-                        steps = Some(self.parse_block());
+                        if self.kind() == TokenKind::Indent {
+                            steps = Some(self.parse_block());
+                        } else {
+                            steps = Some(crate::ast::stmt::Block::empty(start));
+                        }
                     }
                     "rollback" => {
                         self.bump();
                         while self.kind() == TokenKind::Newline { self.bump(); }
-                        rollback = Some(self.parse_block());
+                        if self.kind() == TokenKind::Indent {
+                            rollback = Some(self.parse_block());
+                        } else {
+                            rollback = Some(crate::ast::stmt::Block::empty(start));
+                        }
                     }
                     _ => {
                         self.error(format!("Unexpected '{}' in task body", self.text()));
@@ -377,14 +385,7 @@ impl Parser {
         let start = self.span();
         self.bump(); // 'workflow'
         let (name, _) = self.expect_ident("workflow name")?;
-        let mut context = Vec::new();
-
-        // Parse context if present before body
-        while self.kind() == TokenKind::Newline { self.bump(); }
-        if self.is_keyword("context") {
-            self.bump();
-            self.parse_typed_idents(&mut context);
-        }
+        let context = Vec::new();
 
         // Skip any intervening newlines before the body
         while self.kind() == TokenKind::Newline { self.bump(); }
@@ -650,6 +651,9 @@ impl Parser {
     fn parse_policy_decl(&mut self) -> Option<PolicyDecl> {
         let start = self.span();
         self.bump(); // 'policy'
+        while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+            self.bump();
+        }
         let (name, _) = self.expect_ident("policy name")?;
         let mut entries = Vec::new();
 
@@ -754,64 +758,78 @@ impl Parser {
         let mut allow = Vec::new();
         let mut deny = Vec::new();
 
-        // Skip the NEWLINE after the permissions keyword
         while self.kind() == TokenKind::Newline { self.bump(); }
 
         let has_indent = self.kind() == TokenKind::Indent;
         if has_indent { self.bump(); }
 
-        let mut allow_entries = Vec::new();
-        let mut deny_entries = Vec::new();
         let mut current_is_allow = true;
-        while !self.is_eof() && !self.at_dedent() {
+        if has_indent {
+            while !self.is_eof() && !self.at_dedent() {
+                while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+                    self.bump();
+                }
+                if self.at_dedent() { break; }
+
             if self.is_keyword("allow") {
                 self.bump();
                 current_is_allow = true;
-                // Parse allow entries until NEWLINE or DEDENT
-                let mut perm_safety = 0;
-                while self.kind() != TokenKind::Newline && !self.at_dedent() && !self.is_stuck() {
-                    perm_safety += 1;
-                    if perm_safety > 10000 { break; }
-                    if self.is_keyword("allow") || self.is_keyword("deny") { break; }
-                    let entry = self.parse_permission_entry();
-                    allow_entries.push(entry);
-                    if self.kind() == TokenKind::Comma { self.bump(); }
-                }
+                self.parse_permission_inline_entries(&mut allow);
             } else if self.is_keyword("deny") {
                 self.bump();
                 current_is_allow = false;
-                let mut deny_safety = 0;
-                while self.kind() != TokenKind::Newline && !self.at_dedent() && !self.is_stuck() {
-                    deny_safety += 1;
-                    if deny_safety > 10000 { break; }
-                    if self.is_keyword("allow") || self.is_keyword("deny") { break; }
-                    let entry = self.parse_permission_entry();
-                    deny_entries.push(entry);
-                    if self.kind() == TokenKind::Comma { self.bump(); }
-                }
+                self.parse_permission_inline_entries(&mut deny);
+            } else if self.is_keyword("model") || self.is_keyword("memory")
+                || self.is_keyword("tools") || self.is_keyword("task")
+                || self.is_keyword("permissions") || self.is_keyword("policy")
+                || self.is_keyword("prompt") {
+                break;
             } else {
-                if self.is_keyword("model") || self.is_keyword("memory")
-                    || self.is_keyword("tools") || self.is_keyword("task")
-                    || self.is_keyword("permissions") || self.is_keyword("policy")
-                    || self.is_keyword("prompt") {
-                    break;
-                }
                 let entry = self.parse_permission_entry();
-                if current_is_allow {
-                    allow_entries.push(entry);
-                } else {
-                    deny_entries.push(entry);
-                }
+                if current_is_allow { allow.push(entry); } else { deny.push(entry); }
                 if self.kind() == TokenKind::Comma { self.bump(); }
             }
-            while self.kind() == TokenKind::Newline { self.bump(); }
+            }
+            self.eat_dedent();
+        } else {
+            // Inline permissions (no sub-INDENT): parse allow/deny at current indent
+            while !self.is_eof() && !self.at_dedent() {
+                while self.kind() == TokenKind::Newline { self.bump(); }
+                if self.at_dedent() { break; }
+                if self.is_keyword("allow") {
+                    self.bump();
+                    current_is_allow = true;
+                    self.parse_permission_inline_entries(&mut allow);
+                } else if self.is_keyword("deny") {
+                    self.bump();
+                    current_is_allow = false;
+                    self.parse_permission_inline_entries(&mut deny);
+                } else {
+                    break;
+                }
+            }
         }
-        if has_indent { self.eat_dedent(); }
-        allow = allow_entries;
-        deny = deny_entries;
-
         let span = start.merge(self.span());
         Some(PermissionDecl { allow, deny, span })
+    }
+
+    fn parse_permission_inline_entries(&mut self, entries: &mut Vec<PermissionEntry>) {
+        loop {
+            while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+                self.bump();
+            }
+            if self.kind() == TokenKind::Newline || self.at_dedent() { break; }
+            if self.is_keyword("allow") || self.is_keyword("deny") { break; }
+            if self.is_keyword("model") || self.is_keyword("memory")
+                || self.is_keyword("tools") || self.is_keyword("task")
+                || self.is_keyword("permissions") || self.is_keyword("policy")
+                || self.is_keyword("prompt") {
+                break;
+            }
+            let entry = self.parse_permission_entry();
+            entries.push(entry);
+            if self.kind() == TokenKind::Comma { self.bump(); }
+        }
     }
 
     fn parse_permission_entry(&mut self) -> PermissionEntry {
