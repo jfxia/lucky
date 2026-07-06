@@ -18,14 +18,12 @@ impl Parser {
         let mut items = Vec::new();
 
         while !self.is_eof() {
-            // Skip newlines between declarations
             while self.kind() == TokenKind::Newline { self.bump(); }
             if self.is_eof() { break; }
 
             match self.parse_module_item() {
                 Some(item) => items.push(item),
                 None => {
-                    // Error recovery: skip to next declaration keyword
                     self.recover_to_decl();
                 }
             }
@@ -157,6 +155,7 @@ impl Parser {
                 // Check for top-level declarations at the same level (end of agent body)
                 if self.kind() == TokenKind::Keyword && !self.is_keyword("model")
                     && !self.is_keyword("memory") && !self.is_keyword("tools")
+                    && self.text() != "tools"
                     && !self.is_keyword("permissions") && !self.is_keyword("policy")
                     && !self.is_keyword("prompt") && !self.is_keyword("task") {
                     break;
@@ -167,15 +166,18 @@ impl Parser {
                 } else if self.is_keyword("memory") {
                     self.bump();
                     memory_ref = self.expect_ident("memory name").map(|(n, s)| QualifiedName::simple(&n, s));
-                } else if self.is_keyword("tools") {
+                } else if self.is_keyword("tools") || self.text() == "tools" {
                     self.bump();
-                    // Parse tool references: `Tools, Tool2` possibly across lines
                     loop {
                         while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Comma
                             || self.kind() == TokenKind::Indent {
                             self.bump();
                         }
-                        if self.at_dedent() || !self.is_ident() && self.kind() != TokenKind::Keyword {
+                        if self.at_dedent() {
+                            self.bump();
+                            break;
+                        }
+                        if !self.is_ident() && self.kind() != TokenKind::Keyword {
                             break;
                         }
                         if self.is_keyword("model") || self.is_keyword("memory")
@@ -317,6 +319,11 @@ impl Parser {
     }
 
     fn parse_typed_idents(&mut self, list: &mut Vec<TypedIdent>) {
+        let mut consumed_indent = false;
+        while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+            if self.kind() == TokenKind::Indent { consumed_indent = true; }
+            self.bump();
+        }
         while self.is_ident() || (self.kind() == TokenKind::Keyword && !self.at_dedent()) {
             if let Some((name, name_span)) = self.expect_ident("typed identifier") {
                 let typ = if self.kind() == TokenKind::Colon {
@@ -325,20 +332,23 @@ impl Parser {
                 } else {
                     None
                 };
-                // Check for default value
                 if self.kind() == TokenKind::Eq {
                     self.bump();
-                    let _default = self.parse_expr(); // consume but don't store in AST yet
+                    let _default = self.parse_expr();
                 }
                 list.push(TypedIdent { name, typ, span: name_span });
             }
             if self.kind() == TokenKind::Comma { self.bump(); }
             while self.kind() == TokenKind::Newline { self.bump(); }
+            if self.kind() == TokenKind::Indent { consumed_indent = true; self.bump(); }
             if self.at_dedent() || self.is_keyword("input") || self.is_keyword("output")
                 || self.is_keyword("context") || self.is_keyword("policy")
                 || self.is_keyword("steps") || self.is_keyword("rollback") {
                 break;
             }
+        }
+        if consumed_indent && self.kind() == TokenKind::Dedent {
+            self.bump();
         }
     }
 
@@ -350,10 +360,17 @@ impl Parser {
         let (name, _) = self.expect_ident("workflow name")?;
         let mut context = Vec::new();
 
+        // Parse context if present before body
+        while self.kind() == TokenKind::Newline { self.bump(); }
+        if self.is_keyword("context") {
+            self.bump();
+            self.parse_typed_idents(&mut context);
+        }
+
         // Skip any intervening newlines before the body
         while self.kind() == TokenKind::Newline { self.bump(); }
 
-        let body = self.parse_block();
+        let body = self.parse_workflow_body();
         let span = start.merge(body.span);
         Some(WorkflowDecl { name, context, body, span })
     }
@@ -612,11 +629,20 @@ impl Parser {
 
         if self.kind() == TokenKind::Indent {
             self.bump();
-            while !self.is_eof() && !self.at_dedent() && self.is_ident() {
+            while !self.is_eof() && !self.at_dedent() {
+                while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+                    self.bump();
+                }
+                if self.at_dedent() { break; }
+                if !self.is_ident() && self.kind() != TokenKind::Keyword { break; }
                 let key = self.text().to_string();
                 let key_span = self.span();
                 self.bump();
                 let value = self.parse_expr();
+                // Skip remaining tokens on this line (e.g., unit specifiers like `10m`)
+                while !self.at_dedent() && self.kind() != TokenKind::Newline && !self.is_eof() {
+                    self.bump();
+                }
 
                 let entry = match key.as_str() {
                     "retry" => PolicyEntry::Retry { count: 3, backoff: None, max_delay: None, span: key_span },
@@ -676,6 +702,9 @@ impl Parser {
         let start = self.span();
         self.bump(); // 'context'
         let mut entries = Vec::new();
+        while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+            self.bump();
+        }
         self.parse_typed_idents(&mut entries);
         let span = start.merge(self.span());
         Some(ContextDecl { entries, span })
@@ -694,43 +723,52 @@ impl Parser {
         // Skip the NEWLINE after the permissions keyword
         while self.kind() == TokenKind::Newline { self.bump(); }
 
-        if self.kind() == TokenKind::Indent {
-            self.bump();
-            let mut allow_entries = Vec::new();
-            let mut deny_entries = Vec::new();
-            let mut current_is_allow = true;
-            while !self.is_eof() && !self.at_dedent() {
-                if self.is_keyword("allow") {
-                    self.bump();
-                    current_is_allow = true;
-                    while self.kind() != TokenKind::Newline && !self.at_dedent() {
-                        let entry = self.parse_permission_entry();
-                        allow_entries.push(entry);
-                        if self.kind() == TokenKind::Comma { self.bump(); }
-                    }
-                } else if self.is_keyword("deny") {
-                    self.bump();
-                    current_is_allow = false;
-                    while self.kind() != TokenKind::Newline && !self.at_dedent() {
-                        let entry = self.parse_permission_entry();
-                        deny_entries.push(entry);
-                        if self.kind() == TokenKind::Comma { self.bump(); }
-                    }
-                } else {
+        let has_indent = self.kind() == TokenKind::Indent;
+        if has_indent { self.bump(); }
+
+        let mut allow_entries = Vec::new();
+        let mut deny_entries = Vec::new();
+        let mut current_is_allow = true;
+        while !self.is_eof() && !self.at_dedent() {
+            if self.is_keyword("allow") {
+                self.bump();
+                current_is_allow = true;
+                // Parse allow entries until NEWLINE or DEDENT
+                while self.kind() != TokenKind::Newline && !self.at_dedent() {
+                    if self.is_keyword("allow") || self.is_keyword("deny") { break; }
                     let entry = self.parse_permission_entry();
-                    if current_is_allow {
-                        allow_entries.push(entry);
-                    } else {
-                        deny_entries.push(entry);
-                    }
+                    allow_entries.push(entry);
                     if self.kind() == TokenKind::Comma { self.bump(); }
                 }
-                while self.kind() == TokenKind::Newline { self.bump(); }
+            } else if self.is_keyword("deny") {
+                self.bump();
+                current_is_allow = false;
+                while self.kind() != TokenKind::Newline && !self.at_dedent() {
+                    if self.is_keyword("allow") || self.is_keyword("deny") { break; }
+                    let entry = self.parse_permission_entry();
+                    deny_entries.push(entry);
+                    if self.kind() == TokenKind::Comma { self.bump(); }
+                }
+            } else {
+                if self.is_keyword("model") || self.is_keyword("memory")
+                    || self.is_keyword("tools") || self.is_keyword("task")
+                    || self.is_keyword("permissions") || self.is_keyword("policy")
+                    || self.is_keyword("prompt") {
+                    break;
+                }
+                let entry = self.parse_permission_entry();
+                if current_is_allow {
+                    allow_entries.push(entry);
+                } else {
+                    deny_entries.push(entry);
+                }
+                if self.kind() == TokenKind::Comma { self.bump(); }
             }
-            self.eat_dedent();
-            allow = allow_entries;
-            deny = deny_entries;
+            while self.kind() == TokenKind::Newline { self.bump(); }
         }
+        if has_indent { self.eat_dedent(); }
+        allow = allow_entries;
+        deny = deny_entries;
 
         let span = start.merge(self.span());
         Some(PermissionDecl { allow, deny, span })
@@ -748,6 +786,11 @@ impl Parser {
             } else {
                 break;
             }
+        }
+        // If no valid tokens were consumed, skip one to avoid infinite loop
+        if path.is_empty() && !self.is_eof() && !self.at_dedent()
+            && self.kind() != TokenKind::Newline {
+            self.bump();
         }
 
         let span = start.merge(self.span());

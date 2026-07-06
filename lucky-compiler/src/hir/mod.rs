@@ -66,6 +66,11 @@ pub enum HirNode {
         task_ref: String,
         inputs: Vec<String>,
         outputs: Vec<String>,
+        model_ref: Option<String>,
+        memory_ref: Option<String>,
+        tool_refs: Vec<String>,
+        policy_ref: Option<String>,
+        prompt_ref: Option<String>,
         span: ast::span::Span,
     },
 

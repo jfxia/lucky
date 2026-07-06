@@ -546,15 +546,19 @@ fn cmd_check(path: &str) {
 
     let (_module, diagnostics) = lucky_compiler::compile(&source, file_id);
 
-    if diagnostics.is_empty() {
-        println!("No errors found in '{}'.", path);
-    } else {
+    if diagnostics.has_errors() {
         lucky_compiler::diagnostics::print_diagnostics(
             &diagnostics.diagnostics, &source, path,
         );
-        if diagnostics.has_errors() {
-            process::exit(1);
-        }
+        process::exit(1);
+    }
+
+    if diagnostics.is_empty() {
+        println!("No errors found in '{}'.", path);
+    }
+
+    if diagnostics.has_errors() {
+        process::exit(1);
     }
 }
 

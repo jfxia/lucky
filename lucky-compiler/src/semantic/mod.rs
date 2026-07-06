@@ -1,4 +1,5 @@
 pub mod resolver;
+pub mod type_checker;
 
 use crate::ast::span::Span;
 use crate::ast::Module;
