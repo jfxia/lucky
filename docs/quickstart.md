@@ -47,6 +47,25 @@ hello-world/
 └── memory/             # Memory configurations
 ```
 
+The `lucky.toml` file is where you configure LLM backends and runtime settings:
+
+```toml
+[project]
+name = "hello-world"
+version = "0.1.0"
+
+[models.deepseek-v4]
+provider = "deepseek"
+
+[models.gpt-4o]
+provider = "openai"
+
+[runtime]
+budget_usd = 10.0
+```
+
+View your resolved configuration anytime with `lucky config`.
+
 ---
 
 ## 3. Your First Program
@@ -84,7 +103,22 @@ workflow SayHelloWorkflow
 ## 4. Run It
 
 ```bash
+# Basic run (stub responses)
 lucky run main.lk
+
+# Run with real LLM backend (set API key first)
+$env:DEEPSEEK_API_KEY="sk-xxx"    # Windows
+export DEEPSEEK_API_KEY="sk-xxx"  # Linux/macOS
+lucky run main.lk
+
+# Stream tokens as they arrive
+lucky run main.lk --stream
+
+# Run with a cost budget
+lucky run main.lk --budget 5.00
+
+# Log every step to an audit file
+lucky run main.lk --audit execution.jsonl
 ```
 
 Output:
@@ -127,54 +161,11 @@ lucky fmt main.lk
 lucky ir main.lk
 ```
 
-This outputs the HIR and MIR JSON representations. The MIR now contains real SSA basic blocks with proper instructions (Alloca, Store, AgentInvoke, LlmComplete, ToolInvoke) and control flow terminators (Br, CondBr, Ret).
+This outputs the HIR and MIR JSON representations with SSA basic blocks, proper instructions (Alloca, Store, AgentInvoke, LlmComplete, ToolInvoke), and control flow terminators — useful for inspection and debugging.
 
 ---
 
-## 8. Configure LLM Backends
-
-Lucky v0.2 supports real LLM API calls. Set up your API keys:
-
-```toml
-# lucky.toml
-[project]
-name = "hello-world"
-version = "0.1.0"
-
-[models.deepseek-v4]
-provider = "deepseek"
-
-[models.gpt-4o]
-provider = "openai"
-
-[runtime]
-budget_usd = 10.0
-```
-
-```bash
-# Set API keys
-export DEEPSEEK_API_KEY="sk-xxx"    # or: $env:DEEPSEEK_API_KEY="sk-xxx" on Windows
-export OPENAI_API_KEY="sk-xxx"
-
-# View resolved config
-lucky config
-
-# Run with real LLM backend
-lucky run main.lk
-
-# Run with streaming output
-lucky run main.lk --stream
-
-# Run with cost budget
-lucky run main.lk --budget 5.00
-
-# Run with audit trail
-lucky run main.lk --audit execution.jsonl
-```
-
----
-
-## 9. Write a Test
+## 8. Write a Test
 
 Create `hello.test.lk`:
 
@@ -229,25 +220,8 @@ Results: 2 passed, 0 failed, 0 skipped
 - Read the [Language Reference Manual](Lucky%20Language%20Reference%20Manual%20V0.1.md) for complete syntax
 - Read the [Standard Library](Lucky%20Standard%20Library%20Specification%20V0.1.md) for API reference
 - Explore the [examples/](../lucky-compiler/examples/) directory
-
----
-
-## 11. v0.2 CLI Commands
-
-```bash
-# Watch for file changes and auto re-check
-lucky watch . --run
-
-# Generate documentation from .lk files
-lucky doc . -o docs/api
-
-# Show resolved configuration
-lucky config
-
-# Run with production runtime features
-lucky run main.lk --budget 5.00 --stream --audit audit.jsonl
-lucky run main.lk --auto-approve --approve "before deploy"
-```
+- Use `lucky watch . --run` to auto-recheck files on change
+- Use `lucky doc . -o docs/api` to generate Markdown documentation from your `.lk` files
 
 ---
 
@@ -268,7 +242,7 @@ Lucky ships with these tools ready to use:
 
 ## AI Models
 
-Lucky v0.2 supports three LLM backends with real API calls (no stubs). Declare models at the language level and set API keys in the environment:
+Lucky has first-class model support. Declare models at the language level, set API keys in the environment, and go:
 
 ```lucky
 model DeepSeek(
@@ -293,18 +267,13 @@ agent Researcher
     use GPT          # Override for this agent
 ```
 
-**API Keys** (set via environment variables):
-- DeepSeek: `DEEPSEEK_API_KEY=sk-xxx`
-- OpenAI: `OPENAI_API_KEY=sk-xxx`
-- Ollama: No key needed (runs on `localhost:11434`)
+Three backends are supported out of the box:
 
-```bash
-# Run with real LLM
-DEEPSEEK_API_KEY=sk-xxx lucky run main.lk
-
-# Stream tokens as they arrive
-lucky run main.lk --stream
-```
+| Backend | API Key | Endpoint |
+|---------|---------|----------|
+| DeepSeek | `DEEPSEEK_API_KEY` | `api.deepseek.com` |
+| OpenAI | `OPENAI_API_KEY` | `api.openai.com` |
+| Ollama | *(none)* | `localhost:11434` |
 
 ---
 

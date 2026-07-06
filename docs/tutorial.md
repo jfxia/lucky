@@ -66,6 +66,12 @@ workflow MainWorkflow
 
 ```bash
 lucky run main.lk
+
+# With a real LLM backend
+DEEPSEEK_API_KEY=sk-xxx lucky run main.lk
+
+# Stream tokens as they arrive
+lucky run main.lk --stream
 ```
 
 ---
@@ -113,6 +119,8 @@ task FetchData
         let response = HTTP.get(url)
         return response.text()
 ```
+
+A task with `retry 3` will automatically retry on failure with exponential backoff and jitter. A built-in circuit breaker stops retrying if a node fails 5 times within 60 seconds, preventing retry storms.
 
 ### Control Flow in Tasks
 
@@ -638,11 +646,15 @@ recover
 |---|---|
 | `retry N` | Re-execute up to N times |
 | `retry with backoff linear` | Retry with increasing delay |
-| `retry with backoff exponential` | Retry with exponential backoff |
+| `retry with backoff exponential` | Retry with exponential backoff + jitter |
 | `fallback task` | Execute an alternative task |
 | `human escalate "msg"` | Escalate to a human operator |
 | `abort` | Terminate the workflow |
 | `skip` | Skip the failed task and continue |
+
+Exponential backoff uses the formula `min(base × 2^attempt, max) × jitter` with a random factor between 0.5 and 1.0. A circuit breaker prevents retry storms: if a node fails 5 times within 60 seconds, retrying stops and the workflow escalates to the next recovery action.
+
+Execution state can be checkpointed at any policy boundary. Resume from a checkpoint with `lucky run --resume <checkpoint_id>`.
 
 ### Policy-Based Recovery
 
@@ -652,6 +664,7 @@ policy ResilientPolicy
     checkpoint before retry
     on_permanent_failure fallback
     on_transient_failure retry
+    cost_limit 10.00 USD
 
 task CriticalOperation
     policy ResilientPolicy
@@ -717,7 +730,16 @@ approval
     before git.push(main)
 ```
 
-Execution suspends until a human approves.
+Execution suspends until a human approves. When running from the CLI, Lucky prompts interactively:
+
+```bash
+lucky run deploy.lk
+# ⚠ Approval required: before deploy
+# [approve/reject/modify]:
+
+lucky run deploy.lk --auto-approve             # Skip all prompts
+lucky run deploy.lk --approve "before deploy"  # Auto-approve specific gates
+```
 
 ### Inline Human Queries
 
@@ -867,92 +889,15 @@ workflow SoftwareDevelopment
 - [Standard Library Reference](Lucky%20Standard%20Library%20Specification%20V0.1.md) — All built-in types, tools, and APIs
 - [Runtime Specification](Lucky%20Runtime%20Specification%20V0.1.md) — Execution engine internals
 - [IR Specification](Lucky%20IR%20Specification%20V0.1.md) — Intermediate representation and optimization
+- [Quickstart Guide](quickstart.md) — Get started in 5 minutes
 
----
-
-## v0.2 Runtime Features
-
-### LLM Backends
-
-Lucky v0.2 supports three real LLM backends — DeepSeek, OpenAI, and Ollama. Configure them in `lucky.toml`:
-
-```toml
-[models.deepseek-v4]
-provider = "deepseek"
-```
-
-Set API keys as environment variables (`DEEPSEEK_API_KEY`, `OPENAI_API_KEY`) and run:
+### Everyday Workflow
 
 ```bash
-DEEPSEEK_API_KEY=sk-xxx lucky run main.lk
-lucky run main.lk --stream      # Streaming output
+lucky watch . --run          # Auto-recheck on file changes
+lucky doc . -o docs/api      # Generate docs from source
+lucky config                 # Inspect resolved configuration
+lucky run main.lk --stream   # Stream LLM tokens live
 ```
-
-### Checkpoint & Resume
-
-Save and restore execution state:
-
-```bash
-lucky run main.lk
-# ... execution state saved to .lucky/checkpoints/
-
-lucky run main.lk --resume <checkpoint_id>
-```
-
-### Budget Enforcement
-
-Set a cost limit for LLM calls:
-
-```bash
-lucky run main.lk --budget 5.00
-# Cancels execution when cost exceeds $5.00
-```
-
-### Audit Trail
-
-Log every execution event to a JSONL file:
-
-```bash
-lucky run main.lk --audit execution.jsonl
-# Produces structured audit log with timestamps, costs, and errors
-```
-
-### Human Approval
-
-Pause execution for manual approval:
-
-```bash
-lucky run main.lk                    # Prompts for each approval gate
-lucky run main.lk --auto-approve     # Skip all prompts
-lucky run main.lk --approve "deploy" # Auto-approve specific gates
-```
-
-### Watch Mode
-
-Auto-recheck files on change:
-
-```bash
-lucky watch . --run
-```
-
-### Documentation Generator
-
-Generate Markdown docs from `.lk` source files:
-
-```bash
-lucky doc . -o docs/api
-```
-
-### Configuration Inspector
-
-View resolved project configuration:
-
-```bash
-lucky config
-```
-
-### Retry with Backoff
-
-Nodes with `retry N` automatically retry with exponential backoff + jitter. A circuit breaker prevents retry storms (5 failures in 60s stops retrying).
 - [Tool Protocol (LTP)](Lucky%20Tool%20Protocol%20Specification%20V0.1.md) — Cross-platform execution protocol
 - [Quickstart Guide](quickstart.md) — Fast setup reference
