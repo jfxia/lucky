@@ -3,52 +3,53 @@ project ConditionalBranching
 use DeepSeek
 
 model DeepSeek(
-    provider = "deepseek",
-    version = "deepseek-v4",
+	provider = "deepseek",
+	version = "deepseek-v4",
 )
 
 agent TestRunner
-    model DeepSeek
-    tools Shell
-    permissions allow shell.exec
+	model DeepSeek
+	tools Shell
+	permissions allow shell.exec
 
 agent Deployer
-    model DeepSeek
-    tools Shell
-    permissions allow shell.exec
+	model DeepSeek
+	tools Shell
+	permissions allow shell.exec
 
 agent Notifier
-    model DeepSeek
-    tools HTTP
-    permissions allow http.post
+	model DeepSeek
+	tools HTTP
+	permissions allow http.post
 
 task RunTests
-    output passed: Bool
-    steps
-        let result = Shell.exec("cargo test")
-        return result.success
+	output passed: Bool
+	steps
+		let result = Shell.exec("cargo test")
+		return result.success
 
 task Deploy
-    steps
-        Shell.exec("docker compose up -d")
+	steps
+		Shell.exec("docker compose up -d")
 
 task Alert
-    input message: String
-    steps
-        HTTP.post("/api/alerts", { "message": message })
+	input message: String
+	steps
+		HTTP.post("/api/alerts", { "message": message })
 
 task Rollback
-    steps
-        Shell.exec("docker compose down && docker compose up -d previous")
+	steps
+		Shell.exec("docker compose down && docker compose up -d previous")
 
 workflow ConditionalDeploy
-    RunTests()
-        ->
-    if context.passed
-        Deploy()
-    else
-        Alert(message = "Tests failed")
+	RunTests()
+		->
+	if context.passed
+		Deploy()
+	else
+		Alert(message = "Tests failed")
 
 goal DeployOrAlert
-    success tested and handled
-    workflow ConditionalDeploy
+	success tested and handled
+	workflow ConditionalDeploy
+

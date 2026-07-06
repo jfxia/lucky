@@ -624,7 +624,7 @@ impl Parser {
                 }
                 while self.kind() == TokenKind::Newline { self.bump(); }
             }
-            self.eat_dedent();
+            while self.kind() == TokenKind::Dedent { self.bump(); }
         }
 
         let span = start.merge(self.span());

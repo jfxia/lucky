@@ -533,17 +533,17 @@ Architecture
 becomes
 
 ```
-      Research
+		Research
 
-      /
+		/
 
 Planner
 
-      \
+		\
 
 Security
 
-      \
+		\
 
 Architecture
 ```

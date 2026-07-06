@@ -72,17 +72,17 @@ Agents execute under explicit, least-privilege permission sets. Permissions are 
 
 ```
 Natural Language
-      ↑
+		↑
    Lucky
-      ↑
+		↑
    Python
-      ↑
-     Go
-      ↑
+		↑
+	Go
+		↑
  Rust / C++
-      ↑
-     C
-      ↑
+		↑
+	C
+		↑
  Assembly
 ```
 
@@ -109,7 +109,7 @@ The highest abstraction. A goal declares success criteria without implementation
 
 ```lucky
 goal BuildWebsite
-    success website.online
+	success website.online
 ```
 
 ### Workflow
@@ -118,15 +118,15 @@ A directed acyclic graph of agents and tasks that together satisfy a goal. The w
 
 ```lucky
 workflow BuildWebsite
-    Research
-        ->
-    Design
-        ->
-    Implement
-        ->
-    Review
-        ->
-    Deploy
+	Research
+		->
+	Design
+		->
+	Implement
+		->
+	Review
+		->
+	Deploy
 ```
 
 ### Agent
@@ -135,11 +135,11 @@ A stateful entity that owns memory, tools, prompts, reasoning strategy, and perm
 
 ```lucky
 agent SecurityReviewer
-    model Claude
-    memory ProjectMemory
-    tools
-        Git
-        Browser
+	model Claude
+	memory ProjectMemory
+	tools
+		Git
+		Browser
 ```
 
 ### Task
@@ -148,13 +148,13 @@ The smallest schedulable, checkpointable unit of work. Tasks declare typed input
 
 ```lucky
 task AnalyzeRepo
-    input repo: URI
-    output report: Document
-    steps
-        clone repo
-        read README
-        understand architecture
-        generate report
+	input repo: URI
+	output report: Document
+	steps
+		clone repo
+		read README
+		understand architecture
+		generate report
 ```
 
 ### Operation
@@ -216,16 +216,16 @@ Files are organized in a conventional directory structure:
 
 ```
 project/
-    main.lk
-    agents/
-        coder.lk
-        reviewer.lk
-        planner.lk
-    memory/
-        permissions.lk
-    tasks/
-        build.lk
-        deploy.lk
+	main.lk
+	agents/
+		coder.lk
+		reviewer.lk
+		planner.lk
+	memory/
+		permissions.lk
+	tasks/
+		build.lk
+		deploy.lk
 ```
 
 Line terminators are LF (U+000A) or CRLF (U+000D U+000A). A file must end with a line terminator. There is no line-continuation character; long expressions are broken across lines naturally via indentation rules.
@@ -337,7 +337,7 @@ A `##` prefix marks a documentation comment. Documentation comments attach to th
 ## SecurityReviewer audits code changes for vulnerabilities.
 ## It uses static analysis and LLM reasoning.
 agent SecurityReviewer
-    model Claude
+	model Claude
 ```
 
 ### Block comments
@@ -490,13 +490,13 @@ import browser
 import company.security
 
 agent Planner
-    model Claude
+	model Claude
 
 task BuildReport
-    ...
+	...
 
 goal Deliver
-    workflow MainWorkflow
+	workflow MainWorkflow
 ```
 
 ### Compilation units
@@ -531,10 +531,10 @@ A module is a single `.lk` file. Module names are derived from the file path rel
 
 ```
 project/
-    agents/
-        coder.lk          → module agents.coder
-    tasks/
-        build.lk          → module tasks.build
+	agents/
+		coder.lk          → module agents.coder
+	tasks/
+		build.lk          → module tasks.build
 ```
 
 A module may contain any number of declarations. All top-level declarations in a module are private to that module unless explicitly exported.
@@ -545,7 +545,7 @@ Declarations prefixed with `pub` are exported and visible to importing modules:
 
 ```lucky
 pub agent Reviewer
-    ...
+	...
 ```
 
 If a module contains a `project` declaration, it is the root module of the project. All other modules in the project implicitly belong to that project.
@@ -655,10 +655,10 @@ program         = [ projectDecl ] { moduleItem } ;
 projectDecl     = "project" Identifier NEWLINE ;
 
 moduleItem      = pubDecl | importDecl | typeDecl | agentDecl
-                | taskDecl | workflowDecl | goalDecl | memoryDecl
-                | toolDecl | modelDecl | promptDecl | policyDecl
-                | contextDecl | permissionDecl | approvalDecl
-                ;
+				| taskDecl | workflowDecl | goalDecl | memoryDecl
+				| toolDecl | modelDecl | promptDecl | policyDecl
+				| contextDecl | permissionDecl | approvalDecl
+				;
 
 pubDecl         = "pub" moduleItem ;
 
@@ -707,7 +707,7 @@ typeDecl        = "type" Identifier [ typeParams ] "=" typeExpr NEWLINE ;
 taskBody        = INDENT taskSection { taskSection } DEDENT ;
 
 taskSection     = inputSection | outputSection | stepsSection
-                | contextSection | policySection ;
+				| contextSection | policySection ;
 
 inputSection    = "input" NEWLINE { typedIdent NEWLINE } ;
 
@@ -736,11 +736,11 @@ permissionEntry = Identifier { "." Identifier } ;
 block           = INDENT { statement } DEDENT ;
 
 statement       = letStmt | constStmt | assignStmt | callStmt
-                | ifStmt | matchStmt | loopStmt | forStmt
-                | parallelStmt | awaitStmt | whenStmt
-                | pipelineStmt | returnStmt | breakStmt
-                | continueStmt | attemptStmt | expression NEWLINE
-                ;
+				| ifStmt | matchStmt | loopStmt | forStmt
+				| parallelStmt | awaitStmt | whenStmt
+				| pipelineStmt | returnStmt | breakStmt
+				| continueStmt | attemptStmt | expression NEWLINE
+				;
 
 letStmt         = "let" Identifier [ ":" typeExpr ] "=" expression NEWLINE ;
 
@@ -761,11 +761,11 @@ continueStmt    = "continue" [ Identifier ] NEWLINE ;
 (* === Control Flow === *)
 
 ifStmt          = "if" expression [ "then" ] NEWLINE block
-                  { "else" "if" expression [ "then" ] NEWLINE block }
-                  [ "else" NEWLINE block ] ;
+				{ "else" "if" expression [ "then" ] NEWLINE block }
+				[ "else" NEWLINE block ] ;
 
 matchStmt       = "match" expression NEWLINE
-                  INDENT { matchArm } DEDENT ;
+				INDENT { matchArm } DEDENT ;
 
 matchArm        = pattern [ "if" expression ] "=>" NEWLINE block ;
 
@@ -786,16 +786,16 @@ pipelineStmt    = expression NEWLINE { "|>" expression NEWLINE } ;
 (* === Error Handling === *)
 
 attemptStmt     = "attempt" NEWLINE block
-                  { "recover" NEWLINE recoveryBlock } ;
+				{ "recover" NEWLINE recoveryBlock } ;
 
 recoveryBlock   = INDENT { recoveryAction } DEDENT ;
 
 recoveryAction  = "retry" [ expression ] [ "with" "backoff" backoffStrategy ] NEWLINE
-                | "fallback" expression NEWLINE
-                | "human" [ "escalate" expression ] NEWLINE
-                | "abort" NEWLINE
-                | "skip" NEWLINE
-                ;
+				| "fallback" expression NEWLINE
+				| "human" [ "escalate" expression ] NEWLINE
+				| "abort" NEWLINE
+				| "skip" NEWLINE
+				;
 
 (* === Expressions === *)
 
@@ -816,17 +816,17 @@ multiplicativeExpr = unaryExpr { ("*" | "/" | "%") unaryExpr } ;
 unaryExpr       = ( "-" | "not" ) unaryExpr | primaryExpr ;
 
 primaryExpr     = literal | variable | callExpr | indexExpr
-                | fieldAccess | parenExpr | listExpr | setExpr
-                | mapExpr | queryExpr | interpolatedString
-                | promptBlock | askExpr | reasonExpr
-                | useExpr | confidenceExpr | approvalExpr
-                | ifExpr
-                ;
+				| fieldAccess | parenExpr | listExpr | setExpr
+				| mapExpr | queryExpr | interpolatedString
+				| promptBlock | askExpr | reasonExpr
+				| useExpr | confidenceExpr | approvalExpr
+				| ifExpr
+				;
 
 ifExpr          = "if" expression "then" expression "else" expression ;
 
 literal         = INT_LIT | FLOAT_LIT | STRING_LIT | BOOL_LIT
-                | NULL_LIT | UNKNOWN_LIT ;
+				| NULL_LIT | UNKNOWN_LIT ;
 
 variable        = Identifier | qualifiedName ;
 
@@ -854,11 +854,11 @@ queryExpr       = querySource NEWLINE { queryOp NEWLINE } ;
 
 querySource     = expression ;
 queryOp         = "where" expression
-                | "select" expression
-                | "order" "by" expression [ "asc" | "desc" ]
-                | "group" "by" expression
-                | "limit" expression
-                ;
+				| "select" expression
+				| "order" "by" expression [ "asc" | "desc" ]
+				| "group" "by" expression
+				| "limit" expression
+				;
 
 interpolatedString = STRING_LIT ;
 
@@ -879,7 +879,7 @@ approvalExpr    = "ask" "human" ":" NEWLINE block ;
 (* === Patterns === *)
 
 pattern         = literal | variablePat | listPat | mapPat
-                | constructorPat | wildcardPat ;
+				| constructorPat | wildcardPat ;
 
 variablePat     = Identifier ;
 
@@ -902,17 +902,17 @@ typeExpr        = unionType ;
 unionType       = primaryType { "|" primaryType } ;
 
 primaryType     = "Bool" | "Int" | "Float" | "Decimal" | "String"
-                | "Bytes" | "Time" | "Duration" | "UUID" | "URI"
-                | "Version" | "Agent" | "Task" | "Workflow" | "Goal"
-                | "Prompt" | "Memory" | "Knowledge" | "Context"
-                | "Tool" | "Model" | "Artifact" | "Result"
-                | "Capability" | "Approval" | "Embedding"
-                | "Observation" | "Plan" | "Reasoning"
-                | "Any" | "Nothing" | "Error"
-                | genericType | nullableType | optionalType
-                | listType | setType | mapType | tupleType
-                | Identifier [ typeArgs ]
-                | "(" typeExpr ")" ;
+				| "Bytes" | "Time" | "Duration" | "UUID" | "URI"
+				| "Version" | "Agent" | "Task" | "Workflow" | "Goal"
+				| "Prompt" | "Memory" | "Knowledge" | "Context"
+				| "Tool" | "Model" | "Artifact" | "Result"
+				| "Capability" | "Approval" | "Embedding"
+				| "Observation" | "Plan" | "Reasoning"
+				| "Any" | "Nothing" | "Error"
+				| genericType | nullableType | optionalType
+				| listType | setType | mapType | tupleType
+				| Identifier [ typeArgs ]
+				| "(" typeExpr ")" ;
 
 genericType     = Identifier "<" typeArgList ">" ;
 
@@ -1031,8 +1031,8 @@ An immutable key-value store.
 
 ```lucky
 let config: Map<String, Any> = {
-    "model": "Claude",
-    "temperature": 0.7,
+	"model": "Claude",
+	"temperature": 0.7,
 }
 let model = config["model"]       # "Claude"
 let updated = config.insert("max_tokens", 4096)
@@ -1054,9 +1054,9 @@ A directed or undirected graph. The `Graph` type is used extensively by the IR a
 
 ```lucky
 let g: Graph<String> = Graph.empty()
-    .addNode("A")
-    .addNode("B")
-    .addEdge("A", "B")
+	.addNode("A")
+	.addNode("B")
+	.addEdge("A", "B")
 ```
 
 ### Tree&lt;T&gt;
@@ -1096,8 +1096,8 @@ Nullable types require explicit unwrapping before use. The `match` statement is 
 
 ```lucky
 match maybeName
-    null => "no name"
-    name => "hello, \{name}"
+	null => "no name"
+	name => "hello, \{name}"
 ```
 
 The `.?` operator chains nullable field access:
@@ -1134,8 +1134,8 @@ A union type `A | B` represents a value that is either of type `A` or of type `B
 let result: Success | Failure = attemptSomething()
 
 match result
-    Success(data) => process(data)
-    Failure(err)  => log(err)
+	Success(data) => process(data)
+	Failure(err)  => log(err)
 ```
 
 Unions are untagged (structural) by default but may be discriminated by constructor names:
@@ -1162,8 +1162,8 @@ Generic constraints use the `where` clause (for declarations) or inline bounds:
 
 ```lucky
 task Process<T: Agent> where T has tool Browser
-    input agent: T
-    ...
+	input agent: T
+	...
 ```
 
 Generic type arguments are inferred at call sites when omitted:
@@ -1219,19 +1219,19 @@ A `Context` is an implicit, lexically-scoped key-value map that propagates from 
 
 ```lucky
 context
-    user: String
-    repo: URI
-    session: UUID
-    history: List<Message>
+	user: String
+	repo: URI
+	session: UUID
+	history: List<Message>
 ```
 
 Tasks automatically inherit context from their enclosing workflow. A task may shadow a context entry with a more specific type:
 
 ```lucky
 task GenerateReport
-    context
-        repo: URI          # inherited, narrowed if desired
-        template: String   # additional context for this task
+	context
+		repo: URI          # inherited, narrowed if desired
+		template: String   # additional context for this task
 ```
 
 Context is read-only within a task. Mutations to context are performed at the workflow level and create a new scope for downstream tasks.
@@ -1251,10 +1251,10 @@ Top-level declarations and task inputs/outputs require explicit type annotations
 
 ```lucky
 task Process
-    input
-        data: List<String>     # required
-    output
-        result: Map<String, Int>  # required
+	input
+		data: List<String>     # required
+	output
+		result: Map<String, Int>  # required
 ```
 
 The inference algorithm is based on Hindley-Milner with extensions for union types and AI types.
@@ -1272,9 +1272,9 @@ Record and union types (those declared with `type ... =`) use **structural** com
 ```lucky
 # nominal: not compatible despite identical shape
 agent Reviewer1
-    ...
+	...
 agent Reviewer2
-    ...
+	...
 let r: Reviewer1 = Reviewer2.new()   # error
 
 # structural: compatible
@@ -1379,7 +1379,7 @@ A `let` or `const` in an inner scope may shadow an outer binding:
 ```lucky
 let x = 1
 if condition
-    let x = 2   # shadows outer x within this block
+	let x = 2   # shadows outer x within this block
 ```
 
 ### Mutable state
@@ -1388,12 +1388,12 @@ Mutable state is confined to agents. An agent's memory provides mutable storage 
 
 ```lucky
 agent Counter
-    memory
-        value: Int = 0
+	memory
+		value: Int = 0
 
-    task Increment
-        steps
-            memory.value = memory.value + 1
+	task Increment
+		steps
+			memory.value = memory.value + 1
 ```
 
 ---
@@ -1409,14 +1409,14 @@ Variable bindings (`let`) are never reassignable. This simplifies data-flow anal
 
 ```lucky
 agent StateManager
-    memory
-        counter: Int = 0
-        cache: Map<String, String> = {}
+	memory
+		counter: Int = 0
+		cache: Map<String, String> = {}
 
-    task Update
-        steps
-            memory.counter = memory.counter + 1
-            memory.cache = memory.cache.insert("key", "value")
+	task Update
+		steps
+			memory.counter = memory.counter + 1
+			memory.cache = memory.cache.insert("key", "value")
 ```
 
 ---
@@ -1490,28 +1490,28 @@ The pipeline operator `|>` threads the output of one expression as the input to 
 
 ```lucky
 files
-    |> filter *.py
-    |> summarize
-    |> save report.md
+	|> filter *.py
+	|> summarize
+	|> save report.md
 ```
 
 Each stage after `|>` must be a function, task, or operation that accepts a single input or is curried:
 
 ```lucky
 users
-    |> where age > 18
-    |> select name
-    |> sort name asc
-    |> take 10
+	|> where age > 18
+	|> select name
+	|> sort name asc
+	|> take 10
 ```
 
 Pipelines integrate with the web and AI operations natively:
 
 ```lucky
 web.search "AI Agent Framework"
-    |> extract
-    |> rank relevance
-    |> answer
+	|> extract
+	|> rank relevance
+	|> answer
 ```
 
 The compiler infers intermediate types through the pipeline. A pipeline is desugared into nested function applications:
@@ -1530,44 +1530,44 @@ Pattern matching is a core expression form in Lucky. The `match` expression disp
 
 ```lucky
 match value
-    0 => "zero"
-    1 => "one"
-    n => "other: \{n}"
+	0 => "zero"
+	1 => "one"
+	n => "other: \{n}"
 ```
 
 ### Destructuring
 
 ```lucky
 match point
-    { x: 0, y: 0 } => "origin"
-    { x, y }       => "x=\{x}, y=\{y}"
+	{ x: 0, y: 0 } => "origin"
+	{ x, y }       => "x=\{x}, y=\{y}"
 ```
 
 ### List patterns
 
 ```lucky
 match items
-    []        => "empty"
-    [first]   => "single: \{first}"
-    [first, ..rest] => "first=\{first}, rest=\{rest}"
+	[]        => "empty"
+	[first]   => "single: \{first}"
+	[first, ..rest] => "first=\{first}, rest=\{rest}"
 ```
 
 ### Guard clauses
 
 ```lucky
 match result
-    Success(data) if data.valid => process(data)
-    Success(data)               => log("invalid data")
-    Failure(err)                => report(err)
+	Success(data) if data.valid => process(data)
+	Success(data)               => log("invalid data")
+	Failure(err)                => report(err)
 ```
 
 ### Smart enum destructuring
 
 ```lucky
 match apiResult
-    Success { data, meta } => ...
-    Failure { code, message } if code > 500 => ...
-    Failure { message } => ...
+	Success { data, meta } => ...
+	Failure { code, message } if code > 500 => ...
+	Failure { message } => ...
 ```
 
 ### Exhaustiveness checking
@@ -1603,8 +1603,8 @@ Lambdas are commonly used with collection methods and pipelines:
 
 ```lucky
 numbers
-    |> map(fn x => x * 2)
-    |> filter(fn x => x > 10)
+	|> map(fn x => x * 2)
+	|> filter(fn x => x > 10)
 ```
 
 ---
@@ -1615,22 +1615,22 @@ Query expressions provide a declarative syntax for filtering, transforming, and 
 
 ```lucky
 users
-    where age > 18
-    where country == "US"
-    select { name, email }
-    order by name asc
+	where age > 18
+	where country == "US"
+	select { name, email }
+	order by name asc
 ```
 
 Queries can be assigned:
 
 ```lucky
 let adults = users
-    where age >= 18
-    select name
+	where age >= 18
+	select name
 
 let stats = sales
-    group by category
-    select { category, total: sum(amount) }
+	group by category
+	select { category, total: sum(amount) }
 ```
 
 Query operators:
@@ -1659,8 +1659,8 @@ A block is a sequence of statements at a common indentation level. Every block i
 ```lucky
 let x = 1
 let y =
-    let inner = 2
-    inner + 1       # last expression is the block's value
+	let inner = 2
+	inner + 1       # last expression is the block's value
 ```
 
 The value of a block is the value of its last expression. Empty blocks evaluate to `null`.
@@ -1675,11 +1675,11 @@ The `if` statement conditionally executes a block.
 
 ```lucky
 if confidence > 0.9
-    approve
+	approve
 else if confidence > 0.5
-    request_human_review
+	request_human_review
 else
-    reject
+	reject
 ```
 
 `if` is an expression: it evaluates to the value of the executed block.
@@ -1698,22 +1698,22 @@ The `match` statement is the primary branching construct. Unlike `if`, it destru
 
 ```lucky
 match task_result
-    Success { output: report } =>
-        publish(report)
-    Failure { error: err, recoverable: true } =>
-        retry(err)
-    Failure { error: err } =>
-        escalate(err)
+	Success { output: report } =>
+		publish(report)
+	Failure { error: err, recoverable: true } =>
+		retry(err)
+	Failure { error: err } =>
+		escalate(err)
 ```
 
 `match` is also an expression:
 
 ```lucky
 let action = match state
-    Ready    => "execute"
-    Running  => "wait"
-    Failed   => "recover"
-    Complete => "archive"
+	Ready    => "execute"
+	Running  => "wait"
+	Failed   => "recover"
+	Complete => "archive"
 ```
 
 ---
@@ -1726,28 +1726,28 @@ Lucky provides two looping constructs: `loop` and `for`.
 
 ```lucky
 loop
-    let msg = poll()
-    if msg == null
-        break
-    process(msg)
+	let msg = poll()
+	if msg == null
+		break
+	process(msg)
 ```
 
 ### `for` &mdash; iteration
 
 ```lucky
 for item in items
-    process(item)
+	process(item)
 
 for i in 0..10
-    log(i)
+	log(i)
 ```
 
 Loops are expressions that evaluate to `null` unless terminated by a `break` with a value:
 
 ```lucky
 let found = for item in items
-    if item.matches(criteria)
-        break item
+	if item.matches(criteria)
+		break item
 ```
 
 Cycles in the execution graph require explicit `loop` syntax. The compiler rejects implicit cycles in workflow definitions.
@@ -1760,9 +1760,9 @@ The `parallel` block declares that contained statements may execute concurrently
 
 ```lucky
 parallel
-    Researcher.search("topic A")
-    Architect.design("system B")
-    Security.audit("component C")
+	Researcher.search("topic A")
+	Architect.design("system B")
+	Security.audit("component C")
 wait
 ```
 
@@ -1772,9 +1772,9 @@ Branches within `parallel` are independent by default. If one branch depends on 
 
 ```lucky
 parallel
-    let data = Researcher.search("topic")
-    let report = await ReportWriter.write(data)   # depends on data
-    Security.audit("topic")                        # independent
+	let data = Researcher.search("topic")
+	let report = await ReportWriter.write(data)   # depends on data
+	Security.audit("topic")                        # independent
 wait
 ```
 
@@ -1805,12 +1805,12 @@ let result = await Agent.task(input)
 
 ```lucky
 task Compute
-    input x: Int
-    output result: Int
-    steps
-        if x < 0
-            return 0
-        return x * 2
+	input x: Int
+	output result: Int
+	steps
+		if x < 0
+			return 0
+		return x * 2
 ```
 
 In a task, `return` sets the task's output. Multiple `return` statements are permitted; all must produce values compatible with the declared output type.
@@ -1825,17 +1825,17 @@ In a lambda, `return` exits the lambda body.
 
 ```lucky
 outer: for batch in batches
-    for item in batch
-        if item.isDone()
-            break outer
+	for item in batch
+		if item.isDone()
+			break outer
 ```
 
 `break` may carry a value that becomes the loop's result:
 
 ```lucky
 let result = for item in items
-    if item.isTarget()
-        break item
+	if item.isTarget()
+		break item
 ```
 
 ---
@@ -1846,18 +1846,18 @@ let result = for item in items
 
 ```lucky
 for item in items
-    if item.isSkipped()
-        continue
-    process(item)
+	if item.isSkipped()
+		continue
+	process(item)
 ```
 
 A label may specify which enclosing loop to continue:
 
 ```lucky
 outer: for batch in batches
-    for item in batch
-        if item.isTrivial()
-            continue outer
+	for item in batch
+		if item.isTrivial()
+			continue outer
 ```
 
 ---
@@ -1872,11 +1872,11 @@ A `goal` is the highest-level declaration in a Lucky program. It defines **what 
 
 ```lucky
 goal BuildWebsite
-    success
-        website.online
-        website.tested
-        website.documented
-    workflow MainWorkflow
+	success
+		website.online
+		website.tested
+		website.documented
+	workflow MainWorkflow
 ```
 
 ### Success criteria
@@ -1885,10 +1885,10 @@ Success criteria are predicate expressions that the runtime verifies at the conc
 
 ```lucky
 goal DeployService
-    success
-        service.healthy
-        service.latency < 100ms
-        service.uptime > 99.9
+	success
+		service.healthy
+		service.latency < 100ms
+		service.uptime > 99.9
 ```
 
 ### Multiple workflows
@@ -1897,8 +1897,8 @@ A goal may list multiple workflows. The runtime selects among them based on cont
 
 ```lucky
 goal GenerateReport
-    workflow FastReport      # quick, lower quality
-    workflow ThoroughReport  # slow, higher quality
+	workflow FastReport      # quick, lower quality
+	workflow ThoroughReport  # slow, higher quality
 ```
 
 The runtime chooses `ThoroughReport` when `context.priority == "quality"` and `FastReport` otherwise, unless overridden by a policy.
@@ -1907,8 +1907,8 @@ The runtime chooses `ThoroughReport` when `context.priority == "quality"` and `F
 
 ```
 Created → Planning → Executing → Verifying → Completed
-                                  ↓
-                               Failed (retry or escalate)
+								↓
+								Failed (retry or escalate)
 ```
 
 ---
@@ -1919,21 +1919,21 @@ A `task` replaces the traditional function. It is the smallest schedulable, chec
 
 ```lucky
 task ReviewCode
-    input
-        repo: URI
-        files: List<Path>
-    output
-        report: ReviewReport
-    context
-        coding_standards: Document
-    policy
-        retry 2
-        timeout 10m
-    steps
-        clone repo
-        for file in files
-            review file
-        generate report
+	input
+		repo: URI
+		files: List<Path>
+	output
+		report: ReviewReport
+	context
+		coding_standards: Document
+	policy
+		retry 2
+		timeout 10m
+	steps
+		clone repo
+		for file in files
+			review file
+		generate report
 ```
 
 ### Task purity
@@ -1942,21 +1942,21 @@ By default, tasks are pure (no side effects beyond their declared outputs). A ta
 
 ```lucky
 task UpdateCache(stateful)
-    input key: String, value: String
-    steps
-        memory.cache = memory.cache.insert(key, value)
+	input key: String, value: String
+	steps
+		memory.cache = memory.cache.insert(key, value)
 ```
 
 ### Task lifecycle
 
 ```
 Created → Ready → Running → Checkpointed → Completed
-                            ↓
-                         Waiting (on dependency or approval)
-                            ↓
-                         Failed → Recovering → Completed
-                                  ↓
-                               Cancelled
+							↓
+						Waiting (on dependency or approval)
+							↓
+						Failed → Recovering → Completed
+								↓
+								Cancelled
 ```
 
 ### Task composition
@@ -1965,9 +1965,9 @@ Tasks compose through workflows, not through direct calls. If task A needs task 
 
 ```lucky
 workflow Build
-    Analyze
-        ->
-    Generate  # receives Analyze.output implicitly via context
+	Analyze
+		->
+	Generate  # receives Analyze.output implicitly via context
 ```
 
 Within a task, imperative code may call sub-tasks via `await`:
@@ -1984,21 +1984,21 @@ An `agent` is the central abstraction in Lucky &mdash; the equivalent of a class
 
 ```lucky
 agent SecurityReviewer
-    model Claude
-    memory
-        findings: List<Finding> = []
-        patterns: Knowledge = Knowledge.empty()
-    tools
-        Git
-        Browser
-        Shell
-    permissions
-        allow filesystem.read
-        deny filesystem.write
-    policy
-        retry 3
-        timeout 30m
-    prompt ReviewerPrompt
+	model Claude
+	memory
+		findings: List<Finding> = []
+		patterns: Knowledge = Knowledge.empty()
+	tools
+		Git
+		Browser
+		Shell
+	permissions
+		allow filesystem.read
+		deny filesystem.write
+	policy
+		retry 3
+		timeout 30m
+	prompt ReviewerPrompt
 ```
 
 ### Agent components
@@ -2025,8 +2025,8 @@ SecurityReviewer.explain(finding)
 
 ```lucky
 let reviewer = SecurityReviewer.new(
-    model = GPT,
-    memory = ProjectMemory,
+	model = GPT,
+	memory = ProjectMemory,
 )
 ```
 
@@ -2050,17 +2050,17 @@ A `workflow` orchestrates agents and tasks into a directed acyclic graph.
 
 ```lucky
 workflow BuildAndDeploy
-    Research
-        ->
-    Design
-        ->
-    Implement
-        ->
-    Review
-        ->
-    Test
-        ->
-    Deploy
+	Research
+		->
+	Design
+		->
+	Implement
+		->
+	Review
+		->
+	Test
+		->
+	Deploy
 ```
 
 Arrows (`->`) indicate sequential dependency. Each node waits for all upstream nodes to complete before executing.
@@ -2071,10 +2071,10 @@ Nodes at the same indentation level, without arrows between them, execute in par
 
 ```lucky
 workflow SecurityAudit
-    StaticAnalysis
-    DependencyScan
-    SecretDetection
-    ComplianceCheck
+	StaticAnalysis
+	DependencyScan
+	SecretDetection
+	ComplianceCheck
 ```
 
 All four branches start simultaneously. The workflow completes when all branches finish.
@@ -2083,32 +2083,32 @@ All four branches start simultaneously. The workflow completes when all branches
 
 ```lucky
 workflow FullPipeline
-    Research
-        ->
-    parallel
-        Design
-        SecurityReview
-    wait
-        ->
-    Implement
-        ->
-    Test
-        ->
-    Deploy
+	Research
+		->
+	parallel
+		Design
+		SecurityReview
+	wait
+		->
+	Implement
+		->
+	Test
+		->
+	Deploy
 ```
 
 ### Conditional workflow
 
 ```lucky
 workflow ConditionalBuild
-    Analyze
-        ->
-    if result.needsBuild
-        Build
-            ->
-        Deploy
-    else
-        Skip
+	Analyze
+		->
+	if result.needsBuild
+		Build
+			->
+		Deploy
+	else
+		Skip
 ```
 
 ### Workflow as value
@@ -2117,14 +2117,14 @@ A workflow is a value of type `Workflow<T>` and can be passed to other workflows
 
 ```lucky
 workflow SubProcess
-    StepA -> StepB
+	StepA -> StepB
 
 workflow MainProcess
-    PreProcess
-        ->
-    SubProcess      # embedded
-        ->
-    PostProcess
+	PreProcess
+		->
+	SubProcess      # embedded
+		->
+	PostProcess
 ```
 
 ---
@@ -2135,20 +2135,20 @@ A `model` declaration names an LLM backend and configures its parameters.
 
 ```lucky
 model Claude(
-    provider = "anthropic",
-    version = "claude-sonnet-4-20250514",
-    temperature = 0.7,
-    max_tokens = 4096,
+	provider = "anthropic",
+	version = "claude-sonnet-4-20250514",
+	temperature = 0.7,
+	max_tokens = 4096,
 )
 
 model GPT(
-    provider = "openai",
-    version = "gpt-4o",
+	provider = "openai",
+	version = "gpt-4o",
 )
 
 model Local(
-    provider = "ollama",
-    version = "llama3",
+	provider = "ollama",
+	version = "llama3",
 )
 ```
 
@@ -2162,7 +2162,7 @@ use Claude
 # all agent invocations in this scope use Claude
 
 agent Researcher
-    use GPT     # override for this agent only
+	use GPT     # override for this agent only
 ```
 
 ### Model routing
@@ -2171,12 +2171,12 @@ The runtime may route requests to different models based on task complexity, cos
 
 ```lucky
 policy ModelRouter
-    if task.complexity > 0.8
-        use Claude
-    else if task.cost_budget < 0.01
-        use Local
-    else
-        use GPT
+	if task.complexity > 0.8
+		use Claude
+	else if task.cost_budget < 0.01
+		use Local
+	else
+		use GPT
 ```
 
 ---
@@ -2187,29 +2187,29 @@ A `prompt` is a structured template &mdash; not a raw string. The compiler valid
 
 ```lucky
 prompt CodeReviewer
-    role
-        You are a senior software engineer reviewing code
-        for correctness, security, and performance.
-    rules
-        - Report only actionable findings.
-        - Cite specific line numbers.
-        - Classify severity as low, medium, or high.
-    context
-        - Language: {language}
-        - Framework: {framework}
-    examples
-        input:
-            ```python
-            def foo():
-                return eval(user_input)
-            ```
-        output:
-            severity: high
-            finding: Use of eval() with user input is a security risk.
-            recommendation: Use ast.literal_eval() or a safe parser.
-    format
-        Return a structured report with sections:
-        summary, findings[], recommendations[].
+	role
+		You are a senior software engineer reviewing code
+		for correctness, security, and performance.
+	rules
+		- Report only actionable findings.
+		- Cite specific line numbers.
+		- Classify severity as low, medium, or high.
+	context
+		- Language: {language}
+		- Framework: {framework}
+	examples
+		input:
+			```python
+			def foo():
+				return eval(user_input)
+			```
+		output:
+			severity: high
+			finding: Use of eval() with user input is a security risk.
+			recommendation: Use ast.literal_eval() or a safe parser.
+	format
+		Return a structured report with sections:
+		summary, findings[], recommendations[].
 ```
 
 ### Prompt sections
@@ -2226,15 +2226,15 @@ prompt CodeReviewer
 
 ```lucky
 ask Claude:
-    Review this code for security issues.
+	Review this code for security issues.
 ```
 
 Inline prompt blocks (shorthand):
 
 ```lucky
 let summary = ask GPT:
-    Summarize the following document in 3 bullet points:
-    {document}
+	Summarize the following document in 3 bullet points:
+	{document}
 ```
 
 ---
@@ -2245,9 +2245,9 @@ Memory provides persistent, queryable storage for agents. Lucky abstracts over t
 
 ```lucky
 memory ProjectMemory
-    scope project
-    backend vector
-    dimensions 1536
+	scope project
+	backend vector
+	dimensions 1536
 ```
 
 ### Memory scopes
@@ -2264,14 +2264,14 @@ memory ProjectMemory
 
 ```lucky
 agent Planner
-    memory ProjectMemory
+	memory ProjectMemory
 
-    task Plan
-        steps
-            memory.remember("architecture", architectureDoc)
-            let docs = memory.recall("how to structure APIs")
-            let related = memory.similar(architectureDoc, limit = 5)
-            memory.forget(oldDecision)
+	task Plan
+		steps
+			memory.remember("architecture", architectureDoc)
+			let docs = memory.recall("how to structure APIs")
+			let related = memory.similar(architectureDoc, limit = 5)
+			memory.forget(oldDecision)
 ```
 
 ### Memory as context
@@ -2280,8 +2280,8 @@ Memory entries propagate into task context automatically:
 
 ```lucky
 task GenerateCode
-    context
-        coding_style: Style    # inherited from agent memory
+	context
+		coding_style: Style    # inherited from agent memory
 ```
 
 ---
@@ -2292,11 +2292,11 @@ Knowledge represents structured domain information that agents can query. Unlike
 
 ```lucky
 knowledge CompanyDocs
-    source "./docs/**/*.md"
-    source "./wiki/**/*.md"
-    source uri("https://docs.internal.company.com")
-    chunk_size 1024
-    chunk_overlap 128
+	source "./docs/**/*.md"
+	source "./wiki/**/*.md"
+	source uri("https://docs.internal.company.com")
+	chunk_size 1024
+	chunk_overlap 128
 ```
 
 ### Knowledge operations
@@ -2316,17 +2316,17 @@ Context is implicit, lexically-scoped execution state that propagates from workf
 
 ```lucky
 workflow MainFlow
-    context
-        user: User
-        repo: URI
-        config: Config
-        history: List<Message>
+	context
+		user: User
+		repo: URI
+		config: Config
+		history: List<Message>
 
-    Research
-        ->
-    Plan
-        ->
-    Execute
+	Research
+		->
+	Plan
+		->
+	Execute
 ```
 
 Every task within `MainFlow` can access `context.user`, `context.repo`, etc. without explicit parameter passing.
@@ -2337,10 +2337,10 @@ Context is layered: a workflow's context is visible to all its agents; an agent'
 
 ```lucky
 task Analyze
-    context
-        analysis_mode: String = "fast"   # scoped to this task
-    steps
-        # can access context.user (inherited) and context.analysis_mode (local)
+	context
+		analysis_mode: String = "fast"   # scoped to this task
+	steps
+		# can access context.user (inherited) and context.analysis_mode (local)
 ```
 
 ### Context at runtime
@@ -2355,21 +2355,21 @@ A `tool` is a capability interface to an external system. Tools are declared, co
 
 ```lucky
 tool Git(
-    workdir = "./repo",
+	workdir = "./repo",
 )
 
 tool Browser(
-    headless = true,
-    timeout = 30s,
+	headless = true,
+	timeout = 30s,
 )
 
 tool Shell(
-    allowed_commands = ["ls", "cat", "grep", "find"],
+	allowed_commands = ["ls", "cat", "grep", "find"],
 )
 
 tool HTTP(
-    base_url = "https://api.example.com",
-    auth = "bearer",
+	base_url = "https://api.example.com",
+	auth = "bearer",
 )
 ```
 
@@ -2396,8 +2396,8 @@ Tools have typed inputs and outputs that the compiler checks:
 
 ```lucky
 tool Database
-    fn query(sql: String): List<Row>
-    fn execute(sql: String): Int
+	fn query(sql: String): List<Row>
+	fn execute(sql: String): Int
 ```
 
 ### Custom tools
@@ -2406,12 +2406,12 @@ Users can define custom tools as tasks and register them:
 
 ```lucky
 task CustomAnalyzer
-    input file: Path
-    output metrics: Metrics
-    ...
+	input file: Path
+	output metrics: Metrics
+	...
 
 tool Analysis
-    uses CustomAnalyzer
+	uses CustomAnalyzer
 ```
 
 ---
@@ -2422,17 +2422,17 @@ Permissions enforce capability security. Every agent runs with an explicit, leas
 
 ```lucky
 permissions
-    allow
-        filesystem.read
-        git.clone
-        git.commit
-        browser.search
-        http.get
-    deny
-        filesystem.delete
-        filesystem.write(/etc/*)
-        git.push(main)
-        shell.exec
+	allow
+		filesystem.read
+		git.clone
+		git.commit
+		browser.search
+		http.get
+	deny
+		filesystem.delete
+		filesystem.write(/etc/*)
+		git.push(main)
+		shell.exec
 ```
 
 ### Permission inheritance
@@ -2441,16 +2441,16 @@ Permissions are lexical: an agent inherits permissions from its enclosing scope 
 
 ```lucky
 project MyProject
-    permissions
-        allow filesystem.read
+	permissions
+		allow filesystem.read
 
-    agent Reader
-        # inherits filesystem.read
+	agent Reader
+		# inherits filesystem.read
 
-    agent RestrictedReader
-        permissions
-            deny filesystem.read(/secrets/*)
-        # has filesystem.read EXCEPT for /secrets/*
+	agent RestrictedReader
+		permissions
+			deny filesystem.read(/secrets/*)
+		# has filesystem.read EXCEPT for /secrets/*
 ```
 
 ### Permission checking
@@ -2465,13 +2465,13 @@ Policies configure execution behavior. They govern retry, timeout, checkpointing
 
 ```lucky
 policy ProductionPolicy
-    retry 3 with backoff exponential
-    timeout 1h
-    checkpoint after each task
-    cache ttl 24h
-    sandbox enabled
-    model Claude
-    cost_limit 50.00 USD
+	retry 3 with backoff exponential
+	timeout 1h
+	checkpoint after each task
+	cache ttl 24h
+	sandbox enabled
+	model Claude
+	cost_limit 50.00 USD
 ```
 
 ### Policy attachment
@@ -2480,13 +2480,13 @@ Policies attach to goals, workflows, agents, or individual tasks:
 
 ```lucky
 goal BuildWebsite
-    policy FastPolicy
+	policy FastPolicy
 
 agent Reviewer
-    policy ThoroughPolicy
+	policy ThoroughPolicy
 
 task CriticalDeploy
-    policy ProductionPolicy
+	policy ProductionPolicy
 ```
 
 ### Policy resolution
@@ -2503,9 +2503,9 @@ Human approval is a first-class language construct that gates execution on human
 
 ```lucky
 approval
-    before deploy
-    before filesystem.delete(/production/*)
-    before git.push(main)
+	before deploy
+	before filesystem.delete(/production/*)
+	before git.push(main)
 ```
 
 When execution reaches an approval gate, the runtime suspends and notifies the designated human approver. Execution resumes after approval (or terminates after rejection).
@@ -2514,29 +2514,29 @@ When execution reaches an approval gate, the runtime suspends and notifies the d
 
 ```lucky
 ask human:
-    Delete production database "orders_db"? This action is irreversible.
-    [yes / no]
+	Delete production database "orders_db"? This action is irreversible.
+	[yes / no]
 ```
 
 The `ask human` construct presents a structured question. The human response is typed and can be used in control flow:
 
 ```lucky
 let confirmed = ask human:
-    Deploy version {version} to production?
-    Changes: {changelog}
+	Deploy version {version} to production?
+	Changes: {changelog}
 
 if confirmed
-    deploy
+	deploy
 else
-    abort
+	abort
 ```
 
 ### Approval timeout
 
 ```lucky
 approval
-    before deploy
-    timeout 4h escalate to manager
+	before deploy
+	timeout 4h escalate to manager
 ```
 
 If approval does not arrive within the timeout, the runtime escalates according to the specified escalation path.
@@ -2557,24 +2557,24 @@ The compiler translates workflow definitions into a DAG:
 
 ```lucky
 workflow Build
-    Research
-        ->
-    Plan
-        ->
-    parallel
-        Implement
-        Test
-    wait
-        ->
-    Deploy
+	Research
+		->
+	Plan
+		->
+	parallel
+		Implement
+		Test
+	wait
+		->
+	Deploy
 ```
 
 becomes:
 
 ```
 [Research] → [Plan] → [Implement] → [Deploy]
-                         ↘
-                       [Test] ↗
+						↘
+						[Test] ↗
 ```
 
 ### Node types
@@ -2664,10 +2664,10 @@ A task B depends on task A if B reads a value that A produces. The compiler trac
 
 ```lucky
 task A
-    output data: Data
+	output data: Data
 
 task B
-    input source: Data     # depends on A.output.data
+	input source: Data     # depends on A.output.data
 ```
 
 ### Resource dependencies
@@ -2676,7 +2676,7 @@ Tasks may declare exclusive resource requirements:
 
 ```lucky
 task Deploy
-    resource database: exclusive
+	resource database: exclusive
 ```
 
 Tasks requiring the same exclusive resource serialize; tasks requiring shared resources may run concurrently.
@@ -2706,9 +2706,9 @@ The runtime checkpoints task state at configurable intervals, enabling resumptio
 
 ```lucky
 policy
-    checkpoint after each task       # fine-grained
-    checkpoint after each workflow   # coarse-grained
-    checkpoint interval 5m           # time-based
+	checkpoint after each task       # fine-grained
+	checkpoint after each workflow   # coarse-grained
+	checkpoint interval 5m           # time-based
 ```
 
 ### Checkpoint storage
@@ -2725,13 +2725,13 @@ When a task fails, the runtime consults the recovery policy to determine the nex
 
 ```lucky
 attempt
-    deploy
+	deploy
 recover
-    retry
+	retry
 recover
-    fallback deploy_staging
+	fallback deploy_staging
 recover
-    human escalate "Deployment failed after 3 retries"
+	human escalate "Deployment failed after 3 retries"
 ```
 
 | Action | Description |
@@ -2748,13 +2748,13 @@ Multiple recovery blocks define a chain tried in order:
 
 ```lucky
 attempt
-    risky_operation
+	risky_operation
 recover
-    retry 3
+	retry 3
 recover
-    fallback safe_alternative
+	fallback safe_alternative
 recover
-    human
+	human
 ```
 
 ### Partial recovery
@@ -2763,8 +2763,8 @@ For tasks with multiple steps, recovery can resume from the last checkpoint rath
 
 ```lucky
 policy
-    checkpoint after each step
-    recovery resume_from_checkpoint
+	checkpoint after each step
+	recovery resume_from_checkpoint
 ```
 
 ---
@@ -2775,9 +2775,9 @@ Lucky provides transactional semantics for sequences of operations that must suc
 
 ```lucky
 transaction
-    Git.commit("step 1")
-    Database.migrate()
-    Config.update()
+	Git.commit("step 1")
+	Database.migrate()
+	Config.update()
 ```
 
 If any step fails, all preceding steps are rolled back (using their declared inverse operations).
@@ -2788,12 +2788,12 @@ Tasks may declare compensating actions for rollback:
 
 ```lucky
 task DeployService
-    input version: Version
-    output endpoint: URI
-    rollback
-        undeploy version
-    steps
-        ...
+	input version: Version
+	output endpoint: URI
+	rollback
+		undeploy version
+	steps
+		...
 ```
 
 The runtime calls `rollback` tasks in reverse order when a transaction fails.
@@ -2842,10 +2842,10 @@ The runtime optimizes for cost across multiple dimensions.
 
 ```lucky
 policy
-    cost_limit 10.00 USD per workflow
-    prefer_cheapest_model true
-    cache ttl 1h
-    max_tokens_per_call 4096
+	cost_limit 10.00 USD per workflow
+	prefer_cheapest_model true
+	cache ttl 1h
+	max_tokens_per_call 4096
 ```
 
 ### Cost tracking
@@ -2854,8 +2854,8 @@ The runtime reports cost in real time and can halt execution when the budget is 
 
 ```lucky
 policy
-    cost_limit 5.00 USD
-    on_budget_exceeded abort
+	cost_limit 5.00 USD
+	on_budget_exceeded abort
 ```
 
 ---
@@ -2870,12 +2870,12 @@ Independent tasks within a workflow execute concurrently by default.
 
 ```lucky
 workflow BuildReport
-    FetchData           # starts immediately
-    ComputeStats        # starts immediately (parallel with FetchData)
-    GenerateCharts      # starts immediately
-    wait                # optional explicit barrier
-        ->
-    AssembleReport      # waits for all above
+	FetchData           # starts immediately
+	ComputeStats        # starts immediately (parallel with FetchData)
+	GenerateCharts      # starts immediately
+	wait                # optional explicit barrier
+		->
+	AssembleReport      # waits for all above
 ```
 
 ### Parallelism limits
@@ -2902,9 +2902,9 @@ Multiple agents can operate concurrently on independent work.
 
 ```lucky
 parallel
-    Researcher.investigate("topic A")
-    Architect.design("component B")
-    SecurityReviewer.audit("system C")
+	Researcher.investigate("topic A")
+	Architect.design("component B")
+	SecurityReviewer.audit("system C")
 wait
 ```
 
@@ -2914,16 +2914,16 @@ Agents communicate through shared memory, context, or explicit message passing:
 
 ```lucky
 agent Producer
-    task Generate
-        output data: Data
-        steps
-            context.channel.send(data)
+	task Generate
+		output data: Data
+		steps
+			context.channel.send(data)
 
 agent Consumer
-    task Process
-        steps
-            let data = context.channel.receive()
-            process(data)
+	task Process
+		steps
+			let data = context.channel.receive()
+			process(data)
 ```
 
 ### Agent swarms
@@ -2946,10 +2946,10 @@ The `wait` keyword acts as a barrier, blocking until all preceding parallel bran
 
 ```lucky
 parallel
-    branch_a
-    branch_b
+	branch_a
+	branch_b
 wait
-    # both complete here
+	# both complete here
 ```
 
 ### Channels
@@ -2960,8 +2960,8 @@ Typed channels enable communication between concurrent tasks:
 let chan: Channel<Message> = Channel.new(buffer = 10)
 
 parallel
-    chan.send(msg)
-    let received = chan.receive()
+	chan.send(msg)
+	let received = chan.receive()
 wait
 ```
 
@@ -2987,9 +2987,9 @@ Streams are lazy, potentially unbounded sequences that integrate with pipelines 
 let stream: Stream<Event> = EventSource.subscribe("deployments")
 
 stream
-    |> filter(fn e => e.status == "failed")
-    |> map(fn e => e.service)
-    |> for_each(fn service => alert(service))
+	|> filter(fn e => e.status == "failed")
+	|> map(fn e => e.service)
+	|> for_each(fn service => alert(service))
 ```
 
 ### Stream sources
@@ -3022,11 +3022,11 @@ Lucky has a built-in pub/sub event system for reactive orchestration.
 
 ```lucky
 when
-    README changes
-    main branch updates
-    new PR opened
+	README changes
+	main branch updates
+	new PR opened
 run
-    ArchitectureReview
+	ArchitectureReview
 ```
 
 The `when` block declares event conditions. When all conditions are met, the `run` block executes.
@@ -3042,10 +3042,10 @@ The `when` block declares event conditions. When all conditions are met, the `ru
 
 ```lucky
 workflow CIListener
-    when
-        event("push") on main
-    run
-        Test -> Build -> Deploy
+	when
+		event("push") on main
+	run
+		Test -> Build -> Deploy
 ```
 
 ---
@@ -3062,10 +3062,10 @@ Lucky avoids exceptions. Every fallible operation returns a `Result` type with a
 type Result<T, E = Error> = Success { value: T } | Failure { error: E }
 
 type Error
-    code: Int
-    message: String
-    recoverable: Bool
-    cause: Error?
+	code: Int
+	message: String
+	recoverable: Bool
+	cause: Error?
 ```
 
 ### Creating results
@@ -3079,17 +3079,17 @@ Failure(error("file not found", recoverable: true))
 
 ```lucky
 match result
-    Success(data) => process(data)
-    Failure(err) if err.recoverable => retry(err)
-    Failure(err) => escalate(err)
+	Success(data) => process(data)
+	Failure(err) if err.recoverable => retry(err)
+	Failure(err) => escalate(err)
 ```
 
 ### Result chaining
 
 ```lucky
 let outcome = fetch(url)
-    .and_then(fn data => parse(data))
-    .or_else(fn err => fallback(err))
+	.and_then(fn data => parse(data))
+	.or_else(fn err => fallback(err))
 ```
 
 ### Task return status
@@ -3111,10 +3111,10 @@ Recovery policies define how the runtime responds to failures.
 
 ```lucky
 policy ResilientPolicy
-    retry 3 with backoff exponential(max: 10m)
-    on_permanent_failure fallback
-    on_transient_failure retry
-    checkpoint before retry
+	retry 3 with backoff exponential(max: 10m)
+	on_permanent_failure fallback
+	on_transient_failure retry
+	checkpoint before retry
 ```
 
 ### Failure classification
@@ -3139,9 +3139,9 @@ The `retry` recovery action re-executes a failed task.
 
 ```lucky
 attempt
-    fetch_from_api
+	fetch_from_api
 recover
-    retry 3 with backoff exponential(max: 5m)
+	retry 3 with backoff exponential(max: 5m)
 ```
 
 ### Retry strategies
@@ -3160,15 +3160,15 @@ recover
 ```lucky
 # retry a single task
 task FlakyTask
-    policy retry 5
+	policy retry 5
 
 # retry an entire block
 attempt
-    step1
-    step2
-    step3
+	step1
+	step2
+	step3
 recover
-    retry 2
+	retry 2
 ```
 
 ---
@@ -3179,9 +3179,9 @@ When a sequence of operations fails partway through, the rollback mechanism reve
 
 ```lucky
 transaction
-    Git.commit("migration")
-    Database.migrate("v2")
-    Config.update("v2")
+	Git.commit("migration")
+	Database.migrate("v2")
+	Config.update("v2")
 
 # if Database.migrate fails, Git.commit is rolled back
 ```
@@ -3190,18 +3190,18 @@ transaction
 
 ```lucky
 task DeployVersion
-    input version: Version
-    rollback
-        undeploy version
-    steps
-        ...
+	input version: Version
+	rollback
+		undeploy version
+	steps
+		...
 
 task CreateBranch
-    input name: String
-    rollback
-        Git.delete_branch(name)
-    steps
-        ...
+	input name: String
+	rollback
+		Git.delete_branch(name)
+	steps
+		...
 ```
 
 ### Automatic rollback
@@ -3216,12 +3216,12 @@ When automated recovery is exhausted, the runtime escalates to a human operator.
 
 ```lucky
 attempt
-    critical_operation
+	critical_operation
 recover
-    retry 3
+	retry 3
 recover
-    human escalate "Critical operation failed after 3 retries:
-                   {error.message}"
+	human escalate "Critical operation failed after 3 retries:
+					{error.message}"
 ```
 
 ### Escalation context
@@ -3297,8 +3297,8 @@ filesystem.write("./output.md", content)
 filesystem.exists("./path")
 filesystem.list("./directory")
 filesystem.walk("./project")
-    |> filter(fn f => f.extension == ".lk")
-    |> for_each(fn f => process(f))
+	|> filter(fn f => f.extension == ".lk")
+	|> for_each(fn f => process(f))
 ```
 
 ### Globbing
@@ -3339,10 +3339,10 @@ git.blame("src/main.lk")
 
 ```lucky
 git.create_pr(
-    title = "Add security review workflow",
-    base = "main",
-    head = "feature/security-review",
-    body = "...",
+	title = "Add security review workflow",
+	base = "main",
+	head = "feature/security-review",
+	body = "...",
 )
 git.list_prs(state = "open")
 git.review_pr(pr_number, approval = "approved")
@@ -3378,9 +3378,9 @@ browser.configure(headless = true, timeout = 30s)
 
 ```lucky
 browser.login(
-    url = "https://app.example.com/login",
-    username = context.credentials.user,
-    password = context.credentials.pass,
+	url = "https://app.example.com/login",
+	username = context.credentials.user,
+	password = context.credentials.pass,
 )
 ```
 
@@ -3402,8 +3402,8 @@ shell.exec("npm test", timeout = 5m)
 
 ```lucky
 policy
-    shell.allowed_commands = ["ls", "cat", "grep", "find", "cargo", "npm"]
-    shell.denied_patterns = ["rm -rf", "sudo", "chmod 777"]
+	shell.allowed_commands = ["ls", "cat", "grep", "find", "cargo", "npm"]
+	shell.denied_patterns = ["rm -rf", "sudo", "chmod 777"]
 ```
 
 ### Working directory
@@ -3424,9 +3424,9 @@ import http
 
 let response = http.get("https://api.example.com/users")
 let response = http.post(
-    "https://api.example.com/tasks",
-    body = { "title": "New Task" },
-    headers = { "Authorization": "Bearer \{token}" },
+	"https://api.example.com/tasks",
+	body = { "title": "New Task" },
+	headers = { "Authorization": "Bearer \{token}" },
 )
 let response = http.put("https://api.example.com/tasks/1", body)
 let response = http.delete("https://api.example.com/tasks/1")
@@ -3445,10 +3445,10 @@ let headers = response.headers      # Map<String, String>
 
 ```lucky
 let response = http.get(
-    url,
-    retry = 3,
-    timeout = 30s,
-    backoff = exponential,
+	url,
+	retry = 3,
+	timeout = 30s,
+	backoff = exponential,
 )
 ```
 
@@ -3482,17 +3482,17 @@ let answer = ai.ask(question)
 ```lucky
 let result = ai.ask(difficult_question, min_confidence = 0.8)
 let response = match result
-    Answer { text, confidence } if confidence >= 0.9 => text
-    Answer { text } => "(low confidence) \{text}"
+	Answer { text, confidence } if confidence >= 0.9 => text
+	Answer { text } => "(low confidence) \{text}"
 ```
 
 ### RAG
 
 ```lucky
 let answer = ai.rag(
-    query = "How do I deploy?",
-    knowledge = CompanyDocs,
-    top_k = 5,
+	query = "How do I deploy?",
+	knowledge = CompanyDocs,
+	top_k = 5,
 )
 ```
 
@@ -3646,8 +3646,8 @@ The IR is serialized as JSON (`.lir` files) with the following top-level structu
   "project": { "name": "...", "version": "..." },
   "modules": [ ... ],
   "graph": {
-    "nodes": [ ... ],
-    "edges": [ ... ]
+	"nodes": [ ... ],
+	"edges": [ ... ]
   },
   "agents": [ ... ],
   "policies": [ ... ],
@@ -3710,22 +3710,22 @@ Checkpoints are written to a configurable store (file system, S3, database). The
   "parent_id": "uuid | null",
   "timestamp": "ISO8601",
   "task_states": {
-    "task_id": {
-      "status": "running | completed | failed",
-      "inputs": { ... },
-      "outputs": { ... },
-      "position": { "step": 3 }
-    }
+	"task_id": {
+		"status": "running | completed | failed",
+		"inputs": { ... },
+		"outputs": { ... },
+		"position": { "step": 3 }
+	}
   },
   "agent_memories": {
-    "agent_id": {
-      "fields": { ... }
-    }
+	"agent_id": {
+		"fields": { ... }
+	}
   },
   "context": { ... },
   "graph_progress": {
-    "completed_nodes": [ ... ],
-    "active_nodes": [ ... ]
+	"completed_nodes": [ ... ],
+	"active_nodes": [ ... ]
   }
 }
 ```

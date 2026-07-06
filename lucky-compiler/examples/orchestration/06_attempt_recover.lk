@@ -3,40 +3,41 @@ project ResilientPipeline
 use DeepSeek
 
 model DeepSeek(
-    provider = "deepseek",
-    version = "deepseek-v4",
+	provider = "deepseek",
+	version = "deepseek-v4",
 )
 
 agent PrimaryAgent
-    model DeepSeek
-    tools Filesystem, HTTP
-    policy retry 2
+	model DeepSeek
+	tools Filesystem, HTTP
+	policy retry 2
 
 agent BackupAgent
-    model DeepSeek
-    tools Filesystem
-    policy timeout 10m
+	model DeepSeek
+	tools Filesystem
+	policy timeout 10m
 
 task PrimaryWork
-    steps
-        let result = HTTP.get("/api/critical-endpoint")
-        return result
+	steps
+		let result = HTTP.get("/api/critical-endpoint")
+		return result
 
 task BackupWork
-    steps
-        let result = "Backup completed successfully"
-        return result
+	steps
+		let result = "Backup completed successfully"
+		return result
 
 workflow ResilientPipeline
-    attempt
-        PrimaryAgent.PrimaryWork()
-    recover
-        retry 3 with backoff exponential(max: 5m)
-    recover
-        fallback BackupAgent.BackupWork()
-    recover
-        human escalate "Both primary and backup failed"
+	attempt
+		PrimaryAgent.PrimaryWork()
+	recover
+		retry 3 with backoff exponential(max: 5m)
+	recover
+		fallback BackupAgent.BackupWork()
+	recover
+		human escalate "Both primary and backup failed"
 
 goal RunResilient
-    success primary_or_backup_complete
-    workflow ResilientPipeline
+	success primary_or_backup_complete
+	workflow ResilientPipeline
+

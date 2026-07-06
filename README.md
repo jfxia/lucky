@@ -124,8 +124,8 @@ Instead of
 
 ```python
 for user in users:
-    if user.age > 18:
-        ...
+	if user.age > 18:
+		...
 ```
 
 Lucky thinks
@@ -138,7 +138,7 @@ or
 
 ```lucky
 users
-    |> where age > 18
+	|> where age > 18
 ```
 
 ---
@@ -175,7 +175,7 @@ Example
 agent Researcher
 
 Researcher.search(
-    "latest AI papers"
+	"latest AI papers"
 )
 ```
 
@@ -187,19 +187,19 @@ No SDK. No API wrapper.
 
 ```lucky
 model Claude(
-    provider = "anthropic",
-    version = "claude-sonnet-4-20250514",
+	provider = "anthropic",
+	version = "claude-sonnet-4-20250514",
 )
 
 model GPT(
-    provider = "openai",
-    version = "gpt-4o",
+	provider = "openai",
+	version = "gpt-4o",
 )
 
 use Claude
 
 ask GPT:
-    summarize report
+	summarize report
 ```
 
 Models are declared and switched at the language level — no imports needed.
@@ -249,10 +249,10 @@ agent Reviewer
 goal BuildLandingPage
 
 workflow
-    Planner ->
-    Designer ->
-    Coder ->
-    Reviewer
+	Planner ->
+	Designer ->
+	Coder ->
+	Reviewer
 ```
 
 ---
@@ -269,15 +269,15 @@ Lucky uses
 
 ```lucky
 task AnalyzeRepo
-    input
-        repo
-    output
-        architecture.md
-    steps
-        clone repo
-        read README
-        understand architecture
-        generate report
+	input
+		repo
+	output
+		architecture.md
+	steps
+		clone repo
+		read README
+		understand architecture
+		generate report
 ```
 
 Looks like YAML?
@@ -294,18 +294,18 @@ Everything can flow.
 
 ```lucky
 files
-    |> filter *.py
-    |> summarize
-    |> save report.md
+	|> filter *.py
+	|> summarize
+	|> save report.md
 ```
 
 or
 
 ```lucky
 Search.search("AI agents")
-    |> extract
-    |> rank
-    |> answer
+	|> extract
+	|> rank
+	|> answer
 ```
 
 ---
@@ -322,10 +322,10 @@ Lucky
 
 ```lucky
 context
-    user
-    memory
-    repo
-    history
+	user
+	memory
+	repo
+	history
 ```
 
 Everything automatically propagates.
@@ -338,10 +338,10 @@ Agents have persistent memory and knowledge.
 
 ```lucky
 memory ProjectMemory
-    scope project
+	scope project
 
 agent Planner
-    memory ProjectMemory
+	memory ProjectMemory
 
 Planner.memory.remember("architecture", architectureDoc)
 let docs = Planner.memory.recall("coding conventions")
@@ -355,9 +355,9 @@ Native.
 
 ```lucky
 parallel
-    Researcher
-    Architect
-    Security
+	Researcher
+	Architect
+	Security
 wait
 ```
 
@@ -365,7 +365,7 @@ or
 
 ```lucky
 swarm
-    20 Reviewer
+	20 Reviewer
 ```
 
 ---
@@ -384,11 +384,11 @@ Lucky
 
 ```lucky
 prompt Reviewer
-    Review code.
-    Focus
-        - bugs
-        - security
-        - performance
+	Review code.
+	Focus
+		- bugs
+		- security
+		- performance
 ```
 
 Prompt is a language construct.
@@ -428,13 +428,13 @@ Built-in capability security.
 
 ```lucky
 permissions
-    allow
-        filesystem.read
-        git.clone
-        browser.search
-    deny
-        filesystem.delete
-        shell.exec
+	allow
+		filesystem.read
+		git.clone
+		browser.search
+	deny
+		filesystem.delete
+		shell.exec
 ```
 
 ---
@@ -453,10 +453,10 @@ Lucky
 
 ```lucky
 attempt
-    build
+	build
 recover
-    ask Reviewer
-    retry
+	ask Reviewer
+	retry
 ```
 
 ---
@@ -467,14 +467,14 @@ Native.
 
 ```lucky
 approval
-    before deploy
+	before deploy
 ```
 
 or
 
 ```lucky
 ask human
-    Delete production database?
+	Delete production database?
 ```
 
 ---
@@ -485,17 +485,17 @@ Lucky is excellent for orchestration.
 
 ```lucky
 workflow
-    Research
-        ->
-    Plan
-        ->
-    Implement
-        ->
-    Review
-        ->
-    Fix
-        ->
-    Deploy
+	Research
+		->
+	Plan
+		->
+	Implement
+		->
+	Review
+		->
+	Fix
+		->
+	Deploy
 ```
 
 This is executable.
@@ -508,21 +508,21 @@ Reasoning becomes explicit.
 
 ```lucky
 reason
-    deep
+	deep
 ```
 
 or
 
 ```lucky
 reason
-    fast
+	fast
 ```
 
 or
 
 ```lucky
 reason
-    none
+	none
 ```
 
 ---
@@ -535,10 +535,10 @@ Every result carries confidence.
 let result = ai.ask(question)
 
 if result.confidence > 0.9
-    use(result.value)
+	use(result.value)
 else
-    result.citations
-    |> ResearchAgain
+	result.citations
+	|> ResearchAgain
 ```
 
 ---
@@ -556,8 +556,8 @@ Use
 
 ```lucky
 Browser.search("AI Agent Framework")
-    |> extract
-    |> summarize
+	|> extract
+	|> summarize
 
 Git.clone(repo)
 Git.commit("feat: add new workflow")
@@ -574,9 +574,9 @@ HTTP.get("/api/users")
 
 ```lucky
 when
-    README changes
+	README changes
 run
-    ArchitectureReview
+	ArchitectureReview
 ```
 
 ---
@@ -585,10 +585,10 @@ run
 
 ```lucky
 deploy
-    Docker
-    AWS
-    Azure
-    Local
+	Docker
+	AWS
+	Azure
+	Local
 ```
 
 ---
@@ -614,15 +614,15 @@ Lucky compiles to a language-neutral Intermediate Representation (Lucky IR). Mul
 
 ```
 Lucky Source (.lk)
-    ↓
+	↓
 Parser → Semantic Analyzer
-    ↓
+	↓
 Lucky IR (.lir)
-    ↓
+	↓
 LTP Server (Lucky Runtime)
-    ↓
+	↓
 Backend Adapters
-    ↓
+	↓
 Claude Code · Codex CLI · OpenCode · Cursor · Dify
 ```
 
@@ -640,30 +640,30 @@ agent Tester
 goal BuildBlog
 
 workflow
-    Planner
-        ->
-    Coder
-        ->
-    Tester
+	Planner
+		->
+	Coder
+		->
+	Tester
 
-    if Tester.pass
-        deploy
+	if Tester.pass
+		deploy
 ```
 
 ### Project Directory
 
 ```
 project/
-    main.lk
-    agents/
-        coder.lk
-        reviewer.lk
-        planner.lk
-    tasks/
-        build.lk
-        deploy.lk
-    memory/
-        permissions.lk
+	main.lk
+	agents/
+		coder.lk
+		reviewer.lk
+		planner.lk
+	tasks/
+		build.lk
+		deploy.lk
+	memory/
+		permissions.lk
 ```
 
 ---

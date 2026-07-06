@@ -3,92 +3,93 @@ project ThreeAgentPipeline
 use DeepSeek
 
 model DeepSeek(
-    provider = "deepseek",
-    version = "deepseek-v4",
-    temperature = 0.3,
+	provider = "deepseek",
+	version = "deepseek-v4",
+	temperature = 0.3,
 )
 
 agent Researcher
-    model DeepSeek
-    tools
-        Search, Browser
-    permissions
-        allow search.*, browser.*
-        deny filesystem.*
-    policy
-        timeout 5m
+	model DeepSeek
+	tools
+		Search, Browser
+	permissions
+		allow search.*, browser.*
+		deny filesystem.*
+	policy
+		timeout 5m
 
 agent Planner
-    model DeepSeek
-    tools
-        Filesystem
-    permissions
-        allow filesystem.write
-    policy
-        timeout 3m
+	model DeepSeek
+	tools
+		Filesystem
+	permissions
+		allow filesystem.write
+	policy
+		timeout 3m
 
 agent Writer
-    model DeepSeek
-    tools
-        Filesystem
-    permissions
-        allow filesystem.write
-    policy
-        timeout 5m
+	model DeepSeek
+	tools
+		Filesystem
+	permissions
+		allow filesystem.write
+	policy
+		timeout 5m
 
 task GatherSources
-    input
-        topic: String
-        max_results: Int
-    output
-        sources: List<String>
-    steps
-        let results = Search.search(topic, max_results = max_results)
-        return results
+	input
+		topic: String
+		max_results: Int
+	output
+		sources: List<String>
+	steps
+		let results = Search.search(topic, max_results = max_results)
+		return results
 
 task CreatePlan
-    input
-        topic: String
-        research: List<String>
-    output
-        plan: String
-    steps
-        let plan = "Plan for: " + topic
-        return plan
+	input
+		topic: String
+		research: List<String>
+	output
+		plan: String
+	steps
+		let plan = "Plan for: " + topic
+		return plan
 
 task GenerateReport
-    input
-        topic: String
-        plan: String
-    output
-        report: String
-    steps
-        let report = "Report on: " + topic
-        return report
+	input
+		topic: String
+		plan: String
+	output
+		report: String
+	steps
+		let report = "Report on: " + topic
+		return report
 
 workflow ResearchPipeline
-    context
-        topic: String
-        max_results: Int = 10
+	context
+		topic: String
+		max_results: Int = 10
 
-    GatherSources(
-        topic = context.topic,
-        max_results = context.max_results,
-    )
-        ->
-    CreatePlan(
-        topic = context.topic,
-        research = context.sources,
-    )
-        ->
-    GenerateReport(
-        topic = context.topic,
-        plan = context.plan,
-    )
+	GatherSources(
+		topic = context.topic,
+		max_results = context.max_results,
+	)
+		->
+	CreatePlan(
+		topic = context.topic,
+		research = context.sources,
+	)
+		->
+	GenerateReport(
+		topic = context.topic,
+		plan = context.plan,
+	)
 
 goal ProduceReport
-    success
-        sources_gathered
-        plan_created
-        report_generated
-    workflow ResearchPipeline
+	success
+		sources_gathered
+		plan_created
+		report_generated
+	workflow ResearchPipeline
+

@@ -3,57 +3,58 @@ project FanOutFanIn
 use DeepSeek
 
 model DeepSeek(
-    provider = "deepseek",
-    version = "deepseek-v4",
+	provider = "deepseek",
+	version = "deepseek-v4",
 )
 
 agent SecurityReviewer
-    model DeepSeek
-    tools Git
-    permissions allow git.diff
+	model DeepSeek
+	tools Git
+	permissions allow git.diff
 
 agent StyleReviewer
-    model DeepSeek
-    tools Git
-    permissions allow git.diff
+	model DeepSeek
+	tools Git
+	permissions allow git.diff
 
 agent PerfReviewer
-    model DeepSeek
-    tools Git
-    permissions allow git.diff
+	model DeepSeek
+	tools Git
+	permissions allow git.diff
 
 agent Aggregator
-    model DeepSeek
-    tools Git
-    permissions allow git.comment
+	model DeepSeek
+	tools Git
+	permissions allow git.comment
 
 task FetchPR
-    input pr_number: Int
-    output diff: String
-    steps
-        let diff = Git.diff("main")
-        return diff
+	input pr_number: Int
+	output diff: String
+	steps
+		let diff = Git.diff("main")
+		return diff
 
 task PostComment
-    input pr_number: Int
-    output ok: Bool
-    steps
-        Git.comment(pr_number, "Review complete")
-        return true
+	input pr_number: Int
+	output ok: Bool
+	steps
+		Git.comment(pr_number, "Review complete")
+		return true
 
 workflow ReviewAndMerge
-    FetchPR(pr_number = context.pr)
-        ->
-    parallel
-        SecurityReviewer.review(diff = context.diff)
-        StyleReviewer.review(diff = context.diff)
-        PerfReviewer.review(diff = context.diff)
-    wait
-        ->
-    Aggregator.merge(findings = context.findings)
-        ->
-    PostComment(pr_number = context.pr)
+	FetchPR(pr_number = context.pr)
+		->
+	parallel
+		SecurityReviewer.review(diff = context.diff)
+		StyleReviewer.review(diff = context.diff)
+		PerfReviewer.review(diff = context.diff)
+	wait
+		->
+	Aggregator.merge(findings = context.findings)
+		->
+	PostComment(pr_number = context.pr)
 
 goal ReviewPR
-    success fetched and reviewed and merged and commented
-    workflow ReviewAndMerge
+	success fetched and reviewed and merged and commented
+	workflow ReviewAndMerge
+

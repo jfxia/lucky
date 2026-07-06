@@ -6,263 +6,264 @@ use DeepSeek
 # and loads data with full error handling and audit trail.
 
 model PipelineModel(
-    provider = "openai",
-    version = "gpt-4o-mini",
-    temperature = 0.0,
+	provider = "openai",
+	version = "gpt-4o-mini",
+	temperature = 0.0,
 )
 
 # ── Agents ────────────────────────────────────────────────────
 
 agent Extractor
-    model PipelineModel
-    tools
-        Filesystem, HTTP, Database
-    permissions
-        allow filesystem.read
-        allow http.get
-        allow database.query
-    policy
-        retry 3 with backoff exponential(max: 60s)
-        timeout 10m
+	model PipelineModel
+	tools
+		Filesystem, HTTP, Database
+	permissions
+		allow filesystem.read
+		allow http.get
+		allow database.query
+	policy
+		retry 3 with backoff exponential(max: 60s)
+		timeout 10m
 
 agent Transformer
-    model PipelineModel
-    tools
-        Filesystem
-    permissions
-        allow filesystem.read
-        allow filesystem.write
-    policy
-        retry 2
+	model PipelineModel
+	tools
+		Filesystem
+	permissions
+		allow filesystem.read
+		allow filesystem.write
+	policy
+		retry 2
 
 agent Validator
-    model PipelineModel
-    tools
-        Filesystem
-    permissions
-        allow filesystem.read
-    prompt ValidationPrompt
+	model PipelineModel
+	tools
+		Filesystem
+	permissions
+		allow filesystem.read
+	prompt ValidationPrompt
 
 agent Loader
-    model PipelineModel
-    tools
-        Filesystem, Database
-    permissions
-        allow database.execute
-        allow filesystem.write
-    policy
-        checkpoint after each task
+	model PipelineModel
+	tools
+		Filesystem, Database
+	permissions
+		allow database.execute
+		allow filesystem.write
+	policy
+		checkpoint after each task
 
 # ── Memory ────────────────────────────────────────────────────
 
 memory PipelineState
-    scope session
-    backend vector
+	scope session
+	backend vector
 
 # ── Prompts ───────────────────────────────────────────────────
 
 prompt ValidationPrompt
-    role
-        You validate data quality for {dataset_name}.
-    rules
-        - Check for null values in required fields.
-        - Verify data types match the schema.
-        - Flag outliers (values beyond 3 standard deviations).
-        - Report completeness (percentage of non-null values per field).
+	role
+		You validate data quality for {dataset_name}.
+	rules
+		- Check for null values in required fields.
+		- Verify data types match the schema.
+		- Flag outliers (values beyond 3 standard deviations).
+		- Report completeness (percentage of non-null values per field).
 
 # ── Tasks ─────────────────────────────────────────────────────
 
 task IngestCSV
-    input
-        path: String
-    output
-        raw_data: List<Map<String, String>>
-        row_count: Int
-    steps
-        let content = Filesystem.read_lines(path)
-        let header = content[0].split(",")
-        let rows = []
-        for i in 1..content.len()
-            let values = content[i].split(",")
-            let row = {}
-            for j in 0..header.len()
-                row[header[j]] = values[j]
-            rows = rows.append(row)
-        PipelineState.remember("raw_count", rows.len())
-        return rows
+	input
+		path: String
+	output
+		raw_data: List<Map<String, String>>
+		row_count: Int
+	steps
+		let content = Filesystem.read_lines(path)
+		let header = content[0].split(",")
+		let rows = []
+		for i in 1..content.len()
+			let values = content[i].split(",")
+			let row = {}
+			for j in 0..header.len()
+				row[header[j]] = values[j]
+			rows = rows.append(row)
+		PipelineState.remember("raw_count", rows.len())
+		return rows
 
 task IngestAPI
-    input
-        url: String
-        batch_size: Int
-    output
-        raw_data: List<Map<String, String>>
-    steps
-        let all_data = []
-        let page = 1
-        loop
-            let response = HTTP.get_json("{url}?page={page}&limit={batch_size}")
-            if response.len() == 0
-                break
-            all_data = all_data.concat(response)
-            page = page + 1
-        PipelineState.remember("api_pages", page)
-        return all_data
+	input
+		url: String
+		batch_size: Int
+	output
+		raw_data: List<Map<String, String>>
+	steps
+		let all_data = []
+		let page = 1
+		loop
+			let response = HTTP.get_json("{url}?page={page}&limit={batch_size}")
+			if response.len() == 0
+				break
+			all_data = all_data.concat(response)
+			page = page + 1
+		PipelineState.remember("api_pages", page)
+		return all_data
 
 task TransformData
-    input
-        data: List<Map<String, String>>
-        transformations: List<String>
-    output
-        cleaned: List<Map<String, String>>
-    steps
-        let result = data
-        for transform in transformations
-            if transform == "trim_strings"
-                for row in result
-                    for (key, value) in row
-                        if value is String
-                            row[key] = value.trim()
-            if transform == "normalize_dates"
-                for row in result
-                    if row.contains("date")
-                        row["date"] = row["date"].replace("/", "-")
-            if transform == "remove_duplicates"
-                let seen = {}
-                let unique = []
-                for row in result
-                    if not seen.contains(row)
-                        seen[row] = true
-                        unique = unique.append(row)
-                result = unique
-        return result
+	input
+		data: List<Map<String, String>>
+		transformations: List<String>
+	output
+		cleaned: List<Map<String, String>>
+	steps
+		let result = data
+		for transform in transformations
+			if transform == "trim_strings"
+				for row in result
+					for (key, value) in row
+						if value is String
+							row[key] = value.trim()
+			if transform == "normalize_dates"
+				for row in result
+					if row.contains("date")
+						row["date"] = row["date"].replace("/", "-")
+			if transform == "remove_duplicates"
+				let seen = {}
+				let unique = []
+				for row in result
+					if not seen.contains(row)
+						seen[row] = true
+						unique = unique.append(row)
+				result = unique
+		return result
 
 task ValidateData
-    input
-        data: List<Map<String, String>>
-        schema: Map<String, String>
-    output
-        valid: List<Map<String, String>>
-        report: Map<String, Any>
-    steps
-        let valid_rows = []
-        let errors = []
-        let warnings = []
-        for (i, row) in data
-            let row_ok = true
-            for (field, dtype) in schema
-                if not row.contains(field)
-                    if dtype != "optional"
-                        errors = errors.append("Row {i}: missing field '{field}'")
-                        row_ok = false
-                else if dtype == "Int"
-                    if not is_int(row[field])
-                        errors = errors.append("Row {i}: '{field}' expected Int, got '{row[field]}'")
-                        row_ok = false
-                else if dtype == "Float"
-                    if not is_float(row[field])
-                        errors = errors.append("Row {i}: '{field}' expected Float")
-                        row_ok = false
-            if row_ok
-                valid_rows = valid_rows.append(row)
-        return { "valid": valid_rows, "errors": errors, "warnings": warnings }
+	input
+		data: List<Map<String, String>>
+		schema: Map<String, String>
+	output
+		valid: List<Map<String, String>>
+		report: Map<String, Any>
+	steps
+		let valid_rows = []
+		let errors = []
+		let warnings = []
+		for (i, row) in data
+			let row_ok = true
+			for (field, dtype) in schema
+				if not row.contains(field)
+					if dtype != "optional"
+						errors = errors.append("Row {i}: missing field '{field}'")
+						row_ok = false
+				else if dtype == "Int"
+					if not is_int(row[field])
+						errors = errors.append("Row {i}: '{field}' expected Int, got '{row[field]}'")
+						row_ok = false
+				else if dtype == "Float"
+					if not is_float(row[field])
+						errors = errors.append("Row {i}: '{field}' expected Float")
+						row_ok = false
+			if row_ok
+				valid_rows = valid_rows.append(row)
+		return { "valid": valid_rows, "errors": errors, "warnings": warnings }
 
 task LoadToDatabase
-    input
-        data: List<Map<String, String>>
-        table: String
-    steps
-        for row in data
-            let columns = row.keys()
-            let values = row.values()
-            let query = "INSERT INTO {table} ({columns}) VALUES ({values})"
-            Database.execute(query)
-        return data.len()
+	input
+		data: List<Map<String, String>>
+		table: String
+	steps
+		for row in data
+			let columns = row.keys()
+			let values = row.values()
+			let query = "INSERT INTO {table} ({columns}) VALUES ({values})"
+			Database.execute(query)
+		return data.len()
 
 task GenerateAuditReport
-    input
-        stats: Map<String, Any>
-    output
-        report_path: String
-    steps
-        let report = "ETL Audit Report\n"
-            + "================\n"
-            + "Total rows ingested: {stats.raw_count}\n"
-            + "Valid rows: {stats.valid_count}\n"
-            + "Errors: {stats.error_count}\n"
-            + "Warnings: {stats.warn_count}\n"
-            + "Success rate: {stats.success_rate}%\n"
-        Filesystem.write("./etl_audit.md", report)
-        return "./etl_audit.md"
+	input
+		stats: Map<String, Any>
+	output
+		report_path: String
+	steps
+		let report = "ETL Audit Report\n"
+			+ "================\n"
+			+ "Total rows ingested: {stats.raw_count}\n"
+			+ "Valid rows: {stats.valid_count}\n"
+			+ "Errors: {stats.error_count}\n"
+			+ "Warnings: {stats.warn_count}\n"
+			+ "Success rate: {stats.success_rate}%\n"
+		Filesystem.write("./etl_audit.md", report)
+		return "./etl_audit.md"
 
 # ── Permissions ───────────────────────────────────────────────
 
 permissions ETLPermissions
-    allow
-        filesystem.read
-        filesystem.write(./data/*)
-        http.get
-        database.query
-        database.execute
-    deny
-        filesystem.delete
-        database.execute(DROP *)
+	allow
+		filesystem.read
+		filesystem.write(./data/*)
+		http.get
+		database.query
+		database.execute
+	deny
+		filesystem.delete
+		database.execute(DROP *)
 
 # ── Workflow ──────────────────────────────────────────────────
 
 workflow ETLPipeline
-    context
-        source_type: String
-        source_path: String
-        transformations: List<String>
-        schema: Map<String, String>
-        target_table: String
+	context
+		source_type: String
+		source_path: String
+		transformations: List<String>
+		schema: Map<String, String>
+		target_table: String
 
-    if context.source_type == "csv"
-        IngestCSV(path = context.source_path)
-    else if context.source_type == "api"
-        IngestAPI(url = context.source_path, batch_size = 100)
+	if context.source_type == "csv"
+		IngestCSV(path = context.source_path)
+	else if context.source_type == "api"
+		IngestAPI(url = context.source_path, batch_size = 100)
 
-    ValidateData(
-        data = context.raw_data,
-        schema = context.schema,
-    )
-        ->
-    if context.report.error_count > 0
-        attempt
-            TransformData(
-                data = context.raw_data,
-                transformations = context.transformations,
-            )
-                ->
-            ValidateData(
-                data = context.cleaned,
-                schema = context.schema,
-            )
-        recover
-            log.warn("Transformation pipeline had errors, proceeding with valid data only")
+	ValidateData(
+		data = context.raw_data,
+		schema = context.schema,
+	)
+		->
+	if context.report.error_count > 0
+		attempt
+			TransformData(
+				data = context.raw_data,
+				transformations = context.transformations,
+			)
+				->
+			ValidateData(
+				data = context.cleaned,
+				schema = context.schema,
+			)
+		recover
+			log.warn("Transformation pipeline had errors, proceeding with valid data only")
 
-    LoadToDatabase(
-        data = context.valid,
-        table = context.target_table,
-    )
-        ->
-    GenerateAuditReport(
-        stats = {
-            "raw_count": context.raw_count,
-            "valid_count": context.valid.len(),
-            "error_count": context.report.errors.len(),
-            "warn_count": context.report.warnings.len(),
-            "success_rate": context.valid.len() * 100 / context.raw_count,
-        },
-    )
+	LoadToDatabase(
+		data = context.valid,
+		table = context.target_table,
+	)
+		->
+	GenerateAuditReport(
+		stats = {
+			"raw_count": context.raw_count,
+			"valid_count": context.valid.len(),
+			"error_count": context.report.errors.len(),
+			"warn_count": context.report.warnings.len(),
+			"success_rate": context.valid.len() * 100 / context.raw_count,
+		},
+	)
 
 # ── Goal ──────────────────────────────────────────────────────
 
 goal RunETL
-    success
-        data_ingested
-        data_validated
-        data_loaded
-        audit_report_generated
-    workflow ETLPipeline
+	success
+		data_ingested
+		data_validated
+		data_loaded
+		audit_report_generated
+	workflow ETLPipeline
+

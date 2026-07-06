@@ -3,117 +3,118 @@ project DeclTest
 use DeepSeek
 
 agent ResearchAgent
-    model DeepSeek
-    memory ProjectMemory
-    tools
-        Browser, Search, HTTP
-    permissions
-        allow filesystem.read
-        allow git.clone
-        allow browser.search
-        deny shell.exec
-    policy StandardPolicy
-    prompt ResearchPrompt
+	model DeepSeek
+	memory ProjectMemory
+	tools
+		Browser, Search, HTTP
+	permissions
+		allow filesystem.read
+		allow git.clone
+		allow browser.search
+		deny shell.exec
+	policy StandardPolicy
+	prompt ResearchPrompt
 
 agent CoderAgent
-    model GPT
-    tools
-        Filesystem, Git, Shell
-    permissions
-        allow filesystem.read
-        allow filesystem.write
-        deny shell.exec
+	model GPT
+	tools
+		Filesystem, Git, Shell
+	permissions
+		allow filesystem.read
+		allow filesystem.write
+		deny shell.exec
 
 task AnalyzeRepo
-    input
-        repo: URI
-        depth: Int
-    output
-        report: String
-        score: Float
-    steps
-        let data = "analyzing repo"
-        return data
+	input
+		repo: URI
+		depth: Int
+	output
+		report: String
+		score: Float
+	steps
+		let data = "analyzing repo"
+		return data
 
 task TransformData(stateful)
-    input
-        source: List<String>
-    output
-        result: List<String>
-    context
-        encoding: String
-    policy
-        retry 2
-    steps
-        let transformed = source
-        return transformed
+	input
+		source: List<String>
+	output
+		result: List<String>
+	context
+		encoding: String
+	policy
+		retry 2
+	steps
+		let transformed = source
+		return transformed
 
 task SafeTask
-    input
-        input_file: String
-    output
-        output_file: String
-    steps
-        let content = ""
-        return content
-    rollback
-        Filesystem.remove(output_file)
+	input
+		input_file: String
+	output
+		output_file: String
+	steps
+		let content = ""
+		return content
+	rollback
+		Filesystem.remove(output_file)
 
 goal BuildProject
-    success
-        project_built
-        tests_passed
-    workflow MainWorkflow
-    workflow QuickWorkflow
+	success
+		project_built
+		tests_passed
+	workflow MainWorkflow
+	workflow QuickWorkflow
 
 workflow MainWorkflow
-    ResearchAgent
-        ->
-    CoderAgent
-        ->
-    SafeTask(input_file = "config.toml")
+	ResearchAgent
+		->
+	CoderAgent
+		->
+	SafeTask(input_file = "config.toml")
 
 memory ProjectMemory
-    scope project
-    backend vector
-    dimensions 1536
+	scope project
+	backend vector
+	dimensions 1536
 
 tool CustomTool(
-    workdir = "./repo",
-    timeout = 30s
+	workdir = "./repo",
+	timeout = 30s
 )
 
 model LocalLLM(
-    provider = "ollama",
-    version = "llama3.1",
-    temperature = 0.0
+	provider = "ollama",
+	version = "llama3.1",
+	temperature = 0.0
 )
 
 prompt ResearchPrompt
-    role
-        You are a research agent.
-    rules
-        - Cite all sources.
-        - Prefer academic papers.
-    context
-        - Topic: {topic}
-    format
-        Return a structured report.
+	role
+		You are a research agent.
+	rules
+		- Cite all sources.
+		- Prefer academic papers.
+	context
+		- Topic: {topic}
+	format
+		Return a structured report.
 
 policy StandardPolicy
-    retry 3
-    timeout 10m
-    checkpoint after each task
+	retry 3
+	timeout 10m
+	checkpoint after each task
 
 type Point
-    x: Int
-    y: Int
+	x: Int
+	y: Int
 
 type IntList = List<Int>
 
 type Result
-    Success { value: String }
-    Failure { error: String }
+	Success { value: String }
+	Failure { error: String }
 
 pub agent ExportedAgent
-    model DeepSeek
+	model DeepSeek
+

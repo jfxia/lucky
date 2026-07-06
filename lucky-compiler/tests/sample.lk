@@ -1,44 +1,45 @@
 project MyProject
-    import some.module.{Tool1, Tool2}
+	import some.module.{Tool1, Tool2}
 
-    prompt DefaultPrompt
+	prompt DefaultPrompt
 
-    agent MyAgent
+	agent MyAgent
 
-        memory: MainMemory
-        model: DeepSeekFast
-        tools: Shell, Git, Filesystem
-        policy: DefaultPolicy
-        prompt: DefaultPrompt
-        permissions: 
+		memory: MainMemory
+		model: DeepSeekFast
+		tools: Shell, Git, Filesystem
+		policy: DefaultPolicy
+		prompt: DefaultPrompt
+		permissions: 
 
-            allow Shell.*
-            deny Network.*
+			allow Shell.*
+			deny Network.*
 
-        task ProcessData
+		task ProcessData
 
-            input: data: string, format: string
-            output: result: string
-            context: db: Database
-            policy: DataPolicy
-            steps: 
+			input: data: string, format: string
+			output: result: string
+			context: db: Database
+			policy: DataPolicy
+			steps: 
 
-                let x = data |> validate |> transform
-                let y = x -> next_step -> final_step
-                run Agent.task(x)
-            rollback: 
+				let x = data |> validate |> transform
+				let y = x -> next_step -> final_step
+				run Agent.task(x)
+			rollback: 
 
-                run RollbackAgent.undo(data)
+				run RollbackAgent.undo(data)
 
-    task SimpleTask
+	task SimpleTask
 
-        output: done: bool
-        input: query: string
-        steps: 
+		output: done: bool
+		input: query: string
+		steps: 
 
-            run Agent.search(query)
+			run Agent.search(query)
 
-    workflow MainFlow
+	workflow MainFlow
 
-        run Agent1.task1() |> Agent2.task2()
-        run Agent3.task3()
+		run Agent1.task1() |> Agent2.task2()
+		run Agent3.task3()
+

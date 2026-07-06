@@ -3,32 +3,33 @@ project DeclTest
 use DeepSeek
 
 agent ResearchAgent
-    model DeepSeek
-    memory ProjectMemory
-    tools
-        Browser, Search
+	model DeepSeek
+	memory ProjectMemory
+	tools
+		Browser, Search
 
 task AnalyzeRepo
-    input
-        repo: URI
-    output
-        report: String
-    steps
-        let data = "analyzing"
-        return data
+	input
+		repo: URI
+	output
+		report: String
+	steps
+		let data = "analyzing"
+		return data
 
 memory ProjectMemory
-    scope project
-    backend vector
+	scope project
+	backend vector
 
 prompt ResearchPrompt
-    role
-        You are a researcher.
+	role
+		You are a researcher.
 
 policy StandardPolicy
-    retry 3
-    timeout 10m
+	retry 3
+	timeout 10m
 
 type Point
-    x: Int
-    y: Int
+	x: Int
+	y: Int
+

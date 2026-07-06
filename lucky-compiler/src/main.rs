@@ -842,32 +842,31 @@ tasks = []
 
     // Create main.lk
     let main_lk = format!(
-        r#"project {}
-
-use Claude
-
-agent Helper
-    model Claude
-    tools
-        Filesystem
-
-task SayHello
-    input
-        name: String
-    output
-        greeting: String
-    steps
-        let greeting = "Hello, " + name
-        return greeting
-
-goal MainGoal
-    success
-        greeting_returned
-    workflow MainWorkflow
-
-workflow MainWorkflow
-    SayHello(name = "Lucky")
-"#,
+        "project {}\n\
+\n\
+use Claude\n\
+\n\
+agent Helper\n\
+\tmodel Claude\n\
+\ttools\n\
+\t\tFilesystem\n\
+\n\
+task SayHello\n\
+\tinput\n\
+\t\tname: String\n\
+\toutput\n\
+\t\tgreeting: String\n\
+\tsteps\n\
+\t\tlet greeting = \"Hello, \" + name\n\
+\t\treturn greeting\n\
+\n\
+goal MainGoal\n\
+\tsuccess\n\
+\t\tgreeting_returned\n\
+\tworkflow MainWorkflow\n\
+\n\
+workflow MainWorkflow\n\
+\tSayHello(name = \"Lucky\")\n",
         project_name
     );
     fs::write(dir.join("main.lk"), &main_lk).unwrap_or_else(|e| {

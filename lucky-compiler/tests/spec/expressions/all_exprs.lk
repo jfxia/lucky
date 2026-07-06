@@ -1,78 +1,79 @@
 project ExprTest
 
 task CalcExpressions
-    input
-        a: Int
-        b: Float
-    output
-        results: List<String>
-    steps
-        let int_val = 42
-        let neg_val = -1
-        let hex_val = 0xFF
-        let bin_val = 0b1010
-        let big_val = 1_000_000
-        let float_val = 3.14
-        let sci_val = 1.0e9
-        let true_val = true
-        let false_val = false
-        let null_val = null
-        let unknown_val = unknown
+	input
+		a: Int
+		b: Float
+	output
+		results: List<String>
+	steps
+		let int_val = 42
+		let neg_val = -1
+		let hex_val = 0xFF
+		let bin_val = 0b1010
+		let big_val = 1_000_000
+		let float_val = 3.14
+		let sci_val = 1.0e9
+		let true_val = true
+		let false_val = false
+		let null_val = null
+		let unknown_val = unknown
 
-        let add = 1 + 2
-        let sub = 5 - 3
-        let mul = 4 * 2
-        let div = 10 / 2
-        let rem = 7 % 3
+		let add = 1 + 2
+		let sub = 5 - 3
+		let mul = 4 * 2
+		let div = 10 / 2
+		let rem = 7 % 3
 
-        let eq = (1 == 1)
-        let neq = (1 != 2)
-        let lt = (1 < 2)
-        let gt = (3 > 2)
-        let le = (2 <= 2)
-        let ge = (3 >= 2)
+		let eq = (1 == 1)
+		let neq = (1 != 2)
+		let lt = (1 < 2)
+		let gt = (3 > 2)
+		let le = (2 <= 2)
+		let ge = (3 >= 2)
 
-        let and_val = true and false
-        let or_val = true or false
-        let not_val = not true
+		let and_val = true and false
+		let or_val = true or false
+		let not_val = not true
 
-        let str_concat = "Hello, " + "World"
-        let str_repeat = "ab" * 3
+		let str_concat = "Hello, " + "World"
+		let str_repeat = "ab" * 3
 
-        return ["ok"]
+		return ["ok"]
 
 task LambdaTest
-    steps
-        let double = fn x => x * 2
-        let add = fn (a, b) => a + b
-        let apply = double(5)
-        return apply
+	steps
+		let double = fn x => x * 2
+		let add = fn (a, b) => a + b
+		let apply = double(5)
+		return apply
 
 task PipelineTest
-    steps
-        let data = [1, 2, 3, 4, 5]
-        let result = data
-            |> filter fn x => x > 2
-            |> map fn x => x * 2
-        return result
+	steps
+		let data = [1, 2, 3, 4, 5]
+		let result = data
+			|> filter fn x => x > 2
+			|> map fn x => x * 2
+		return result
 
 task LiteralsTest
-    steps
-        let list_val = [1, 2, 3]
-        let nested_list = [[1, 2], [3, 4]]
-        let empty_list = []
-        let set_val = {1, 2, 3}
-        let map_val = {"key": "value", "count": 42}
-        let str_val = "hello"
-        let multi_str = """line 1
+	steps
+		let list_val = [1, 2, 3]
+		let nested_list = [[1, 2], [3, 4]]
+		let empty_list = []
+		let set_val = {1, 2, 3}
+		let map_val = {"key": "value", "count": 42}
+		let str_val = "hello"
+		let multi_str = """line 1
 line 2"""
-        return list_val
+		return list_val
 
 task ControlExprTest
-    steps
-        let status = if true then "ok" else "failed"
-        let category = match 3
-            1 => "low"
-            2 => "medium"
-            _ => "high"
-        return category
+	steps
+		let status = if true then "ok" else "failed"
+		let category = match 3
+			1 => "low"
+			2 => "medium"
+			_ => "high"
+		return category
+

@@ -1,21 +1,22 @@
 project MiniTest
 
 agent Helper
-    model DeepSeek
+	model DeepSeek
 
 task Hello
-    input
-        name: String
-    output
-        greeting: String
-    steps
-        let g = "Hello"
-        return g
+	input
+		name: String
+	output
+		greeting: String
+	steps
+		let g = "Hello"
+		return g
 
 goal SayHi
-    success
-        done
-    workflow MainWorkflow
+	success
+		done
+	workflow MainWorkflow
 
 workflow MainWorkflow
-    Hello(name = "World")
+	Hello(name = "World")
+

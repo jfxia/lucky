@@ -1,38 +1,39 @@
 project PermissionsTest
 
 permissions DefaultPerms
-    allow
-        filesystem.read
-        git.clone
-        git.commit
-        git.push(feature/*)
-        browser.search
-        http.get
-    deny
-        filesystem.delete
-        git.push(main)
-        shell.exec
+	allow
+		filesystem.read
+		git.clone
+		git.commit
+		git.push(feature/*)
+		browser.search
+		http.get
+	deny
+		filesystem.delete
+		git.push(main)
+		shell.exec
 
 permissions StrictPerms
-    allow
-        filesystem.read
-    deny
-        filesystem.*
-        git.*
-        shell.*
-        http.*
+	allow
+		filesystem.read
+	deny
+		filesystem.*
+		git.*
+		shell.*
+		http.*
 
 agent ReaderAgent
-    permissions
-        allow filesystem.read
+	permissions
+		allow filesystem.read
 
 agent WriterAgent
-    permissions
-        allow filesystem.read
-        allow filesystem.write
-        deny filesystem.delete
+	permissions
+		allow filesystem.read
+		allow filesystem.write
+		deny filesystem.delete
 
 task PermAwareTask
-    steps
-        let result = "ok"
-        return result
+	steps
+		let result = "ok"
+		return result
+

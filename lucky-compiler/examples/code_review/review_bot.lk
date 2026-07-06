@@ -7,187 +7,188 @@ use DeepSeek
 # parallel review, severity classification, and PR integration.
 
 model ReviewerModel(
-    provider = "deepseek",
-    version = "deepseek-v4",
-    temperature = 0.2,
+	provider = "deepseek",
+	version = "deepseek-v4",
+	temperature = 0.2,
 )
 
 # ── Agents ────────────────────────────────────────────────────
 
 agent SecurityReviewer
-    model ReviewerModel
-    tools
-        Filesystem, Git, Browser
-    permissions
-        allow filesystem.read
-        allow git.diff
-        allow git.comment
-    prompt SecurityReviewPrompt
+	model ReviewerModel
+	tools
+		Filesystem, Git, Browser
+	permissions
+		allow filesystem.read
+		allow git.diff
+		allow git.comment
+	prompt SecurityReviewPrompt
 
 agent StyleReviewer
-    model ReviewerModel
-    tools
-        Filesystem, Git
-    permissions
-        allow filesystem.read
-        allow git.diff
-        allow git.comment
-    prompt StyleReviewPrompt
+	model ReviewerModel
+	tools
+		Filesystem, Git
+	permissions
+		allow filesystem.read
+		allow git.diff
+		allow git.comment
+	prompt StyleReviewPrompt
 
 agent PerformanceReviewer
-    model ReviewerModel
-    tools
-        Filesystem, Git
-    permissions
-        allow filesystem.read
-        allow git.diff
-    prompt PerfReviewPrompt
+	model ReviewerModel
+	tools
+		Filesystem, Git
+	permissions
+		allow filesystem.read
+		allow git.diff
+	prompt PerfReviewPrompt
 
 agent ReportAggregator
-    model ReviewerModel
-    tools
-        Git
-    permissions
-        allow git.comment
+	model ReviewerModel
+	tools
+		Git
+	permissions
+		allow git.comment
 
 # ── Prompts ───────────────────────────────────────────────────
 
 prompt SecurityReviewPrompt
-    role
-        You are a security engineer reviewing {language} code.
-    rules
-        - Check for: SQL injection, XSS, CSRF, path traversal,
-          hardcoded credentials, unsafe deserialization.
-        - Rate each finding: critical, high, medium, low.
-        - Provide fix suggestions with code examples.
-    format
-        Return a structured report per file.
+	role
+		You are a security engineer reviewing {language} code.
+	rules
+		- Check for: SQL injection, XSS, CSRF, path traversal,
+		hardcoded credentials, unsafe deserialization.
+		- Rate each finding: critical, high, medium, low.
+		- Provide fix suggestions with code examples.
+	format
+		Return a structured report per file.
 
 prompt StyleReviewPrompt
-    role
-        You review code style and best practices for {language}.
-    rules
-        - Check naming conventions, function length, complexity.
-        - Flag magic numbers, duplicate code, dead code.
-        - Suggest improvements following {style_guide}.
+	role
+		You review code style and best practices for {language}.
+	rules
+		- Check naming conventions, function length, complexity.
+		- Flag magic numbers, duplicate code, dead code.
+		- Suggest improvements following {style_guide}.
 
 prompt PerfReviewPrompt
-    role
-        You analyze code for performance issues in {language}.
-    rules
-        - Identify N+1 queries, unnecessary allocations, O(n²) patterns.
-        - Check for missing caching, inefficient data structures.
-        - Suggest optimizations with complexity analysis.
+	role
+		You analyze code for performance issues in {language}.
+	rules
+		- Identify N+1 queries, unnecessary allocations, O(n²) patterns.
+		- Check for missing caching, inefficient data structures.
+		- Suggest optimizations with complexity analysis.
 
 # ── Tasks ─────────────────────────────────────────────────────
 
 task FetchDiff
-    input
-        base_branch: String
-        head_branch: String
-    output
-        diff: String
-        files: List<String>
-    steps
-        Git.checkout(head_branch)
-        let diff = Git.diff(base_branch, head_branch)
-        let files = Git.diff_files(base_branch, head_branch)
-        return { "diff": diff, "files": files }
+	input
+		base_branch: String
+		head_branch: String
+	output
+		diff: String
+		files: List<String>
+	steps
+		Git.checkout(head_branch)
+		let diff = Git.diff(base_branch, head_branch)
+		let files = Git.diff_files(base_branch, head_branch)
+		return { "diff": diff, "files": files }
 
 task ClassifyFindings
-    input
-        findings: List<Map<String, String>>
-    output
-        classified: Map<String, List<Map<String, String>>>
-    steps
-        let result = {}
-        for finding in findings
-            let severity = finding["severity"]
-            if result.contains(severity)
-                result[severity] = result[severity].append(finding)
-            else
-                result[severity] = [finding]
-        return result
+	input
+		findings: List<Map<String, String>>
+	output
+		classified: Map<String, List<Map<String, String>>>
+	steps
+		let result = {}
+		for finding in findings
+			let severity = finding["severity"]
+			if result.contains(severity)
+				result[severity] = result[severity].append(finding)
+			else
+				result[severity] = [finding]
+		return result
 
 # ── Commit & Comment Task ─────────────────────────────────────
 
 task PostReviewComments
-    input
-        findings: List<Map<String, String>>
-        pr_number: Int
-    steps
-        for finding in findings
-            if finding["severity"] == "critical"
-                let comment = "**Critical**: {finding['description']}\n\nFix: {finding['suggestion']}"
-                Git.comment(pr_number, comment)
-        return "ok"
+	input
+		findings: List<Map<String, String>>
+		pr_number: Int
+	steps
+		for finding in findings
+			if finding["severity"] == "critical"
+				let comment = "**Critical**: {finding['description']}\n\nFix: {finding['suggestion']}"
+				Git.comment(pr_number, comment)
+		return "ok"
 
 task SubmitReview
-    input
-        verdict: String
-        summary: String
-    steps
-        if verdict == "approve"
-            Git.approve()
-        else
-            Git.request_changes(summary)
-        return "ok"
+	input
+		verdict: String
+		summary: String
+	steps
+		if verdict == "approve"
+			Git.approve()
+		else
+			Git.request_changes(summary)
+		return "ok"
 
 # ── Workflow ──────────────────────────────────────────────────
 
 workflow FullReview
-    context
-        base_branch: String
-        head_branch: String
-        pr_number: Int
-        language: String = "Python"
-        style_guide: String = "PEP 8"
+	context
+		base_branch: String
+		head_branch: String
+		pr_number: Int
+		language: String = "Python"
+		style_guide: String = "PEP 8"
 
-    FetchDiff(base_branch = context.base_branch, head_branch = context.head_branch)
-        ->
-    parallel
-        SecurityReviewer(
-            diff = context.diff,
-            files = context.files,
-            language = context.language,
-        )
-        StyleReviewer(
-            diff = context.diff,
-            files = context.files,
-            language = context.language,
-            style_guide = context.style_guide,
-        )
-        PerformanceReviewer(
-            diff = context.diff,
-            files = context.files,
-            language = context.language,
-        )
-    wait
-        ->
-    ReportAggregator(
-        security = context.security_findings,
-        style = context.style_findings,
-        performance = context.perf_findings,
-    )
-        ->
-    ClassifyFindings(findings = context.all_findings)
-        ->
-    PostReviewComments(
-        findings = context.classified["critical"],
-        pr_number = context.pr_number,
-    )
-        ->
-    SubmitReview(
-        verdict = context.verdict,
-        summary = context.summary,
-    )
+	FetchDiff(base_branch = context.base_branch, head_branch = context.head_branch)
+		->
+	parallel
+		SecurityReviewer(
+			diff = context.diff,
+			files = context.files,
+			language = context.language,
+		)
+		StyleReviewer(
+			diff = context.diff,
+			files = context.files,
+			language = context.language,
+			style_guide = context.style_guide,
+		)
+		PerformanceReviewer(
+			diff = context.diff,
+			files = context.files,
+			language = context.language,
+		)
+	wait
+		->
+	ReportAggregator(
+		security = context.security_findings,
+		style = context.style_findings,
+		performance = context.perf_findings,
+	)
+		->
+	ClassifyFindings(findings = context.all_findings)
+		->
+	PostReviewComments(
+		findings = context.classified["critical"],
+		pr_number = context.pr_number,
+	)
+		->
+	SubmitReview(
+		verdict = context.verdict,
+		summary = context.summary,
+	)
 
 # ── Goal ──────────────────────────────────────────────────────
 
 goal ReviewPullRequest
-    success
-        all_reviewers_completed
-        findings_classified
-        critical_findings_posted
-        verdict_submitted
-    workflow FullReview
+	success
+		all_reviewers_completed
+		findings_classified
+		critical_findings_posted
+		verdict_submitted
+	workflow FullReview
+

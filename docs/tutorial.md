@@ -41,17 +41,17 @@ project HelloWorld
 use Claude
 
 task SayHello
-    steps
-        let message = "Hello, Lucky!"
-        return message
+	steps
+		let message = "Hello, Lucky!"
+		return message
 
 goal MainGoal
-    success
-        message_returned
-    workflow MainWorkflow
+	success
+		message_returned
+	workflow MainWorkflow
 
 workflow MainWorkflow
-    SayHello
+	SayHello
 ```
 
 ### Explanation
@@ -84,40 +84,40 @@ Tasks are Lucky's equivalent of functions. They are deterministic, checkpointabl
 
 ```lucky
 task Greet
-    output
-        message: String
-    steps
-        let message = "Hello"
-        return message
+	output
+		message: String
+	steps
+		let message = "Hello"
+		return message
 ```
 
 ### Task with Input
 
 ```lucky
 task Greet
-    input
-        name: String
-    output
-        greeting: String
-    steps
-        let greeting = "Hello, " + name
-        return greeting
+	input
+		name: String
+	output
+		greeting: String
+	steps
+		let greeting = "Hello, " + name
+		return greeting
 ```
 
 ### Task with Policy
 
 ```lucky
 task FetchData
-    input
-        url: URI
-    output
-        data: String
-    policy
-        retry 3
-        timeout 30s
-    steps
-        let response = HTTP.get(url)
-        return response.text()
+	input
+		url: URI
+	output
+		data: String
+	policy
+		retry 3
+		timeout 30s
+	steps
+		let response = HTTP.get(url)
+		return response.text()
 ```
 
 A task with `retry 3` will automatically retry on failure with exponential backoff and jitter. A built-in circuit breaker stops retrying if a node fails 5 times within 60 seconds, preventing retry storms.
@@ -126,16 +126,16 @@ A task with `retry 3` will automatically retry on failure with exponential backo
 
 ```lucky
 task ProcessUsers
-    input
-        users: List<String>
-    output
-        active_users: List<String>
-    steps
-        let active = []
-        for user in users
-            if user.starts_with("active_")
-                active = active.append(user)
-        return active
+	input
+		users: List<String>
+	output
+		active_users: List<String>
+	steps
+		let active = []
+		for user in users
+			if user.starts_with("active_")
+				active = active.append(user)
+		return active
 ```
 
 ---
@@ -148,58 +148,58 @@ Agents are stateful entities that own memory, tools, prompts, and permissions. T
 
 ```lucky
 agent Researcher
-    model Claude
-    memory ResearchMemory
-    tools
-        Browser, Search
-    permissions
-        allow browser.search, http.get
-        deny filesystem.write, shell.exec
-    policy
-        retry 2
-        timeout 5m
-    prompt ResearchPrompt
+	model Claude
+	memory ResearchMemory
+	tools
+		Browser, Search
+	permissions
+		allow browser.search, http.get
+		deny filesystem.write, shell.exec
+	policy
+		retry 2
+		timeout 5m
+	prompt ResearchPrompt
 ```
 
 ### Agent with Embedded Tasks
 
 ```lucky
 agent Coder
-    model Claude
-    tools
-        Filesystem, Git, Shell
+	model Claude
+	tools
+		Filesystem, Git, Shell
 
-    task GenerateCode
-        input
-            spec: String
-            language: String
-        output
-            code: String
-        steps
-            let code = ai.generate_code(spec, language)
-            return code
+	task GenerateCode
+		input
+			spec: String
+			language: String
+		output
+			code: String
+		steps
+			let code = ai.generate_code(spec, language)
+			return code
 
-    task FixBug
-        input
-            code: String
-            bug_description: String
-        output
-            fixed_code: String
-            explanation: String
-        steps
-            let result = ai.fix_code(code, bug_description)
-            return result
+	task FixBug
+		input
+			code: String
+			bug_description: String
+		output
+			fixed_code: String
+			explanation: String
+		steps
+			let result = ai.fix_code(code, bug_description)
+			return result
 ```
 
 ### Using Agents
 
 ```lucky
 workflow BuildFeature
-    Researcher.Investigate(topic = "API design")
-        ->
-    Coder.GenerateCode(spec = context.research_output)
-        ->
-    Reviewer.ReviewCode(code = context.generated_code)
+	Researcher.Investigate(topic = "API design")
+		->
+	Coder.GenerateCode(spec = context.research_output)
+		->
+	Reviewer.ReviewCode(code = context.generated_code)
 ```
 
 ---
@@ -212,15 +212,15 @@ Workflows define the directed acyclic graph (DAG) of agent and task execution.
 
 ```lucky
 workflow BuildAndDeploy
-    Research
-        ->
-    Design
-        ->
-    Implement
-        ->
-    Test
-        ->
-    Deploy
+	Research
+		->
+	Design
+		->
+	Implement
+		->
+	Test
+		->
+	Deploy
 ```
 
 The `->` arrow means "execute after the previous step completes."
@@ -229,10 +229,10 @@ The `->` arrow means "execute after the previous step completes."
 
 ```lucky
 workflow SecurityAudit
-    StaticAnalysis
-    DependencyScan
-    SecretDetection
-    ComplianceCheck
+	StaticAnalysis
+	DependencyScan
+	SecretDetection
+	ComplianceCheck
 ```
 
 All four tasks start simultaneously. The workflow completes when all finish.
@@ -241,17 +241,17 @@ All four tasks start simultaneously. The workflow completes when all finish.
 
 ```lucky
 workflow CI
-    Checkout
-        ->
-    parallel
-        UnitTests
-        IntegrationTests
-        Lint
-    wait
-        ->
-    Build
-        ->
-    Deploy
+	Checkout
+		->
+	parallel
+		UnitTests
+		IntegrationTests
+		Lint
+	wait
+		->
+	Build
+		->
+	Deploy
 ```
 
 The `wait` keyword creates a barrier — execution continues only after all parallel branches complete.
@@ -260,12 +260,12 @@ The `wait` keyword creates a barrier — execution continues only after all para
 
 ```lucky
 workflow DeployDecision
-    Analyze
-        ->
-    if context.risk == "low"
-        Deploy
-    else
-        RequestApproval
+	Analyze
+		->
+	if context.risk == "low"
+		Deploy
+	else
+		RequestApproval
 ```
 
 ---
@@ -278,29 +278,29 @@ Goals declare what success means without prescribing implementation. Multiple wo
 
 ```lucky
 goal BuildWebsite
-    success
-        website.online
-        website.tested
-        website.documented
-    workflow MainWorkflow
+	success
+		website.online
+		website.tested
+		website.documented
+	workflow MainWorkflow
 ```
 
 ### Goal with Multiple Workflows
 
 ```lucky
 goal GenerateReport
-    workflow FastReport      # Quick, lower quality
-    workflow ThoroughReport  # Slow, higher quality
+	workflow FastReport      # Quick, lower quality
+	workflow ThoroughReport  # Slow, higher quality
 ```
 
 The runtime selects the best workflow based on policy:
 
 ```lucky
 policy ReportPolicy
-    if context.priority == "quality"
-        use ThoroughReport
-    else
-        use FastReport
+	if context.priority == "quality"
+		use ThoroughReport
+	else
+		use FastReport
 ```
 
 ---
@@ -313,17 +313,17 @@ Context propagates automatically through the execution graph. No manual dependen
 
 ```lucky
 workflow BuildFeature
-    context
-        user: User
-        repo: URI
-        branch: String
-        config: Config
+	context
+		user: User
+		repo: URI
+		branch: String
+		config: Config
 
-    Analyze
-        ->
-    Implement
-        ->
-    Test
+	Analyze
+		->
+	Implement
+		->
+	Test
 ```
 
 Every task in this workflow can access `context.user`, `context.repo`, etc. without explicit parameters.
@@ -332,11 +332,11 @@ Every task in this workflow can access `context.user`, `context.repo`, etc. with
 
 ```lucky
 task Analyze
-    context
-        analysis_depth: String = "deep"    # task-local context
-    steps
-        let repo = context.repo            # inherited from workflow
-        let depth = context.analysis_depth  # local to this task
+	context
+		analysis_depth: String = "deep"    # task-local context
+	steps
+		let repo = context.repo            # inherited from workflow
+		let depth = context.analysis_depth  # local to this task
 ```
 
 ### Context in the Runtime
@@ -356,30 +356,30 @@ Agents have persistent memory that survives across task invocations.
 
 ```lucky
 memory ProjectMemory
-    scope project
-    backend vector
-    dimensions 1536
+	scope project
+	backend vector
+	dimensions 1536
 ```
 
 ### Using Memory
 
 ```lucky
 agent Planner
-    memory ProjectMemory
+	memory ProjectMemory
 
-    task Plan
-        steps
-            # Store knowledge
-            ProjectMemory.remember("architecture_pattern", "microservices")
+	task Plan
+		steps
+			# Store knowledge
+			ProjectMemory.remember("architecture_pattern", "microservices")
 
-            # Retrieve by key
-            let pattern = ProjectMemory.recall("architecture_pattern")
+			# Retrieve by key
+			let pattern = ProjectMemory.recall("architecture_pattern")
 
-            # Semantic search
-            let related = ProjectMemory.search("service communication", 5)
+			# Semantic search
+			let related = ProjectMemory.search("service communication", 5)
 
-            # Forget outdated information
-            ProjectMemory.forget("old_decision")
+			# Forget outdated information
+			ProjectMemory.forget("old_decision")
 ```
 
 ### Memory Scopes
@@ -426,14 +426,14 @@ HTTP.post_json("/api/tasks", { "title": "New Task" })
 
 ```lucky
 tool Git(
-    workdir = "./repo",
-    author_name = context.user.name,
-    author_email = context.user.email,
+	workdir = "./repo",
+	author_name = context.user.name,
+	author_email = context.user.email,
 )
 
 tool Browser(
-    headless = true,
-    timeout = 30s,
+	headless = true,
+	timeout = 30s,
 )
 ```
 
@@ -447,40 +447,40 @@ Pipelines chain operations with the `|>` operator.
 
 ```lucky
 files
-    |> filter *.py
-    |> summarize
-    |> save report.md
+	|> filter *.py
+	|> summarize
+	|> save report.md
 ```
 
 ### Pipeline with Lambda
 
 ```lucky
 users
-    |> filter fn u => u.age > 18
-    |> map fn u => u.name
-    |> sort
-    |> take 10
+	|> filter fn u => u.age > 18
+	|> map fn u => u.name
+	|> sort
+	|> take 10
 ```
 
 ### Query Expression (Alternative Syntax)
 
 ```lucky
 users
-    where age > 18
-    where country == "US"
-    select { name, email }
-    order by name asc
-    limit 10
+	where age > 18
+	where country == "US"
+	select { name, email }
+	order by name asc
+	limit 10
 ```
 
 ### AI Pipeline
 
 ```lucky
 Search.search("AI agent frameworks")
-    |> extract
-    |> rank relevance
-    |> summarize
-    |> save research.md
+	|> extract
+	|> rank relevance
+	|> summarize
+	|> save research.md
 ```
 
 ---
@@ -491,20 +491,20 @@ Search.search("AI agent frameworks")
 
 ```lucky
 model Claude(
-    provider = "anthropic",
-    version = "claude-sonnet-4-20250514",
-    temperature = 0.7,
-    max_tokens = 4096,
+	provider = "anthropic",
+	version = "claude-sonnet-4-20250514",
+	temperature = 0.7,
+	max_tokens = 4096,
 )
 
 model GPT(
-    provider = "openai",
-    version = "gpt-4o",
+	provider = "openai",
+	version = "gpt-4o",
 )
 
 model LocalLLM(
-    provider = "ollama",
-    version = "llama3.1",
+	provider = "ollama",
+	version = "llama3.1",
 )
 ```
 
@@ -514,67 +514,67 @@ model LocalLLM(
 use Claude           # Default for the module
 
 agent Researcher
-    use GPT          # Override for this agent
+	use GPT          # Override for this agent
 
 task QuickCheck
-    use LocalLLM     # Override for this task
+	use LocalLLM     # Override for this task
 ```
 
 ### Inline AI Calls
 
 ```lucky
 let summary = ask Claude:
-    Summarize the following text in 3 bullet points:
-    {document_text}
+	Summarize the following text in 3 bullet points:
+	{document_text}
 
 let review = ask GPT:
-    Review this code for security issues:
-    ```python
-    {code}
-    ```
+	Review this code for security issues:
+	```python
+	{code}
+	```
 ```
 
 ### Structured Prompts
 
 ```lucky
 prompt CodeReviewer
-    role
-        You are a senior software engineer reviewing {language} code.
-    rules
-        - Report only actionable findings.
-        - Cite specific line numbers.
-        - Classify severity: low, medium, high, critical.
-    context
-        - Repository: {repo_name}
-        - Branch: {branch}
-    examples
-        input:
-            ```python
-            query = f"SELECT * FROM users WHERE id = {user_id}"
-            ```
-        output:
-            severity: high
-            finding: SQL injection via string formatting
-            recommendation: Use parameterized queries
-    format
-        Return JSON with fields: summary, findings[].
+	role
+		You are a senior software engineer reviewing {language} code.
+	rules
+		- Report only actionable findings.
+		- Cite specific line numbers.
+		- Classify severity: low, medium, high, critical.
+	context
+		- Repository: {repo_name}
+		- Branch: {branch}
+	examples
+		input:
+			```python
+			query = f"SELECT * FROM users WHERE id = {user_id}"
+			```
+		output:
+			severity: high
+			finding: SQL injection via string formatting
+			recommendation: Use parameterized queries
+	format
+		Return JSON with fields: summary, findings[].
 ```
 
 ### Using Prompts
 
 ```lucky
 agent Reviewer
-    prompt CodeReviewer
+	prompt CodeReviewer
 
-    task ReviewCode
-        steps
-            let prompt_text = CodeReviewer.render({
-                "language": "Python",
-                "repo_name": "myapp",
-                "branch": "main",
-            })
-            let review = Claude.complete(prompt_text)
-            return review
+	task ReviewCode
+		steps
+			let prompt_text = CodeReviewer.render({
+				"language": "Python",
+				"repo_name": "myapp",
+				"branch": "main",
+			})
+			let review = Claude.complete(prompt_text)
+			return review
 ```
 
 ---
@@ -585,9 +585,9 @@ agent Reviewer
 
 ```lucky
 parallel
-    Researcher.search("topic A")
-    Architect.design("component B")
-    Security.audit("system C")
+	Researcher.search("topic A")
+	Architect.design("component B")
+	Security.audit("system C")
 wait
 ```
 
@@ -595,10 +595,10 @@ wait
 
 ```lucky
 task ProcessData
-    steps
-        let data = await Researcher.search("topic")
-        let analysis = await Analyzer.analyze(data)
-        return analysis
+	steps
+		let data = await Researcher.search("topic")
+		let analysis = await Analyzer.analyze(data)
+		return analysis
 ```
 
 ### Swarm Execution
@@ -615,10 +615,10 @@ Each patch spawns an independent review instance. The runtime distributes work a
 
 ```lucky
 when
-    main branch updates
-    new PR opened
+	main branch updates
+	new PR opened
 run
-    ArchitectureReview
+	ArchitectureReview
 ```
 
 ---
@@ -631,13 +631,13 @@ Lucky uses explicit recovery policies instead of try/catch.
 
 ```lucky
 attempt
-    deploy_to_production
+	deploy_to_production
 recover
-    retry 3 with backoff exponential(max: 5m)
+	retry 3 with backoff exponential(max: 5m)
 recover
-    fallback deploy_to_staging
+	fallback deploy_to_staging
 recover
-    human escalate "Deployment failed after 3 retries"
+	human escalate "Deployment failed after 3 retries"
 ```
 
 ### Recovery Actions
@@ -660,16 +660,16 @@ Execution state can be checkpointed at any policy boundary. Resume from a checkp
 
 ```lucky
 policy ResilientPolicy
-    retry 3 with backoff exponential(max: 10m)
-    checkpoint before retry
-    on_permanent_failure fallback
-    on_transient_failure retry
-    cost_limit 10.00 USD
+	retry 3 with backoff exponential(max: 10m)
+	checkpoint before retry
+	on_permanent_failure fallback
+	on_transient_failure retry
+	cost_limit 10.00 USD
 
 task CriticalOperation
-    policy ResilientPolicy
-    steps
-        ...
+	policy ResilientPolicy
+	steps
+		...
 ```
 
 ---
@@ -682,26 +682,26 @@ Lucky enforces capability security. Agents run with explicit, least-privilege pe
 
 ```lucky
 permissions
-    allow
-        filesystem.read
-        git.clone
-        git.commit
-        browser.search
-        http.get
-    deny
-        filesystem.delete
-        filesystem.write(/etc/*)
-        git.push(main)
-        shell.exec
+	allow
+		filesystem.read
+		git.clone
+		git.commit
+		browser.search
+		http.get
+	deny
+		filesystem.delete
+		filesystem.write(/etc/*)
+		git.push(main)
+		shell.exec
 ```
 
 ### Agent-Level Permissions
 
 ```lucky
 agent RestrictedAgent
-    permissions
-        allow filesystem.read
-        deny filesystem.write
+	permissions
+		allow filesystem.read
+		deny filesystem.write
 ```
 
 Permissions are inherited from the project scope and can be further restricted by agents but never expanded.
@@ -725,9 +725,9 @@ Human judgment is a first-class language construct.
 
 ```lucky
 approval
-    before deploy
-    before filesystem.delete(/production/*)
-    before git.push(main)
+	before deploy
+	before filesystem.delete(/production/*)
+	before git.push(main)
 ```
 
 Execution suspends until a human approves. When running from the CLI, Lucky prompts interactively:
@@ -745,22 +745,22 @@ lucky run deploy.lk --approve "before deploy"  # Auto-approve specific gates
 
 ```lucky
 let confirmed = ask human:
-    Deploy version {version} to production?
-    Changes: {changelog}
-    Risk: medium
+	Deploy version {version} to production?
+	Changes: {changelog}
+	Risk: medium
 
 if confirmed
-    deploy
+	deploy
 else
-    abort
+	abort
 ```
 
 ### Approval with Timeout
 
 ```lucky
 approval
-    before deploy
-    timeout 4h escalate to manager
+	before deploy
+	timeout 4h escalate to manager
 ```
 
 If approval doesn't arrive within 4 hours, the request escalates.
@@ -773,38 +773,38 @@ If approval doesn't arrive within 4 hours, the request escalates.
 
 ```lucky
 workflow StandardPipeline
-    context
-        topic: String
-        output_format: String = "markdown"
+	context
+		topic: String
+		output_format: String = "markdown"
 
-    Researcher.Investigate(topic = context.topic)
-        ->
-    Planner.Decompose(goal = "Create {context.output_format} report")
-        ->
-    Coder.Generate(spec = context.plan)
-        ->
-    Reviewer.ReviewCode(code = context.code)
+	Researcher.Investigate(topic = context.topic)
+		->
+	Planner.Decompose(goal = "Create {context.output_format} report")
+		->
+	Coder.Generate(spec = context.plan)
+		->
+	Reviewer.ReviewCode(code = context.code)
 ```
 
 ### Pattern: Agent with Multiple Strategies
 
 ```lucky
 agent Analyzer
-    model Claude
+	model Claude
 
-    task QuickAnalysis
-        policy timeout 1m
-        steps
-            reason fast
-            return ai.ask("Quick summary: {context.topic}")
+	task QuickAnalysis
+		policy timeout 1m
+		steps
+			reason fast
+			return ai.ask("Quick summary: {context.topic}")
 
-    task DeepAnalysis
-        policy timeout 10m
-        steps
-            reason deep
-            let research = Search.search(context.topic, max_results = 20)
-            let analysis = ai.summarize(research, style = "detailed")
-            return analysis
+	task DeepAnalysis
+		policy timeout 10m
+		steps
+			reason deep
+			let research = Search.search(context.topic, max_results = 20)
+			let analysis = ai.summarize(research, style = "detailed")
+			return analysis
 ```
 
 ### Pattern: Test-Driven Development
@@ -812,16 +812,16 @@ agent Analyzer
 ```lucky
 # tests/security.test.lk
 test "code review finds SQL injection" {
-    let sql = "SELECT * FROM users WHERE id = " + user_input
-    let review = Reviewer.ReviewCode(code = sql, focus_areas = ["security"])
-    assert review.severity >= "high"
-    assert review.category == "sql_injection"
+	let sql = "SELECT * FROM users WHERE id = " + user_input
+	let review = Reviewer.ReviewCode(code = sql, focus_areas = ["security"])
+	assert review.severity >= "high"
+	assert review.category == "sql_injection"
 }
 
 test "all files have proper permissions" {
-    let files = Filesystem.list("./src")
-    for file in files
-        assert filesystem.permissions(file) != "0777"
+	let files = Filesystem.list("./src")
+	for file in files
+		assert filesystem.permissions(file) != "0777"
 }
 ```
 
@@ -829,56 +829,56 @@ test "all files have proper permissions" {
 
 ```lucky
 task ProcessLogs
-    input
-        log_dir: String
-    output
-        summary: Map<String, Int>
-    steps
-        let results = Filesystem.glob(log_dir + "/**/*.log")
-            |> map fn f => Filesystem.read(f)
-            |> filter fn content => content.contains("ERROR")
-            |> map fn content => extract_error_type(content)
-            |> group_by fn err => err
-            |> map fn (k, v) => { k: v.len() }
-        return results
+	input
+		log_dir: String
+	output
+		summary: Map<String, Int>
+	steps
+		let results = Filesystem.glob(log_dir + "/**/*.log")
+			|> map fn f => Filesystem.read(f)
+			|> filter fn content => content.contains("ERROR")
+			|> map fn content => extract_error_type(content)
+			|> group_by fn err => err
+			|> map fn (k, v) => { k: v.len() }
+		return results
 ```
 
 ### Pattern: Multi-Agent Collaboration
 
 ```lucky
 workflow SoftwareDevelopment
-    context
-        feature_spec: String
-        language: String = "Rust"
-        repo: URI
+	context
+		feature_spec: String
+		language: String = "Rust"
+		repo: URI
 
-    parallel
-        Researcher.Investigate(
-            topic = "Best practices for {context.feature_spec} in {context.language}"
-        )
-        Architect.DesignSystem(
-            requirements = context.feature_spec,
-            constraints = { "language": context.language }
-        )
-    wait
-        ->
-    Coder.Generate(
-        spec = context.architecture,
-        language = context.language
-    )
-        ->
-    parallel
-        Reviewer.ReviewCode(code = context.code)
-        Tester.GenerateTests(code = context.code)
-    wait
-        ->
-    if context.review.approved and context.tests.passed
-        Git.commit("feat: {context.feature_spec}")
-    else
-        Coder.FixBug(
-            code = context.code,
-            bug_description = context.review.findings
-        )
+	parallel
+		Researcher.Investigate(
+			topic = "Best practices for {context.feature_spec} in {context.language}"
+		)
+		Architect.DesignSystem(
+			requirements = context.feature_spec,
+			constraints = { "language": context.language }
+		)
+	wait
+		->
+	Coder.Generate(
+		spec = context.architecture,
+		language = context.language
+	)
+		->
+	parallel
+		Reviewer.ReviewCode(code = context.code)
+		Tester.GenerateTests(code = context.code)
+	wait
+		->
+	if context.review.approved and context.tests.passed
+		Git.commit("feat: {context.feature_spec}")
+	else
+		Coder.FixBug(
+			code = context.code,
+			bug_description = context.review.findings
+		)
 ```
 
 ---

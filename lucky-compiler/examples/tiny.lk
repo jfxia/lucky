@@ -1,14 +1,15 @@
 project Tiny
 
 task Hello
-    input
-        name: String
-    output
-        greeting: String
-    steps
-        let msg = "Hello"
-        return msg
+	input
+		name: String
+	output
+		greeting: String
+	steps
+		let msg = "Hello"
+		return msg
 
 goal Hi
-    success
-        ok
+	success
+		ok
+

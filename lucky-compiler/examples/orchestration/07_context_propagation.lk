@@ -3,60 +3,61 @@ project ContextPropagation
 use DeepSeek
 
 model DeepSeek(
-    provider = "deepseek",
-    version = "deepseek-v4",
+	provider = "deepseek",
+	version = "deepseek-v4",
 )
 
 agent Designer
-    model DeepSeek
-    tools Filesystem
+	model DeepSeek
+	tools Filesystem
 
 agent Coder
-    model DeepSeek
-    tools Filesystem, Git
+	model DeepSeek
+	tools Filesystem, Git
 
 agent Tester
-    model DeepSeek
-    tools Shell
+	model DeepSeek
+	tools Shell
 
 task DesignFeature
-    output design: String
-    steps
-        # context.user and context.feature_spec are inherited
-        let user = context.user
-        let spec = context.feature_spec
-        let design = "Design for " + spec
-        # Output is automatically added to context as context.design
-        return design
+	output design: String
+	steps
+		# context.user and context.feature_spec are inherited
+		let user = context.user
+		let spec = context.feature_spec
+		let design = "Design for " + spec
+		# Output is automatically added to context as context.design
+		return design
 
 task ImplementFeature
-    output code: String
-    steps
-        let user = context.user
-        let repo = context.repo
-        let design = context.design
-        let code = "Implementation based on " + design
-        return code
+	output code: String
+	steps
+		let user = context.user
+		let repo = context.repo
+		let design = context.design
+		let code = "Implementation based on " + design
+		return code
 
 task VerifyFeature
-    input code: String
-    output passed: Bool
-    steps
-        let result = Shell.exec("cargo test")
-        return result.success
+	input code: String
+	output passed: Bool
+	steps
+		let result = Shell.exec("cargo test")
+		return result.success
 
 workflow BuildFeature
-    context
-        user: String
-        repo: URI
-        feature_spec: String
+	context
+		user: String
+		repo: URI
+		feature_spec: String
 
-    Designer.DesignFeature()
-        ->
-    Coder.ImplementFeature()
-        ->
-    Tester.VerifyFeature(code = context.code)
+	Designer.DesignFeature()
+		->
+	Coder.ImplementFeature()
+		->
+	Tester.VerifyFeature(code = context.code)
 
 goal Build
-    success designed and implemented and verified
-    workflow BuildFeature
+	success designed and implemented and verified
+	workflow BuildFeature
+

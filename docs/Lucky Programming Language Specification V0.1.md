@@ -827,16 +827,16 @@ program        = projectDecl { moduleItem } ;
 projectDecl    = "project" Identifier ;
 
 moduleItem     =
-      importDecl
-    | typeDecl
-    | agentDecl
-    | taskDecl
-    | workflowDecl
-    | goalDecl
-    | memoryDecl
-    | toolDecl
-    | modelDecl
-    ;
+		importDecl
+	| typeDecl
+	| agentDecl
+	| taskDecl
+	| workflowDecl
+	| goalDecl
+	| memoryDecl
+	| toolDecl
+	| modelDecl
+	;
 
 agentDecl      = "agent" Identifier Block ;
 
@@ -849,14 +849,14 @@ goalDecl       = "goal" Identifier Block ;
 Block          = INDENT { Statement } DEDENT ;
 
 Statement      =
-      LetStmt
-    | CallStmt
-    | IfStmt
-    | MatchStmt
-    | ParallelStmt
-    | PipelineStmt
-    | ReturnStmt
-    ;
+		LetStmt
+	| CallStmt
+	| IfStmt
+	| MatchStmt
+	| ParallelStmt
+	| PipelineStmt
+	| ReturnStmt
+	;
 ```
 
 

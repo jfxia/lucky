@@ -8,9 +8,9 @@ Integrates Lucky as an OpenCode skill (`lucky-executor`), enabling OpenCode to c
 adapters/
 ├── ltp_client.py          # LTP client (shared by all adapters)
 └── opencode/
-    ├── SKILL.md            # OpenCode skill definition (YAML frontmatter)
-    ├── run.py              # Tool implementations (lucky_run, lucky_status, lucky_approve)
-    └── README.md           # This file
+	├── SKILL.md            # OpenCode skill definition (YAML frontmatter)
+	├── run.py              # Tool implementations (lucky_run, lucky_status, lucky_approve)
+	└── README.md           # This file
 ```
 
 ## Prerequisites
@@ -103,11 +103,11 @@ python run.py approve appr-001 approve -r "Changes look good"
 │   OpenCode   │ ──────────────────────>  │  lucky-executor   │
 │   CLI tool   │                           │  (SKILL.md)       │
 └──────┬───────┘                           └────────┬──────────┘
-       │                                            │
-       │  Calls lucky_run / lucky_status /          │
-       │  lucky_approve                             │
-       │                                            │
-       ▼                                            ▼
+		│                                            │
+		│  Calls lucky_run / lucky_status /          │
+		│  lucky_approve                             │
+		│                                            │
+		▼                                            ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  run.py                                                      │
 │  ┌──────────────────────────────────────────────────────────┐│
@@ -119,8 +119,8 @@ python run.py approve appr-001 approve -r "Changes look good"
 │  │  - approval/respond                                     ││
 │  └───────────────────────┬──────────────────────────────────┘│
 └──────────────────────────┼───────────────────────────────────┘
-                           │  LTP (JSON-RPC 2.0 over stdio/HTTP)
-                           ▼
+							│  LTP (JSON-RPC 2.0 over stdio/HTTP)
+							▼
 ┌──────────────────────────────────────────────────────────────┐
 │  Lucky Runtime (lucky serve)                                 │
 │  - Executes the Lucky IR DAG                                │

@@ -3,28 +3,29 @@ project ErrorTest
 # Error: missing indentation after task
 task BadTask
 steps
-    let x = 1
+	let x = 1
 
 # Error: missing colon in type annotation (parser should recover)
 task RecoverTask
-    input
-        name String
-    output
-        result String
-    steps
-        return "ok"
+	input
+		name String
+	output
+		result String
+	steps
+		return "ok"
 
 # Error: unknown keyword in agent body (parser should skip and continue)
 agent BadAgent
-    model DeepSeek
-    badkeyword 123
-    tools
-        Filesystem
+	model DeepSeek
+	badkeyword 123
+	tools
+		Filesystem
 
 # Error recovery: attempt without body  
 task RecoverAttempt
-    steps
-        attempt
-            let x = 1
-        recover
-            retry 3
+	steps
+		attempt
+			let x = 1
+		recover
+			retry 3
+

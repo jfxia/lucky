@@ -5,154 +5,155 @@ use DeepSeek
 # ── Models ────────────────────────────────────────────────────
 
 model DefaultModel(
-    provider = "deepseek",
-    version = "deepseek-v4",
-    temperature = 0.3,
-    max_tokens = 4096,
+	provider = "deepseek",
+	version = "deepseek-v4",
+	temperature = 0.3,
+	max_tokens = 4096,
 )
 
 # ── Agents ────────────────────────────────────────────────────
 
 agent CodeAnalyzer
-    model DefaultModel
-    tools
-        Filesystem, Git
-    permissions
-        allow filesystem.read
-        allow git.status
-        allow git.diff
-    prompt AnalyzerPrompt
+	model DefaultModel
+	tools
+		Filesystem, Git
+	permissions
+		allow filesystem.read
+		allow git.status
+		allow git.diff
+	prompt AnalyzerPrompt
 
 agent TestRunner
-    model DefaultModel
-    tools
-        Shell, Filesystem
-    permissions
-        allow shell.exec("cargo test")
-        allow shell.exec("npm test")
-        allow filesystem.read
-    policy
-        retry 2
-        timeout 10m
+	model DefaultModel
+	tools
+		Shell, Filesystem
+	permissions
+		allow shell.exec("cargo test")
+		allow shell.exec("npm test")
+		allow filesystem.read
+	policy
+		retry 2
+		timeout 10m
 
 agent SecurityScanner
-    model DefaultModel
-    tools
-        Filesystem, Shell
-    permissions
-        allow filesystem.read
-        allow shell.exec
-        deny filesystem.write
-    prompt SecurityPrompt
+	model DefaultModel
+	tools
+		Filesystem, Shell
+	permissions
+		allow filesystem.read
+		allow shell.exec
+		deny filesystem.write
+	prompt SecurityPrompt
 
 agent Deployer
-    model DefaultModel
-    tools
-        Git, Shell, HTTP
-    permissions
-        allow git.push
-        allow shell.exec("docker build")
-        allow shell.exec("docker push")
-        allow http.post
-        deny git.push(main)
-    policy
-        timeout 15m
+	model DefaultModel
+	tools
+		Git, Shell, HTTP
+	permissions
+		allow git.push
+		allow shell.exec("docker build")
+		allow shell.exec("docker push")
+		allow http.post
+		deny git.push(main)
+	policy
+		timeout 15m
 
 # ── Prompts ───────────────────────────────────────────────────
 
 prompt AnalyzerPrompt
-    role
-        You analyze code changes for quality and completeness.
-    rules
-        - Check for breaking changes
-        - Verify test coverage
-        - Assess build impact
+	role
+		You analyze code changes for quality and completeness.
+	rules
+		- Check for breaking changes
+		- Verify test coverage
+		- Assess build impact
 
 prompt SecurityPrompt
-    role
-        You scan code for security vulnerabilities.
-    rules
-        - Check OWASP Top 10
-        - Scan for hardcoded secrets
-        - Verify dependency versions
+	role
+		You scan code for security vulnerabilities.
+	rules
+		- Check OWASP Top 10
+		- Scan for hardcoded secrets
+		- Verify dependency versions
 
 # ── Tasks ─────────────────────────────────────────────────────
 
 task BuildProject
-    steps
-        Shell.exec("cargo build --release")
-        let build_ok = true
-        return build_ok
+	steps
+		Shell.exec("cargo build --release")
+		let build_ok = true
+		return build_ok
 
 task RunTests
-    steps
-        Shell.exec("cargo test --release")
-        let tests_ok = true
-        return tests_ok
+	steps
+		Shell.exec("cargo test --release")
+		let tests_ok = true
+		return tests_ok
 
 task CheckStyle
-    steps
-        let files = Git.diff_files("HEAD~1", "HEAD")
-        for file in files
-            let content = Filesystem.read(file)
-        return "ok"
+	steps
+		let files = Git.diff_files("HEAD~1", "HEAD")
+		for file in files
+			let content = Filesystem.read(file)
+		return "ok"
 
 # ── Permissions ───────────────────────────────────────────────
 
 permissions CIPermissions
-    allow
-        filesystem.read
-        git.status
-        git.diff
-        git.commit
-        git.push(feature/*)
-        shell.exec(cargo *)
-        shell.exec(npm *)
-        shell.exec(docker *)
-        http.post
-    deny
-        git.push(main)
-        filesystem.delete
-        shell.exec(rm *)
+	allow
+		filesystem.read
+		git.status
+		git.diff
+		git.commit
+		git.push(feature/*)
+		shell.exec(cargo *)
+		shell.exec(npm *)
+		shell.exec(docker *)
+		http.post
+	deny
+		git.push(main)
+		filesystem.delete
+		shell.exec(rm *)
 
 # ── Goals ─────────────────────────────────────────────────────
 
 goal CICheck
-    success
-        build_passed
-        tests_passed
-        security_clean
-    workflow StandardCI
+	success
+		build_passed
+		tests_passed
+		security_clean
+	workflow StandardCI
 
 goal DeployStaging
-    success
-        staging_deployed
-        smoke_tests_passed
-    workflow DeployToStaging
+	success
+		staging_deployed
+		smoke_tests_passed
+	workflow DeployToStaging
 
 # ── Workflows ─────────────────────────────────────────────────
 
 workflow StandardCI
-    CheckStyle
-        ->
-    parallel
-        BuildProject
-        RunTests
-        SecurityScanner
-    wait
-        ->
-    if context.tests_passed and context.security_clean
-        Git.commit("CICD: All checks passed")
-    else
-        Git.comment("CI checks failed �?see details above")
+	CheckStyle
+		->
+	parallel
+		BuildProject
+		RunTests
+		SecurityScanner
+	wait
+		->
+	if context.tests_passed and context.security_clean
+		Git.commit("CICD: All checks passed")
+	else
+		Git.comment("CI checks failed �?see details above")
 
 workflow DeployToStaging
-    Git.checkout("staging")
-        ->
-    Git.merge("feature/*")
-        ->
-    Shell.exec("docker build -t app:staging .")
-        ->
-    Shell.exec("docker push app:staging")
-        ->
-    HTTP.post("https://api.example.com/deploy/staging")
+	Git.checkout("staging")
+		->
+	Git.merge("feature/*")
+		->
+	Shell.exec("docker build -t app:staging .")
+		->
+	Shell.exec("docker push app:staging")
+		->
+	HTTP.post("https://api.example.com/deploy/staging")
+

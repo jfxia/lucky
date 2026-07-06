@@ -1,4 +1,5 @@
 project Hello
-    import foo
+	import foo
 
-    prompt Bar
+	prompt Bar
+

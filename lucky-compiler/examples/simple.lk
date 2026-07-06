@@ -1,18 +1,19 @@
 project Minimal
 
 agent Helper
-    model DeepSeek
-    memory ProjectMemory
+	model DeepSeek
+	memory ProjectMemory
 
 task Greet
-    input
-        name: String
-    output
-        greeting: String
-    steps
-        let msg = "Hello"
-        return msg
+	input
+		name: String
+	output
+		greeting: String
+	steps
+		let msg = "Hello"
+		return msg
 
 goal SayHello
-    success
-        ok
+	success
+		ok
+

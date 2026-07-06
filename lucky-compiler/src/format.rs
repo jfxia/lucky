@@ -1,7 +1,7 @@
 // Lucky source code formatter.
 //
 // Implements `lucky fmt file.lk` with the following rules:
-// 1. 4-space indentation (no tabs)
+// 1. Tab indentation (no spaces)
 // 2. Max 1 consecutive blank line between declarations
 // 3. Agent body sections ordered: model → memory → tools → permissions → policy → prompt
 // 4. Task body sections ordered: input → output → context → policy → steps → rollback
@@ -46,6 +46,7 @@ struct Formatter {
     col: usize,
     errors: Vec<String>,
     blank_lines: usize,
+    tab_width: usize,
 }
 
 impl Formatter {
@@ -62,6 +63,7 @@ impl Formatter {
             col: 0,
             errors,
             blank_lines: 0,
+            tab_width: 4,
         }
     }
 
@@ -129,11 +131,10 @@ impl Formatter {
     }
 
     fn emit_indent(&mut self) {
-        let spaces = self.indent_level * 4;
-        if spaces > 0 {
-            let pad = " ".repeat(spaces);
-            self.out.push_str(&pad);
-            self.col += spaces;
+        if self.indent_level > 0 {
+            let tabs = "\t".repeat(self.indent_level);
+            self.out.push_str(&tabs);
+            self.col += self.indent_level * self.tab_width;
         }
     }
 
@@ -1083,6 +1084,6 @@ mod tests {
     fn test_minimal_agent() {
         let input = "agent Test\n    model: X\n";
         let result = format_source(input).unwrap();
-        assert!(result.contains("    model: X"), "Agent section should be indented: {:?}", result);
+        assert!(result.contains("\tmodel: X"), "Agent section should be indented: {:?}", result);
     }
 }

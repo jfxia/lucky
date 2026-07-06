@@ -78,24 +78,24 @@ project HelloWorld
 use Claude
 
 agent Greeter
-    model Claude
+	model Claude
 
 task SayHello
-    input
-        name: String
-    output
-        greeting: String
-    steps
-        let greeting = "Hello, " + name
-        return greeting
+	input
+		name: String
+	output
+		greeting: String
+	steps
+		let greeting = "Hello, " + name
+		return greeting
 
 goal Greet
-    success
-        greeting_produced
-    workflow SayHelloWorkflow
+	success
+		greeting_produced
+	workflow SayHelloWorkflow
 
 workflow SayHelloWorkflow
-    Greeter.SayHello(name = "Lucky")
+	Greeter.SayHello(name = "Lucky")
 ```
 
 ---
@@ -171,14 +171,14 @@ Create `hello.test.lk`:
 
 ```lucky
 test "greeting contains name" {
-    let greeting = "Hello, Lucky"
-    assert greeting contains "Lucky"
-    assert greeting starts_with "Hello"
+	let greeting = "Hello, Lucky"
+	assert greeting contains "Lucky"
+	assert greeting starts_with "Hello"
 }
 
 test "greeting is not empty" {
-    let greeting = "Hello, World"
-    assert greeting != ""
+	let greeting = "Hello, World"
+	assert greeting != ""
 }
 ```
 
@@ -246,25 +246,25 @@ Lucky has first-class model support. Declare models at the language level, set A
 
 ```lucky
 model DeepSeek(
-    provider = "deepseek",
-    version = "deepseek-v4",
-    temperature = 0.3,
+	provider = "deepseek",
+	version = "deepseek-v4",
+	temperature = 0.3,
 )
 
 model GPT(
-    provider = "openai",
-    version = "gpt-4o",
+	provider = "openai",
+	version = "gpt-4o",
 )
 
 model LocalLLM(
-    provider = "ollama",
-    version = "llama3",
+	provider = "ollama",
+	version = "llama3",
 )
 
 use DeepSeek         # Set default
 
 agent Researcher
-    use GPT          # Override for this agent
+	use GPT          # Override for this agent
 ```
 
 Three backends are supported out of the box:

@@ -6,298 +6,299 @@ use DeepSeek
 # drafts, edits, and publishes articles with SEO optimization.
 
 model ContentModel(
-    provider = "deepseek",
-    version = "deepseek-v4",
-    temperature = 0.7,
-    max_tokens = 4096,
+	provider = "deepseek",
+	version = "deepseek-v4",
+	temperature = 0.7,
+	max_tokens = 4096,
 )
 
 # ── Agents ────────────────────────────────────────────────────
 
 agent Researcher
-    model ContentModel
-    tools
-        Search, Browser
-    permissions
-        allow search.*
-        allow browser.*
-    prompt ContentResearchPrompt
+	model ContentModel
+	tools
+		Search, Browser
+	permissions
+		allow search.*
+		allow browser.*
+	prompt ContentResearchPrompt
 
 agent Outliner
-    model ContentModel
-    tools
-        Filesystem
-    permissions
-        allow filesystem.write
-    prompt OutlinePrompt
+	model ContentModel
+	tools
+		Filesystem
+	permissions
+		allow filesystem.write
+	prompt OutlinePrompt
 
 agent Drafter
-    model ContentModel
-    tools
-        Filesystem
-    permissions
-        allow filesystem.write
-    prompt DraftPrompt
+	model ContentModel
+	tools
+		Filesystem
+	permissions
+		allow filesystem.write
+	prompt DraftPrompt
 
 agent Editor
-    model ContentModel
-    tools
-        Filesystem
-    permissions
-        allow filesystem.read
-        allow filesystem.write
-    prompt EditorPrompt
+	model ContentModel
+	tools
+		Filesystem
+	permissions
+		allow filesystem.read
+		allow filesystem.write
+	prompt EditorPrompt
 
 agent SEOOptimizer
-    model ContentModel
-    tools
-        Search, Filesystem
-    permissions
-        allow search.*
-        allow filesystem.read
-        allow filesystem.write
-    prompt SEOPrompt
+	model ContentModel
+	tools
+		Search, Filesystem
+	permissions
+		allow search.*
+		allow filesystem.read
+		allow filesystem.write
+	prompt SEOPrompt
 
 agent Publisher
-    model ContentModel
-    tools
-        HTTP, Filesystem
-    permissions
-        allow http.post
-        allow filesystem.read
+	model ContentModel
+	tools
+		HTTP, Filesystem
+	permissions
+		allow http.post
+		allow filesystem.read
 
 # ── Memory ────────────────────────────────────────────────────
 
 memory ContentMemory
-    scope session
-    backend vector
+	scope session
+	backend vector
 
 # ── Prompts ───────────────────────────────────────────────────
 
 prompt ContentResearchPrompt
-    role
-        You research {topic} for a {content_type}.
-    rules
-        - Find 5-10 authoritative sources.
-        - Extract key statistics, quotes, and data points.
-        - Identify trending angles and unique perspectives.
-        - Note competing viewpoints for balanced coverage.
-    format
-        Return structured research notes with source URLs.
+	role
+		You research {topic} for a {content_type}.
+	rules
+		- Find 5-10 authoritative sources.
+		- Extract key statistics, quotes, and data points.
+		- Identify trending angles and unique perspectives.
+		- Note competing viewpoints for balanced coverage.
+	format
+		Return structured research notes with source URLs.
 
 prompt OutlinePrompt
-    role
-        You create content outlines for {content_type}.
-    rules
-        - Hook: grab attention in the first paragraph.
-        - Structure: H2 sections with H3 subsections.
-        - Flow: logical progression from problem �?solution �?implementation.
-        - Include target keywords for SEO.
-        - Estimated reading time: {target_length} minutes.
+	role
+		You create content outlines for {content_type}.
+	rules
+		- Hook: grab attention in the first paragraph.
+		- Structure: H2 sections with H3 subsections.
+		- Flow: logical progression from problem �?solution �?implementation.
+		- Include target keywords for SEO.
+		- Estimated reading time: {target_length} minutes.
 
 prompt DraftPrompt
-    role
-        You write engaging {content_type} content.
-        Tone: {tone}. Audience: {audience}.
-    rules
-        - Open with a compelling hook.
-        - Use concrete examples and data.
-        - Write short paragraphs (2-4 sentences).
-        - Include actionable takeaways.
-        - Natural keyword placement (no stuffing).
+	role
+		You write engaging {content_type} content.
+		Tone: {tone}. Audience: {audience}.
+	rules
+		- Open with a compelling hook.
+		- Use concrete examples and data.
+		- Write short paragraphs (2-4 sentences).
+		- Include actionable takeaways.
+		- Natural keyword placement (no stuffing).
 
 prompt EditorPrompt
-    role
-        You edit content for clarity and impact.
-    rules
-        - Cut unnecessary words and jargon.
-        - Strengthen weak verbs and passive voice.
-        - Ensure logical flow between sections.
-        - Check grammar, spelling, and punctuation.
-        - Verify all claims have supporting evidence.
+	role
+		You edit content for clarity and impact.
+	rules
+		- Cut unnecessary words and jargon.
+		- Strengthen weak verbs and passive voice.
+		- Ensure logical flow between sections.
+		- Check grammar, spelling, and punctuation.
+		- Verify all claims have supporting evidence.
 
 prompt SEOPrompt
-    role
-        You optimize content for search engines.
-    rules
-        - Target keyword density: 1-2%.
-        - Optimize title tag (50-60 chars) and meta description (150-160 chars).
-        - Add internal and external links.
-        - Optimize image alt text.
-        - Ensure H1, H2, H3 hierarchy is correct.
-        - Check readability score (target grade 8-10).
+	role
+		You optimize content for search engines.
+	rules
+		- Target keyword density: 1-2%.
+		- Optimize title tag (50-60 chars) and meta description (150-160 chars).
+		- Add internal and external links.
+		- Optimize image alt text.
+		- Ensure H1, H2, H3 hierarchy is correct.
+		- Check readability score (target grade 8-10).
 
 # ── Tasks ─────────────────────────────────────────────────────
 
 task ResearchTopic
-    input
-        topic: String
-        keywords: List<String>
-    output
-        research: Map<String, Any>
-    steps
-        let sources = []
-        for keyword in keywords
-            let results = Search.search("{topic} {keyword}", max_results = 5)
-            sources = sources.concat(results.results)
+	input
+		topic: String
+		keywords: List<String>
+	output
+		research: Map<String, Any>
+	steps
+		let sources = []
+		for keyword in keywords
+			let results = Search.search("{topic} {keyword}", max_results = 5)
+			sources = sources.concat(results.results)
 
-        let extracted = []
-        for source in sources
-            Browser.navigate(source.url)
-            let content = Browser.extract("article, .post-content, main")
-            extracted = extracted.append({
-                "title": source.title,
-                "url": source.url,
-                "content": content,
-                "key_points": ai.extract_keywords(content, count = 10),
-            })
+		let extracted = []
+		for source in sources
+			Browser.navigate(source.url)
+			let content = Browser.extract("article, .post-content, main")
+			extracted = extracted.append({
+				"title": source.title,
+				"url": source.url,
+				"content": content,
+				"key_points": ai.extract_keywords(content, count = 10),
+			})
 
-        ContentMemory.remember("research_{topic}", extracted)
-        return extracted
+		ContentMemory.remember("research_{topic}", extracted)
+		return extracted
 
 task CreateOutline
-    input
-        topic: String
-        research: Map<String, Any>
-        content_type: String
-        target_length: Int
-    output
-        outline: List<Map<String, Any>>
-    steps
-        let outline = Outliner(
-            topic = topic,
-            research = research,
-            content_type = content_type,
-            target_length = target_length,
-        )
-        return outline
+	input
+		topic: String
+		research: Map<String, Any>
+		content_type: String
+		target_length: Int
+	output
+		outline: List<Map<String, Any>>
+	steps
+		let outline = Outliner(
+			topic = topic,
+			research = research,
+			content_type = content_type,
+			target_length = target_length,
+		)
+		return outline
 
 task WriteDraft
-    input
-        outline: List<Map<String, Any>>
-        research: Map<String, Any>
-        content_type: String
-        tone: String
-        audience: String
-    output
-        draft: String
-    steps
-        let draft = ""
-        for section in outline
-            let section_content = Drafter(
-                section = section,
-                research = research,
-                content_type = content_type,
-                tone = tone,
-                audience = audience,
-            )
-            draft = draft + "\n\n" + section_content
-        return draft
+	input
+		outline: List<Map<String, Any>>
+		research: Map<String, Any>
+		content_type: String
+		tone: String
+		audience: String
+	output
+		draft: String
+	steps
+		let draft = ""
+		for section in outline
+			let section_content = Drafter(
+				section = section,
+				research = research,
+				content_type = content_type,
+				tone = tone,
+				audience = audience,
+			)
+			draft = draft + "\n\n" + section_content
+		return draft
 
 task EditDraft
-    input
-        draft: String
-    output
-        edited: String
-        changes: List<String>
-    steps
-        let result = Editor(draft = draft)
-        let edited = result["edited"]
-        let changes = result["changes"]
-        return { "edited": edited, "changes": changes }
+	input
+		draft: String
+	output
+		edited: String
+		changes: List<String>
+	steps
+		let result = Editor(draft = draft)
+		let edited = result["edited"]
+		let changes = result["changes"]
+		return { "edited": edited, "changes": changes }
 
 task OptimizeSEO
-    input
-        content: String
-        target_keywords: List<String>
-        url_slug: String
-    output
-        optimized: String
-        seo_report: Map<String, Any>
-    steps
-        let result = SEOOptimizer(
-            content = content,
-            keywords = target_keywords,
-            slug = url_slug,
-        )
-        return result
+	input
+		content: String
+		target_keywords: List<String>
+		url_slug: String
+	output
+		optimized: String
+		seo_report: Map<String, Any>
+	steps
+		let result = SEOOptimizer(
+			content = content,
+			keywords = target_keywords,
+			slug = url_slug,
+		)
+		return result
 
 task PublishContent
-    input
-        content: String
-        title: String
-        slug: String
-        tags: List<String>
-    steps
-        HTTP.post("https://api.example.com/posts", {
-            "title": title,
-            "slug": slug,
-            "content": content,
-            "tags": tags,
-            "status": "published",
-        })
-        ContentMemory.remember("published_{slug}", {
-            "title": title,
-            "published_at": time.now(),
-        })
-        return "published"
+	input
+		content: String
+		title: String
+		slug: String
+		tags: List<String>
+	steps
+		HTTP.post("https://api.example.com/posts", {
+			"title": title,
+			"slug": slug,
+			"content": content,
+			"tags": tags,
+			"status": "published",
+		})
+		ContentMemory.remember("published_{slug}", {
+			"title": title,
+			"published_at": time.now(),
+		})
+		return "published"
 
 # ── Workflow ──────────────────────────────────────────────────
 
 workflow ContentPipeline
-    context
-        topic: String
-        keywords: List<String>
-        content_type: String = "blog_post"
-        target_length: Int = 8
-        tone: String = "conversational and authoritative"
-        audience: String = "software developers"
-        url_slug: String
-        tags: List<String>
+	context
+		topic: String
+		keywords: List<String>
+		content_type: String = "blog_post"
+		target_length: Int = 8
+		tone: String = "conversational and authoritative"
+		audience: String = "software developers"
+		url_slug: String
+		tags: List<String>
 
-    ResearchTopic(
-        topic = context.topic,
-        keywords = context.keywords,
-    )
-        ->
-    CreateOutline(
-        topic = context.topic,
-        research = context.research,
-        content_type = context.content_type,
-        target_length = context.target_length,
-    )
-        ->
-    WriteDraft(
-        outline = context.outline,
-        research = context.research,
-        content_type = context.content_type,
-        tone = context.tone,
-        audience = context.audience,
-    )
-        ->
-    EditDraft(draft = context.draft)
-        ->
-    OptimizeSEO(
-        content = context.edited,
-        target_keywords = context.keywords,
-        url_slug = context.url_slug,
-    )
-        ->
-    PublishContent(
-        content = context.optimized,
-        title = context.seo_report["title"],
-        slug = context.url_slug,
-        tags = context.tags,
-    )
+	ResearchTopic(
+		topic = context.topic,
+		keywords = context.keywords,
+	)
+		->
+	CreateOutline(
+		topic = context.topic,
+		research = context.research,
+		content_type = context.content_type,
+		target_length = context.target_length,
+	)
+		->
+	WriteDraft(
+		outline = context.outline,
+		research = context.research,
+		content_type = context.content_type,
+		tone = context.tone,
+		audience = context.audience,
+	)
+		->
+	EditDraft(draft = context.draft)
+		->
+	OptimizeSEO(
+		content = context.edited,
+		target_keywords = context.keywords,
+		url_slug = context.url_slug,
+	)
+		->
+	PublishContent(
+		content = context.optimized,
+		title = context.seo_report["title"],
+		slug = context.url_slug,
+		tags = context.tags,
+	)
 
 # ── Goal ──────────────────────────────────────────────────────
 
 goal PublishArticle
-    success
-        research_complete
-        outline_created
-        draft_written
-        editing_complete
-        seo_optimized
-        article_published
-    workflow ContentPipeline
+	success
+		research_complete
+		outline_created
+		draft_written
+		editing_complete
+		seo_optimized
+		article_published
+	workflow ContentPipeline
+

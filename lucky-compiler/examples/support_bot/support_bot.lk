@@ -7,227 +7,228 @@ use DeepSeek
 # escalates complex issues to human agents.
 
 model SupportModel(
-    provider = "deepseek",
-    version = "deepseek-v4",
-    temperature = 0.5,
+	provider = "deepseek",
+	version = "deepseek-v4",
+	temperature = 0.5,
 )
 
 # ── Agents ────────────────────────────────────────────────────
 
 agent Classifier
-    model SupportModel
-    tools
-        Filesystem
-    permissions
-        allow filesystem.read
-    prompt ClassifierPrompt
+	model SupportModel
+	tools
+		Filesystem
+	permissions
+		allow filesystem.read
+	prompt ClassifierPrompt
 
 agent Responder
-    model SupportModel
-    tools
-        Filesystem, HTTP
-    permissions
-        allow filesystem.read
-        allow http.post
-    prompt ResponderPrompt
+	model SupportModel
+	tools
+		Filesystem, HTTP
+	permissions
+		allow filesystem.read
+		allow http.post
+	prompt ResponderPrompt
 
 agent Escalator
-    model SupportModel
-    tools
-        HTTP, Filesystem
-    permissions
-        allow http.post
-        allow filesystem.write
-    prompt EscalatorPrompt
+	model SupportModel
+	tools
+		HTTP, Filesystem
+	permissions
+		allow http.post
+		allow filesystem.write
+	prompt EscalatorPrompt
 
 agent KnowledgeBase
-    model SupportModel
-    tools
-        Filesystem, Search
-    permissions
-        allow filesystem.read
-        allow search.*
-    prompt KBPrompt
+	model SupportModel
+	tools
+		Filesystem, Search
+	permissions
+		allow filesystem.read
+		allow search.*
+	prompt KBPrompt
 
 # ── Memory ────────────────────────────────────────────────────
 
 memory TicketMemory
-    scope session
-    backend vector
+	scope session
+	backend vector
 
 # ── Prompts ───────────────────────────────────────────────────
 
 prompt ClassifierPrompt
-    role
-        You classify customer support tickets.
-    rules
-        - Categories: billing, technical, account, feature_request,
-          bug_report, general_inquiry, complaint.
-        - Priority: urgent (SLA 1h), high (4h), normal (24h), low (72h).
-        - Sentiment: positive, neutral, frustrated, angry.
-        - Extract key entities: product, version, error_message.
-    format
-        Return structured JSON.
+	role
+		You classify customer support tickets.
+	rules
+		- Categories: billing, technical, account, feature_request,
+		bug_report, general_inquiry, complaint.
+		- Priority: urgent (SLA 1h), high (4h), normal (24h), low (72h).
+		- Sentiment: positive, neutral, frustrated, angry.
+		- Extract key entities: product, version, error_message.
+	format
+		Return structured JSON.
 
 prompt ResponderPrompt
-    role
-        You draft customer support responses.
-        Tone: {tone}. Language: {language}.
-    rules
-        - Be empathetic and professional.
-        - Answer the specific question asked.
-        - Include step-by-step instructions if needed.
-        - Reference relevant documentation or knowledge base articles.
-        - If you cannot answer, be honest and escalate.
+	role
+		You draft customer support responses.
+		Tone: {tone}. Language: {language}.
+	rules
+		- Be empathetic and professional.
+		- Answer the specific question asked.
+		- Include step-by-step instructions if needed.
+		- Reference relevant documentation or knowledge base articles.
+		- If you cannot answer, be honest and escalate.
 
 prompt EscalatorPrompt
-    role
-        You prepare escalation summaries for human agents.
-    rules
-        - Summarize the issue in 2-3 sentences.
-        - List what has been tried already.
-        - Include the customer's sentiment and urgency.
-        - Suggest possible resolution paths.
+	role
+		You prepare escalation summaries for human agents.
+	rules
+		- Summarize the issue in 2-3 sentences.
+		- List what has been tried already.
+		- Include the customer's sentiment and urgency.
+		- Suggest possible resolution paths.
 
 prompt KBPrompt
-    role
-        You search the knowledge base for relevant articles.
-    rules
-        - Match the customer's question to KB articles.
-        - Rank by relevance and recency.
-        - Return the top 3 matches with summaries.
+	role
+		You search the knowledge base for relevant articles.
+	rules
+		- Match the customer's question to KB articles.
+		- Rank by relevance and recency.
+		- Return the top 3 matches with summaries.
 
 # ── Tasks ─────────────────────────────────────────────────────
 
 task ClassifyTicket
-    input
-        ticket: Map<String, String>
-    output
-        classification: Map<String, Any>
-    steps
-        let result = Classifier(
-            subject = ticket["subject"],
-            body = ticket["body"],
-            customer_history = TicketMemory.search(ticket["customer_email"], 5),
-        )
-        TicketMemory.remember(
-            ticket["id"],
-            { "classification": result, "ticket": ticket },
-        )
-        return result
+	input
+		ticket: Map<String, String>
+	output
+		classification: Map<String, Any>
+	steps
+		let result = Classifier(
+			subject = ticket["subject"],
+			body = ticket["body"],
+			customer_history = TicketMemory.search(ticket["customer_email"], 5),
+		)
+		TicketMemory.remember(
+			ticket["id"],
+			{ "classification": result, "ticket": ticket },
+		)
+		return result
 
 task SearchKnowledgeBase
-    input
-        query: String
-        category: String
-    output
-        articles: List<Map<String, String>>
-    steps
-        let kb_query = "{query} {category}"
-        let results = KnowledgeBase(query = kb_query)
-        return results
+	input
+		query: String
+		category: String
+	output
+		articles: List<Map<String, String>>
+	steps
+		let kb_query = "{query} {category}"
+		let results = KnowledgeBase(query = kb_query)
+		return results
 
 task DraftResponse
-    input
-        ticket: Map<String, String>
-        classification: Map<String, Any>
-        kb_articles: List<Map<String, String>>
-    output
-        response: String
-        confidence: Float
-    steps
-        let tone = match classification["sentiment"]
-            "angry" => "empathetic and apologetic"
-            "frustrated" => "understanding and helpful"
-            _ => "friendly and professional"
+	input
+		ticket: Map<String, String>
+		classification: Map<String, Any>
+		kb_articles: List<Map<String, String>>
+	output
+		response: String
+		confidence: Float
+	steps
+		let tone = match classification["sentiment"]
+			"angry" => "empathetic and apologetic"
+			"frustrated" => "understanding and helpful"
+			_ => "friendly and professional"
 
-        let response = Responder(
-            ticket = ticket,
-            classification = classification,
-            knowledge_base = kb_articles,
-            tone = tone,
-            language = ticket["language"],
-        )
-        return response
+		let response = Responder(
+			ticket = ticket,
+			classification = classification,
+			knowledge_base = kb_articles,
+			tone = tone,
+			language = ticket["language"],
+		)
+		return response
 
 task EscalateToHuman
-    input
-        ticket: Map<String, String>
-        classification: Map<String, Any>
-        reason: String
-    steps
-        let summary = Escalator(
-            ticket = ticket,
-            classification = classification,
-            attempts = TicketMemory.recall(ticket["id"]),
-            reason = reason,
-        )
-        HTTP.post("/api/escalations", {
-            "ticket_id": ticket["id"],
-            "summary": summary,
-            "priority": classification["priority"],
-            "assigned_team": route_to_team(classification["category"]),
-        })
-        return "escalated"
+	input
+		ticket: Map<String, String>
+		classification: Map<String, Any>
+		reason: String
+	steps
+		let summary = Escalator(
+			ticket = ticket,
+			classification = classification,
+			attempts = TicketMemory.recall(ticket["id"]),
+			reason = reason,
+		)
+		HTTP.post("/api/escalations", {
+			"ticket_id": ticket["id"],
+			"summary": summary,
+			"priority": classification["priority"],
+			"assigned_team": route_to_team(classification["category"]),
+		})
+		return "escalated"
 
 task SendResponse
-    input
-        ticket_id: String
-        response: String
-        channel: String
-    steps
-        if channel == "email"
-            HTTP.post("/api/send-email", {
-                "to": ticket["customer_email"],
-                "subject": "Re: {ticket['subject']}",
-                "body": response,
-            })
-        else if channel == "chat"
-            HTTP.post("/api/send-chat", {
-                "ticket_id": ticket_id,
-                "message": response,
-            })
-        TicketMemory.remember(ticket_id + "_response", response)
-        return "sent"
+	input
+		ticket_id: String
+		response: String
+		channel: String
+	steps
+		if channel == "email"
+			HTTP.post("/api/send-email", {
+				"to": ticket["customer_email"],
+				"subject": "Re: {ticket['subject']}",
+				"body": response,
+			})
+		else if channel == "chat"
+			HTTP.post("/api/send-chat", {
+				"ticket_id": ticket_id,
+				"message": response,
+			})
+		TicketMemory.remember(ticket_id + "_response", response)
+		return "sent"
 
 # ── Workflow ──────────────────────────────────────────────────
 
 workflow HandleTicket
-    context
-        ticket: Map<String, String>
+	context
+		ticket: Map<String, String>
 
-    ClassifyTicket(ticket = context.ticket)
-        ->
-    SearchKnowledgeBase(
-        query = context.ticket["subject"],
-        category = context.classification["category"],
-    )
-        ->
-    DraftResponse(
-        ticket = context.ticket,
-        classification = context.classification,
-        kb_articles = context.kb_articles,
-    )
-        ->
-    if context.confidence >= 0.8
-        SendResponse(
-            ticket_id = context.ticket["id"],
-            response = context.response,
-            channel = context.ticket["channel"],
-        )
-    else
-        EscalateToHuman(
-            ticket = context.ticket,
-            classification = context.classification,
-            reason = "Low confidence ({context.confidence})",
-        )
+	ClassifyTicket(ticket = context.ticket)
+		->
+	SearchKnowledgeBase(
+		query = context.ticket["subject"],
+		category = context.classification["category"],
+	)
+		->
+	DraftResponse(
+		ticket = context.ticket,
+		classification = context.classification,
+		kb_articles = context.kb_articles,
+	)
+		->
+	if context.confidence >= 0.8
+		SendResponse(
+			ticket_id = context.ticket["id"],
+			response = context.response,
+			channel = context.ticket["channel"],
+		)
+	else
+		EscalateToHuman(
+			ticket = context.ticket,
+			classification = context.classification,
+			reason = "Low confidence ({context.confidence})",
+		)
 
 # ── Goal ──────────────────────────────────────────────────────
 
 goal ResolveTicket
-    success
-        ticket_classified
-        knowledge_searched
-        response_drafted
-        response_sent_or_escalated
-    workflow HandleTicket
+	success
+		ticket_classified
+		knowledge_searched
+		response_drafted
+		response_sent_or_escalated
+	workflow HandleTicket
+

@@ -3,85 +3,86 @@ project AITest
 use DeepSeek
 
 model MainModel(
-    provider = "anthropic",
-    version = "DeepSeek-sonnet-4-20250514",
-    temperature = 0.7,
-    max_tokens = 4096
+	provider = "anthropic",
+	version = "DeepSeek-sonnet-4-20250514",
+	temperature = 0.7,
+	max_tokens = 4096
 )
 
 model BackupModel(
-    provider = "openai",
-    version = "gpt-4o"
+	provider = "openai",
+	version = "gpt-4o"
 )
 
 prompt CodeReviewer
-    role
-        You are a senior software engineer.
-    rules
-        - Report actionable findings
-        - Rate severity low/medium/high/critical
-    examples
-        input:
-            SELECT * FROM users WHERE id = 1
-        output:
-            severity: low
-            finding: Use parameterized queries
+	role
+		You are a senior software engineer.
+	rules
+		- Report actionable findings
+		- Rate severity low/medium/high/critical
+	examples
+		input:
+			SELECT * FROM users WHERE id = 1
+		output:
+			severity: low
+			finding: Use parameterized queries
 
 prompt Summarizer
-    role
-        Summarize the following text.
+	role
+		Summarize the following text.
 
 agent SmartAgent
-    model MainModel
-    memory AgentMemory
-    tools
-        Search, Browser
-    permissions
-        allow browser.search
-        allow http.get
-        deny filesystem.write
-    prompt CodeReviewer
+	model MainModel
+	memory AgentMemory
+	tools
+		Search, Browser
+	permissions
+		allow browser.search
+		allow http.get
+		deny filesystem.write
+	prompt CodeReviewer
 
 memory AgentMemory
-    scope session
-    backend vector
-    dimensions 768
+	scope session
+	backend vector
+	dimensions 768
 
 knowledge CompanyDocs
-    source "./docs/**/*.md"
-    source uri("https://docs.example.com")
+	source "./docs/**/*.md"
+	source uri("https://docs.example.com")
 
 context ProjectContext
-    user: String
-    repo: URI
-    session: String
+	user: String
+	repo: URI
+	session: String
 
 permissions AgentPerms
-    allow
-        filesystem.read
-        git.clone
-        http.get
-    deny
-        filesystem.delete
-        shell.exec
+	allow
+		filesystem.read
+		git.clone
+		http.get
+	deny
+		filesystem.delete
+		shell.exec
 
 approval BeforeDeploy
-    before deploy
-    timeout 4h escalate manager
+	before deploy
+	timeout 4h escalate manager
 
 task AIOperations
-    steps
-        let answer = ai.ask("What is Lucky?")
-        let summary = ai.summarize("long text", SummarizeOptions(max_words = 50))
-        let sentiment = ai.sentiment("I love this!")
+	steps
+		let answer = ai.ask("What is Lucky?")
+		let summary = ai.summarize("long text", SummarizeOptions(max_words = 50))
+		let sentiment = ai.sentiment("I love this!")
 
-        ask DeepSeek:
-            Explain the architecture.
+		ask DeepSeek:
+			Explain the architecture.
 
-        reason deep
+		reason deep
 
-        use GPT
+		use GPT
 
-        let conf = answer confidence > 0.8
+		let conf = answer confidence > 0.8
 
-        return answer.value
+		return answer.value
+

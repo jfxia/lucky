@@ -3,47 +3,48 @@ project WebsiteBuilder
 use DeepSeek
 
 agent Planner
-    model DeepSeek
-    tools
-        Search, Browser
+	model DeepSeek
+	tools
+		Search, Browser
 
 agent Coder
-    model DeepSeek
-    tools
-        Filesystem, Git, Shell
+	model DeepSeek
+	tools
+		Filesystem, Git, Shell
 
 agent Reviewer
-    model DeepSeek
-    prompt ReviewPrompt
+	model DeepSeek
+	prompt ReviewPrompt
 
 goal BuildLandingPage
 
 workflow MainWorkflow
-    Planner
-        ->
-    Coder
-        ->
-    Reviewer
+	Planner
+		->
+	Coder
+		->
+	Reviewer
 
 task AnalyzeRepo
-    input
-        repo: URI
-    output
-        report: String
-    steps
-        clone repo
-        read README
-        generate report
+	input
+		repo: URI
+	output
+		report: String
+	steps
+		clone repo
+		read README
+		generate report
 
 permissions
-    allow
-        filesystem.read
-        git.clone
-        browser.search
-    deny
-        filesystem.delete
-        shell.exec
+	allow
+		filesystem.read
+		git.clone
+		browser.search
+	deny
+		filesystem.delete
+		shell.exec
 
 memory ProjectMemory
-    scope project
-    backend vector
+	scope project
+	backend vector
+
