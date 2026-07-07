@@ -18,7 +18,16 @@ impl Parser {
         let mut lhs = self.parse_prefix();
 
         loop {
-            // Check for pipeline operator
+            // Check for multi-line pipeline: NEWLINE + [INDENT] + Pipe
+            if self.kind() == TokenKind::Newline
+                && (self.peek_kind(1) == TokenKind::Pipe
+                    || (self.peek_kind(1) == TokenKind::Indent && self.peek_kind(2) == TokenKind::Pipe))
+            {
+                lhs = self.parse_pipeline(lhs);
+                continue;
+            }
+
+            // Check for pipeline operator (same-line)
             if self.kind() == TokenKind::Pipe {
                 lhs = self.parse_pipeline(lhs);
                 continue;
@@ -477,12 +486,27 @@ impl Parser {
         let start = first.span();
         let mut stages = vec![first];
 
-        while self.kind() == TokenKind::Pipe {
-            let pipe_span = self.span();
+        // If called from the multi-line check in parse_expr_prec, we're still before NEWLINE
+        // If called from the same-line check, we're at Pipe directly
+        loop {
+            // Skip NEWLINE and optional INDENT before Pipe
+            if self.kind() == TokenKind::Newline {
+                self.bump();
+                if self.kind() == TokenKind::Indent {
+                    self.bump();
+                }
+            }
+            if self.kind() != TokenKind::Pipe {
+                break;
+            }
             self.bump(); // '|>'
-            // After |> we expect an operation name (ident) optionally followed by args
             let stage = self.parse_expr_prec(1);
             stages.push(stage);
+        }
+
+        // Consume the DEDENT that closes the pipeline's sub-indentation
+        if self.kind() == TokenKind::Dedent {
+            self.bump();
         }
 
         let span = start.merge(stages.last().unwrap().span());
@@ -523,10 +547,14 @@ impl Parser {
         let start = self.span();
         self.bump(); // 'match'
         let scrutinee = self.parse_expr();
+        while self.kind() == TokenKind::Newline { self.bump(); }
         self.expect_indent();
         let mut arms = Vec::new();
 
         while !self.is_eof() && !self.at_dedent() {
+            while self.kind() == TokenKind::Newline { self.bump(); }
+            if self.at_dedent() { break; }
+
             let arm_start = self.span();
             let pattern = self.parse_pattern();
             let guard = if self.is_keyword("if") {

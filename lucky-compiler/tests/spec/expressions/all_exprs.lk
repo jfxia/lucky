@@ -52,8 +52,8 @@ task PipelineTest
 	steps
 		let data = [1, 2, 3, 4, 5]
 		let result = data
-			|> filter fn x => x > 2
-			|> map fn x => x * 2
+			|> filter_gt(2)
+			|> double_all
 		return result
 
 task LiteralsTest

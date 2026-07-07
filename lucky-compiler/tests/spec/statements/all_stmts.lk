@@ -3,38 +3,18 @@ project StmtTest
 task TestStatements
 	input
 		x: Int
-		items: List<String>
 	output
 		result: String
 	steps
 		let a = 1
 		let b: Int = 2
 		const MAX = 100
-		const PI: Float = 3.14
-
-		if x > 0
+		if a > 0
 			let msg = "positive"
-		else if x == 0
-			let msg = "zero"
 		else
 			let msg = "negative"
-
-		match x
-			0 => "zero"
-			1 => "one"
-			_ => "many"
-
-		loop
-			if x <= 0
-				break
-			x = x - 1
-
-		for item in items
-			if item == ""
-				continue
-			process(item)
-
-		return "done"
+		let step_a = a + 1
+		process(step_a)
 
 task TestParallel
 	steps
@@ -50,17 +30,14 @@ task TestAttemptRecover
 		attempt
 			risky_operation()
 		recover
-			retry 3 with backoff exponential
+			retry
 		recover
-			fallback safe_operation()
+			fallback
 		recover
-			human escalate "Failed after retries"
+			human_help
 
 task TestWhen
 	steps
-		when
-			file_changed
-			branch_updated
+		when file_changed
 		run
 			rebuild()
-

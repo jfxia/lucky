@@ -6,6 +6,10 @@ const KNOWN_GOOD: &[&str] = &[
     "tests/spec/mini.lk",
     "tests/spec/declarations/basic.lk",
     "tests/spec/declarations/permissions.lk",
+    "tests/spec/declarations/all_decls.lk",
+    "tests/spec/expressions/all_exprs.lk",
+    "tests/spec/statements/all_stmts.lk",
+    "tests/spec/ai/ai_constructs.lk",
 ];
 
 /// Files that are expected to contain parse errors (recovery tests).

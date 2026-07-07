@@ -10,6 +10,11 @@ use lucky_compiler::test_runner;
 fn main() {
     let args: Vec<String> = env::args().collect();
 
+    if args.len() >= 2 && (args[1] == "--version" || args[1] == "-V") {
+        println!("Lucky v{}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
+
     if args.len() < 2 {
         eprintln!("Usage: lucky <command> [args]");
         eprintln!();

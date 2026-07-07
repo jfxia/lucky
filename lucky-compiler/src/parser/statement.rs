@@ -85,8 +85,10 @@ impl Parser {
             while self.kind() == TokenKind::Newline {
                 self.bump();
             }
+            while self.kind() == TokenKind::Dedent {
+                self.bump();
+            }
         }
-        self.eat_dedent();
 
         let span = start.merge(self.span());
         Block::new(stmts, span)
@@ -273,6 +275,7 @@ impl Parser {
         let scrutinee = self.parse_expr();
         let mut arms = Vec::new();
 
+        while self.kind() == TokenKind::Newline { self.bump(); }
         if self.kind() == TokenKind::Indent {
             self.bump(); // INDENT
             while !self.is_eof() && !self.at_dedent() {
@@ -337,6 +340,19 @@ impl Parser {
         let has_wait = self.is_keyword("wait");
         if has_wait {
             self.bump();
+            while self.kind() == TokenKind::Newline { self.bump(); }
+            if self.kind() == TokenKind::Indent {
+                self.bump(); // consume INDENT
+                // Skip the wait body tokens to avoid leaking them into the parent block
+                let mut depth = 1;
+                while !self.is_eof() && depth > 0 {
+                    match self.kind() {
+                        TokenKind::Indent => { self.bump(); depth += 1; }
+                        TokenKind::Dedent => { self.bump(); depth -= 1; }
+                        _ => { self.bump(); }
+                    }
+                }
+            }
         }
         let span = start.merge(self.span());
         Some(Stmt::Parallel { body, has_wait, span })
