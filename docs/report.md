@@ -1204,7 +1204,7 @@ The key insight is that AI agent orchestration introduces semantic challenges th
 
 [4] OpenAI. "Agents SDK: A Lightweight Multi-Agent Framework." *OpenAI Documentation, 2025.* https://openai.com/index/new-tools-for-building-agents/
 
-[5] Xia, J. "Lucky Programming Language Specification v0.1." *Self-published, 2026.* https://github.com/lucky-lang/lucky
+[5] Xia, Jingfeng. "Lucky Programming Language Specification v0.1." *Self-published, 2026.* https://github.com/lucky-lang/lucky
 
 [6] Milner, R., Tofte, M., Harper, R., MacQueen, D. *The Definition of Standard ML (Revised).* MIT Press, 1997.
 
