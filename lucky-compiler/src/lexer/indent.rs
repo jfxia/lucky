@@ -44,7 +44,17 @@ impl IndentProcessor {
                     result.push(Token::new(TokenKind::Newline, "\\n", token.span));
                 }
                 TokenKind::Comment | TokenKind::DocComment => {
-                    // Comments are preserved but don't affect indentation tracking
+                    // Comments at a lower indent level should trigger DEDENTs.
+                    // Comments at a higher indent are ignored (no INDENT).
+                    if self.at_line_start {
+                        let indent = token.span.start - self.line_start_offset;
+                        let current_indent = *self.indent_stack.last().unwrap_or(&0);
+                        if indent < current_indent {
+                            self.handle_indent(indent, token.span, &mut result);
+                        }
+                        self.at_line_start = false;
+                    }
+                    self.seen_token_on_line = true;
                     result.push(token);
                 }
                 TokenKind::Eof => {

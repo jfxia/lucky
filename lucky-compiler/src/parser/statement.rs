@@ -11,11 +11,17 @@ impl Parser {
     /// Parse a block: INDENT { statement } DEDENT.
     pub fn parse_block(&mut self) -> Block {
         let start = self.span();
+        while self.kind() == TokenKind::Newline { self.bump(); }
         let has_indent = self.expect_indent();
         let mut stmts = Vec::new();
 
         if has_indent {
             while !self.is_eof() && !self.at_dedent() {
+                // Skip comments at block level
+                if self.kind() == TokenKind::Comment || self.kind() == TokenKind::DocComment {
+                    self.bump();
+                    continue;
+                }
                 if let Some(stmt) = self.parse_stmt() {
                     stmts.push(stmt);
                 }
@@ -120,6 +126,12 @@ impl Parser {
     /// Parse a single statement.
     pub fn parse_stmt(&mut self) -> Option<Stmt> {
         if self.is_eof() || self.at_dedent() {
+            return None;
+        }
+
+        // Skip standalone comments at statement level
+        if self.kind() == TokenKind::Comment || self.kind() == TokenKind::DocComment {
+            self.bump();
             return None;
         }
 

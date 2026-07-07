@@ -233,8 +233,10 @@ impl Parser {
         let mut args = Vec::new();
 
         while !self.is_eof() && self.kind() != TokenKind::RParen {
-            if self.kind() == TokenKind::Newline || self.kind() == TokenKind::Dedent {
-                break;
+            if self.kind() == TokenKind::Newline || self.kind() == TokenKind::Dedent
+                || self.kind() == TokenKind::Indent {
+                self.bump();
+                continue;
             }
 
             // Check for named argument: `name = value`
@@ -339,6 +341,11 @@ impl Parser {
     fn parse_set_or_map(&mut self) -> Expr {
         let start = self.span();
         self.bump(); // '{'
+        // Skip whitespace/indent after {
+        while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent
+            || self.kind() == TokenKind::Dedent {
+            self.bump();
+        }
         let mut elements = Vec::new();
         let mut entries = Vec::new();
         let mut is_map = false;
@@ -360,8 +367,13 @@ impl Parser {
             let value = self.parse_expr();
             entries.push((first, value));
 
-            while self.kind() == TokenKind::Comma {
-                self.bump();
+            while self.kind() == TokenKind::Comma || self.kind() == TokenKind::Newline
+                || self.kind() == TokenKind::Indent || self.kind() == TokenKind::Dedent {
+                if self.kind() == TokenKind::Comma { self.bump(); }
+                while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent
+                    || self.kind() == TokenKind::Dedent {
+                    self.bump();
+                }
                 if self.kind() == TokenKind::RBrace { break; }
                 let key = self.parse_expr();
                 self.expect(TokenKind::Colon, "map entry");
@@ -371,13 +383,22 @@ impl Parser {
         } else {
             // Set
             elements.push(first);
-            while self.kind() == TokenKind::Comma {
-                self.bump();
+            while self.kind() == TokenKind::Comma || self.kind() == TokenKind::Newline
+                || self.kind() == TokenKind::Indent || self.kind() == TokenKind::Dedent {
+                if self.kind() == TokenKind::Comma { self.bump(); }
+                while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent
+                    || self.kind() == TokenKind::Dedent {
+                    self.bump();
+                }
                 if self.kind() == TokenKind::RBrace { break; }
                 elements.push(self.parse_expr());
             }
         }
 
+        while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent
+            || self.kind() == TokenKind::Dedent {
+            self.bump();
+        }
         self.expect(TokenKind::RBrace, if is_map { "map literal" } else { "set literal" });
         let span = start.merge(self.span());
 

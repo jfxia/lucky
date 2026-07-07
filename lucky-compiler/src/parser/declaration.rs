@@ -573,18 +573,23 @@ impl Parser {
 
         if self.kind() == TokenKind::LParen {
             self.bump();
+            let mut safety = 0;
             while !self.is_eof() && self.kind() != TokenKind::RParen {
+                safety += 1;
+                if safety > 1000 { break; }
                 while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent
                     || self.kind() == TokenKind::Dedent {
                     self.bump();
                 }
                 if self.kind() == TokenKind::RParen || self.is_eof() { break; }
                 if let Some((key, _)) = self.expect_ident("model config key") {
-                    if self.kind() == TokenKind::Eq {
+                    if self.kind() == TokenKind::Eq || self.kind() == TokenKind::Colon {
                         self.bump();
                         let value = self.parse_expr();
                         config.push((key, value));
                     }
+                } else {
+                    self.bump();
                 }
                 if self.kind() == TokenKind::Comma { self.bump(); }
             }
@@ -674,9 +679,15 @@ impl Parser {
     fn collect_text_block(&mut self) -> String {
         let mut lines = Vec::new();
         while !self.is_eof() && !self.at_dedent() && self.kind() != TokenKind::Indent {
-            let t = self.text();
-            if t == "role" || t == "rules" || t == "context"
-                || t == "examples" || t == "format" { break; }
+            if self.kind() == TokenKind::Comment || self.kind() == TokenKind::DocComment {
+                self.bump();
+                continue;
+            }
+            if self.kind() == TokenKind::Keyword {
+                let t = self.text();
+                if t != "and" && t != "or" && t != "not" && t != "in" && t != "for"
+                    && t != "if" && t != "is" { break; }
+            }
             if self.kind() == TokenKind::Newline {
                 self.bump();
                 continue;
@@ -806,11 +817,15 @@ impl Parser {
 
         let mut current_is_allow = true;
         if has_indent {
-            while !self.is_eof() && !self.at_dedent() {
-                while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+            let mut outer_safety = 0;
+            while !self.is_eof() {
+                outer_safety += 1;
+                if outer_safety > 500 { break; }
+                while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent
+                    || self.kind() == TokenKind::Dedent {
                     self.bump();
                 }
-                if self.at_dedent() { break; }
+                if self.is_eof() || self.at_dedent() { break; }
 
             if self.is_keyword("allow") {
                 self.bump();
@@ -855,7 +870,10 @@ impl Parser {
     }
 
     fn parse_permission_inline_entries(&mut self, entries: &mut Vec<PermissionEntry>) {
+        let mut safety = 0;
         loop {
+            safety += 1;
+            if safety > 500 { break; }
             while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
                 self.bump();
             }

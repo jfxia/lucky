@@ -1,6 +1,11 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::ast::span::{FileId, Span};
 use crate::lexer::token::{Token, TokenKind};
 use crate::diagnostics::diagnostic::DiagnosticBag;
+
+/// Global loop detector to catch infinite parser loops.
+/// Incremented in kind(), reset by bump(). If it exceeds a threshold, panics.
+static PARSE_LOOP_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 /// Core parser infrastructure. Wraps a token stream with peek/bump/expect helpers
 /// and error recovery.
@@ -12,6 +17,8 @@ pub struct Parser {
     sync_tokens: Vec<TokenKind>,
     /// Safety counter — incremented on every bump().
     step_count: usize,
+    /// Tracks consecutive non-bumping calls to error() or expect_ident().
+    since_last_bump: usize,
     /// Set when parser exceeds max steps to force early exit.
     stuck: bool,
 }
@@ -27,6 +34,7 @@ impl Parser {
             file_id,
             sync_tokens: vec![TokenKind::Newline, TokenKind::Eof],
             step_count: 0,
+            since_last_bump: 0,
             stuck: false,
         }
     }
@@ -42,6 +50,10 @@ impl Parser {
     }
 
     pub fn kind(&self) -> TokenKind {
+        let n = PARSE_LOOP_COUNT.fetch_add(1, Ordering::Relaxed);
+        if n > 100_000_000 {
+            panic!("Parser: >100M calls to kind(), likely infinite loop at token '{}'", self.text());
+        }
         self.current().kind
     }
 
@@ -71,10 +83,18 @@ impl Parser {
 
     /// Advance one token.
     pub fn bump(&mut self) -> &Token {
+        PARSE_LOOP_COUNT.store(0, Ordering::Relaxed);
+        self.since_last_bump = 0;
         self.step_count += 1;
         if self.step_count > MAX_PARSER_STEPS && !self.stuck {
+            use std::io::Write;
+            let _ = std::io::stderr().write_all(format!("BUMP_STUCK: step={} pos={} kind={:?} text='{}'\n", self.step_count, self.pos, self.kind(), self.text()).as_bytes());
+            let _ = std::io::stderr().flush();
             self.stuck = true;
             self.pos = self.tokens.len();
+            eprintln!("Parser stuck: exceeded step count at kind={:?} text='{}'", self.kind(), self.text());
+            let bt = std::backtrace::Backtrace::force_capture();
+            eprintln!("{:?}", bt);
             self.error("Parser stuck: exceeded maximum step count".to_string());
         }
         if !self.is_eof() {
@@ -168,9 +188,21 @@ impl Parser {
 
     pub fn error(&mut self, message: String) {
         use crate::diagnostics::diagnostic::Diagnostic;
+        let n = self.diagnostics.diagnostics.len();
         self.diagnostics.emit(
             Diagnostic::error(message).with_label(self.span(), "here")
         );
+        self.since_last_bump += 1;
+        if self.since_last_bump > 200 {
+            self.stuck = true;
+            eprintln!("Parser stuck by since_last_bump: '{}' (kind={:?})", self.text(), self.kind());
+        }
+        if n > 0 && n % 100 == 0 {
+            eprintln!("Parser errors: {} at kind={:?} text='{}'", n, self.kind(), self.text());
+        }
+        if n > 1000 {
+            panic!("Too many parser errors ({}), likely infinite loop at token '{}' kind={:?}", n, self.text(), self.kind());
+        }
     }
 
     pub fn warning(&mut self, message: String) {

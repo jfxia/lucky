@@ -38,9 +38,9 @@ impl Lexer {
 
             if c == '\n' || c == '\r' {
                 // Emit NEWLINE if we saw content on this line
-                let end = self.pos;
+                let start = self.pos;
                 self.advance_newline();
-                let span = Span::new(end, end, self.file_id);
+                let span = Span::new(start, self.pos, self.file_id);
                 raw_tokens.push(Token::new(TokenKind::Newline, "\\n", span));
                 line_start = self.pos;
                 continue;
