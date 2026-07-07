@@ -219,8 +219,8 @@ Results: 2 passed, 0 failed, 0 skipped
 ## 10. Next Steps
 
 - Read the [Tutorial](tutorial.md) for a step-by-step walkthrough
-- Read the [Language Reference Manual](Lucky%20Language%20Reference%20Manual%20V0.1.md) for complete syntax
-- Read the [Standard Library](Lucky%20Standard%20Library%20Specification%20V0.1.md) for API reference
+- Read the [Language Reference Manual](spec/Lucky%20Language%20Reference%20Manual%20V0.1.md) for complete syntax
+- Read the [Standard Library](spec/Lucky%20Standard%20Library%20Specification%20V0.1.md) for API reference
 - Explore the [examples/](../lucky-compiler/examples/) directory
 - Use `lucky watch . --run` to auto-recheck files on change
 - Use `lucky doc . -o docs/api` to generate Markdown documentation from your `.lk` files

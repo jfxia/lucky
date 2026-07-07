@@ -1149,10 +1149,11 @@ lucky pkg publish ./my-package    # Publish a package to the registry
 
 ## Where to Go Next
 
-- [Language Reference Manual](Lucky%20Language%20Reference%20Manual%20V0.1.md) — Complete syntax and semantics
-- [Standard Library Reference](Lucky%20Standard%20Library%20Specification%20V0.1.md) — All built-in types, tools, and APIs
-- [Runtime Specification](Lucky%20Runtime%20Specification%20V0.1.md) — Execution engine internals
-- [IR Specification](Lucky%20IR%20Specification%20V0.1.md) — Intermediate representation and optimization
+- [Language Reference Manual](spec/Lucky%20Language%20Reference%20Manual%20V0.1.md) — Complete syntax and semantics
+- [Standard Library Reference](spec/Lucky%20Standard%20Library%20Specification%20V0.1.md) — All built-in types, tools, and APIs
+- [Runtime Specification](spec/Lucky%20Runtime%20Specification%20V0.1.md) — Execution engine internals
+- [IR Specification](spec/Lucky%20IR%20Specification%20V0.1.md) — Intermediate representation and optimization
+- [Tool Protocol (LTP)](spec/Lucky%20Tool%20Protocol%20Specification%20V0.1.md) — Cross-platform execution protocol
 - [Quickstart Guide](quickstart.md) — Get started in 5 minutes
 
 ### Everyday Workflow
@@ -1163,5 +1164,3 @@ lucky doc . -o docs/api      # Generate docs from source
 lucky config                 # Inspect resolved configuration
 lucky run main.lk --stream   # Stream LLM tokens live
 ```
-- [Tool Protocol (LTP)](Lucky%20Tool%20Protocol%20Specification%20V0.1.md) — Cross-platform execution protocol
-- [Quickstart Guide](quickstart.md) — Fast setup reference

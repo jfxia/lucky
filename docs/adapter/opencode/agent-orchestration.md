@@ -391,5 +391,5 @@ goal G
 ## Next Steps
 
 - [Lucky Tutorial](../tutorial.md) -- Full language walkthrough
-- [Language Reference](../Lucky%20Language%20Reference%20Manual%20V0.1.md) -- Complete syntax
+- [Language Reference](../spec/Lucky%20Language%20Reference%20Manual%20V0.1.md) -- Complete syntax
 - [Example Programs](../../lucky-compiler/examples/) -- Real-world patterns including CI/CD, research, ETL, security audit

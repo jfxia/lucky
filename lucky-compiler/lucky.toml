@@ -34,19 +34,16 @@ budget_usd = 10.0
 
 # ── DeepSeek ──────────────────────────────────────────────────────────
 # https://platform.deepseek.com/
-# 100万上下文窗口。
 
 [models.deepseek-v4-pro]
 provider = "deepseek"
-# api_key = "sk-..."                     # 或设置 DEEPSEEK_API_KEY 环境变量
+# api_key = "sk-..."                    
 # endpoint = "https://api.deepseek.com/chat/completions"
-# 高性能版本，适合复杂推理任务。100万上下文。
 # temperature = 0.7
 
 [models.deepseek-v4-flash]
 provider = "deepseek"
 # api_key = "sk-..."
-# 轻量经济版本，响应更快。同样拥有100万上下文。
 # temperature = 0.5
 
 # ── OpenAI ────────────────────────────────────────────────────────────
@@ -56,19 +53,16 @@ provider = "deepseek"
 provider = "openai"
 # api_key = "sk-..."
 # endpoint = "https://api.openai.com/v1/chat/completions"
-# 旗舰型号，面向最复杂推理与科研任务。
 # temperature = 0.7
 
 [models.gpt-5.6-terra]
 provider = "openai"
 # api_key = "sk-..."
-# 均衡型版本，适合企业及日常生产力场景。
 # temperature = 0.7
 
 [models.gpt-5.6-luna]
 provider = "openai"
 # api_key = "sk-..."
-# 轻量版，追求高速度和低成本。
 # temperature = 0.5
 
 # ── Anthropic Claude ──────────────────────────────────────────────────
@@ -78,25 +72,21 @@ provider = "openai"
 provider = "anthropic"
 # api_key = "sk-ant-..."
 # endpoint = "https://api.anthropic.com/v1/messages"
-# 目前能力最强的公开发布版本。
 # temperature = 0.7
 
 [models.claude-mythos-5]
 provider = "anthropic"
 # api_key = "sk-ant-..."
-# 能力更完整，仅向特定信任机构开放。
 # temperature = 0.7
 
 [models.claude-sonnet-5]
 provider = "anthropic"
 # api_key = "sk-ant-..."
-# 中端主力模型，适合代码生成和长文档分析。
 # temperature = 0.5
 
 [models.claude-opus-4.8]
 provider = "anthropic"
 # api_key = "sk-ant-..."
-# 高阶旗舰模型，能力强劲。
 # temperature = 0.7
 
 # ── Google Gemini ─────────────────────────────────────────────────────
@@ -106,13 +96,11 @@ provider = "anthropic"
 provider = "google"
 # api_key = "AIza..."
 # endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
-# 已发布版本，擅长编程和Agent任务。
 # temperature = 0.7
 
 [models.gemini-3.5-pro]
 provider = "google"
 # api_key = "AIza..."
-# 功能更强大的Pro版。
 # temperature = 0.7
 
 # ── Kimi (Moonshot) ──────────────────────────────────────────────────
@@ -130,7 +118,6 @@ provider = "kimi"
 provider = "qwen"
 # api_key = "sk-..."
 # endpoint = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-# 旗舰文本模型，侧重推理与编程能力。
 
 # ── Doubao (ByteDance Volcano Ark) ────────────────────────────────────
 # https://console.volcengine.com/ark
