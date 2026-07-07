@@ -47,18 +47,20 @@ hello-world/
 └── memory/             # Memory configurations
 ```
 
-The `lucky.toml` file is where you configure LLM backends and runtime settings:
+The `lucky.toml` file is where you configure LLM providers and runtime settings:
 
 ```toml
-[project]
+[package]
 name = "hello-world"
 version = "0.1.0"
 
-[models.deepseek-v4]
+[models.deepseek-v4-pro]
 provider = "deepseek"
+# api_key = "sk-..."     # 或设置 DEEPSEEK_API_KEY 环境变量
 
-[models.gpt-4o]
+[models.gpt-5.6-terra]
 provider = "openai"
+# api_key = "sk-..."
 
 [runtime]
 budget_usd = 10.0
@@ -240,40 +242,80 @@ Lucky ships with these tools ready to use:
 
 ---
 
-## AI Models
+## LLM Configuration
 
-Lucky has first-class model support. Declare models at the language level, set API keys in the environment, and go:
+Lucky supports 9 LLM providers out of the box. Configure them in `lucky.toml`:
 
-```lucky
-model DeepSeek(
-	provider = "deepseek",
-	version = "deepseek-v4",
-	temperature = 0.3,
-)
+```toml
+# ── DeepSeek ──────────────────────────────────────
+[models.deepseek-v4-pro]
+provider = "deepseek"
+# api_key = "sk-..."   # 或设置 DEEPSEEK_API_KEY 环境变量
 
-model GPT(
-	provider = "openai",
-	version = "gpt-4o",
-)
+# ── OpenAI ─────────────────────────────────────────
+[models.gpt-5.6-terra]
+provider = "openai"
+# api_key = "sk-..."   # 或设置 OPENAI_API_KEY
 
-model LocalLLM(
-	provider = "ollama",
-	version = "llama3",
-)
+# ── Anthropic Claude ───────────────────────────────
+[models.claude-sonnet-5]
+provider = "anthropic"
+# api_key = "sk-ant-..."  # 或设置 ANTHROPIC_API_KEY
 
-use DeepSeek         # Set default
+# ── Google Gemini ──────────────────────────────────
+[models.gemini-3.5-flash]
+provider = "google"
+# api_key = "AIza..."     # 或设置 GOOGLE_API_KEY
 
-agent Researcher
-	use GPT          # Override for this agent
+# ── Kimi (Moonshot) ────────────────────────────────
+[models.kimi-latest]
+provider = "kimi"
+# api_key = "sk-..."      # 或设置 KIMI_API_KEY
+
+# ── Qwen (Alibaba DashScope) ───────────────────────
+[models.qwen3.7-max]
+provider = "qwen"
+# api_key = "sk-..."      # 或设置 QWEN_API_KEY
+
+# ── Doubao (ByteDance) ─────────────────────────────
+[models.doubao-pro-32k]
+provider = "doubao"
+# api_key = "..."         # 或设置 DOUBAO_API_KEY
+
+# ── GLM (Zhipu AI) ─────────────────────────────────
+[models.glm-4-plus]
+provider = "glm"
+# api_key = "..."         # 或设置 GLM_API_KEY
+
+# ── Local (Ollama) ─────────────────────────────────
+[models.llama3]
+provider = "ollama"       # 无需 API Key，本地运行
 ```
 
-Three backends are supported out of the box:
+Reference a model in your `.lk` files by name — Lucky auto-matches the model name to the right provider:
 
-| Backend | API Key | Endpoint |
-|---------|---------|----------|
+```lucky
+use deepseek-v4-pro       # → DeepSeek 后端
+use gpt-5.6-terra         # → OpenAI 后端
+use claude-sonnet-5       # → Anthropic 后端
+use gemini-3.5-flash      # → Google Gemini 后端
+```
+
+API keys can be set either in `lucky.toml` or as environment variables:
+
+| Provider | Env Var | Default Endpoint |
+|----------|---------|-----------------|
 | DeepSeek | `DEEPSEEK_API_KEY` | `api.deepseek.com` |
 | OpenAI | `OPENAI_API_KEY` | `api.openai.com` |
+| Anthropic | `ANTHROPIC_API_KEY` | `api.anthropic.com` |
+| Google | `GOOGLE_API_KEY` | `generativelanguage.googleapis.com` |
+| Kimi | `KIMI_API_KEY` | `api.moonshot.cn` |
+| Qwen | `QWEN_API_KEY` | `dashscope.aliyuncs.com` |
+| Doubao | `DOUBAO_API_KEY` | `ark.cn-beijing.volces.com` |
+| GLM | `GLM_API_KEY` | `open.bigmodel.cn` |
 | Ollama | *(none)* | `localhost:11434` |
+
+> **Security**: For production, prefer environment variables over hardcoding keys in `lucky.toml`.
 
 ---
 

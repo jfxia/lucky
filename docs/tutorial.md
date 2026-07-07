@@ -65,10 +65,18 @@ workflow MainWorkflow
 ### Run It
 
 ```bash
+# Basic run (stub responses, no API key needed)
 lucky run main.lk
 
-# With a real LLM backend
-DEEPSEEK_API_KEY=sk-xxx lucky run main.lk
+# With a real LLM backend (set API key first)
+$env:DEEPSEEK_API_KEY="sk-xxx"     # Windows PowerShell
+export DEEPSEEK_API_KEY="sk-xxx"   # Linux/macOS
+lucky run main.lk
+
+# Or configure in lucky.toml:
+# [models.deepseek-v4-pro]
+# provider = "deepseek"
+# api_key = "sk-xxx"
 
 # Stream tokens as they arrive
 lucky run main.lk --stream
@@ -487,37 +495,99 @@ Search.search("AI agent frameworks")
 
 ## 10. AI Models & Prompts
 
+### Provider Configuration
+
+Configure LLM providers in `lucky.toml`. Each model section defines a backend:
+
+```toml
+[models.deepseek-v4-pro]
+provider = "deepseek"
+# api_key = "sk-..."           # 或设置 DEEPSEEK_API_KEY 环境变量
+
+[models.gpt-5.6-terra]
+provider = "openai"
+# api_key = "sk-..."           # 或设置 OPENAI_API_KEY
+
+[models.claude-sonnet-5]
+provider = "anthropic"
+# api_key = "sk-ant-..."       # 或设置 ANTHROPIC_API_KEY
+
+[models.gemini-3.5-flash]
+provider = "google"
+# api_key = "AIza..."          # 或设置 GOOGLE_API_KEY
+
+[models.kimi-latest]
+provider = "kimi"
+# api_key = "sk-..."           # 或设置 KIMI_API_KEY
+
+[models.qwen3.7-max]
+provider = "qwen"
+# api_key = "sk-..."           # 或设置 QWEN_API_KEY
+
+[models.doubao-pro-32k]
+provider = "doubao"
+# api_key = "..."              # 或设置 DOUBAO_API_KEY
+
+[models.glm-4-plus]
+provider = "glm"
+# api_key = "..."              # 或设置 GLM_API_KEY
+
+[models.llama3]
+provider = "ollama"            # 无需 API Key
+```
+
+Lucky supports **9 LLM providers** out of the box:
+
+| Provider | Env Var | Default Endpoint |
+|----------|---------|-----------------|
+| DeepSeek | `DEEPSEEK_API_KEY` | `api.deepseek.com` |
+| OpenAI | `OPENAI_API_KEY` | `api.openai.com` |
+| Anthropic | `ANTHROPIC_API_KEY` | `api.anthropic.com` |
+| Google | `GOOGLE_API_KEY` | `generativelanguage.googleapis.com` |
+| Kimi (Moonshot) | `KIMI_API_KEY` | `api.moonshot.cn` |
+| Qwen (DashScope) | `QWEN_API_KEY` | `dashscope.aliyuncs.com` |
+| Doubao (Volc Ark) | `DOUBAO_API_KEY` | `ark.cn-beijing.volces.com` |
+| GLM (Zhipu AI) | `GLM_API_KEY` | `open.bigmodel.cn` |
+| Ollama | *(none, local)* | `localhost:11434` |
+
+API keys can be set either in `lucky.toml` or as environment variables:
+
+```bash
+$env:DEEPSEEK_API_KEY="sk-xxx"      # Windows
+export DEEPSEEK_API_KEY="sk-xxx"     # Linux/macOS
+```
+
+> **Security**: For production, prefer environment variables. Keys in `lucky.toml` are visible in version control.
+
 ### Model Declaration
 
+You can also declare models inline in `.lk` files with the `model` keyword:
+
 ```lucky
-model Claude(
-	provider = "anthropic",
-	version = "claude-sonnet-4-20250514",
-	temperature = 0.7,
-	max_tokens = 4096,
+model DeepSeek(
+	provider = "deepseek",
+	version = "deepseek-v4-pro",
+	temperature = 0.3,
 )
 
 model GPT(
 	provider = "openai",
-	version = "gpt-4o",
-)
-
-model LocalLLM(
-	provider = "ollama",
-	version = "llama3.1",
+	version = "gpt-5.6-terra",
 )
 ```
 
 ### Model Selection
 
+Reference models by name — Lucky's router auto-matches the name to the right provider:
+
 ```lucky
-use Claude           # Default for the module
+use deepseek-v4-pro      # 或直接写 use DeepSeek — 名称自动匹配
 
 agent Researcher
-	use GPT          # Override for this agent
+	use gpt-5.6-terra    # Override for this agent
 
 task QuickCheck
-	use LocalLLM     # Override for this task
+	use llama3           # Override for this task (local Ollama)
 ```
 
 ### Inline AI Calls
