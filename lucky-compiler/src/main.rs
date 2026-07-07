@@ -934,12 +934,12 @@ fn cmd_config() {
             Err(e) => eprintln!("Failed to parse manifest: {}", e),
         }
     } else {
-        println!("No lucky.toml found — using defaults.");
+        println!("No lucky.toml found — using provider-based defaults.");
         println!();
-        println!("Default models:");
-        println!("  deepseek-v4 → DeepSeek (DEEPSEEK_API_KEY)");
-        println!("  gpt-4o      → OpenAI (OPENAI_API_KEY)");
-        println!("  llama3      → Ollama (localhost:11434)");
+        println!("Available providers (configure via lucky.toml for API keys):");
+        println!("  deepseek → any model name containing 'deepseek' or 'claude'");
+        println!("  openai   → any model name containing 'gpt', 'o1', or 'o3'");
+        println!("  ollama   → any model name containing 'llama', 'mistral', 'qwen', etc.");
     }
 
     println!();
