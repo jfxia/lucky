@@ -10,7 +10,7 @@ Version 0.1, July 2026
 
 We present the first complete formal semantics for **Lucky**, a goal-oriented domain-specific language (DSL) designed for autonomous AI agent orchestration. Lucky occupies a unique position in the programming language landscape: it treats large language model (LLM) invocations, tool calls, agent memory, and human approvals as first-class language primitives, rather than library calls. This design introduces semantic challenges absent from conventional programming languages — non-deterministic LLM outputs, hierarchical memory isolation, capability-based security, and declarative error recovery. We formalize Lucky across three layers: (1) a disambiguated context-free grammar reconstructed from the existing implementation, (2) a static type system with AI-specific type constructors (probabilistic types, confidence subtyping, tool contract types, and memory handle types) and provable type safety, and (3) a small-step operational semantics that precisely models all orchestration primitives including parallel execution with barrier synchronization, LLM non-deterministic branching, three-tier memory (session/project/vector) with isolation invariants, tool invocation contracts with schema validation and timeout/retry, and attempt-recover fault tolerance chains. We prove four key metatheorems: **Type Safety** (progress + preservation), **Memory Isolation** (private agent memory is invisible across parallel branches), **Deadlock Freedom** (well-typed parallel workflows never permanently block), and **Recovery Completeness** (every failure scenario has a defined fallback path). We further validate the formal semantics against the existing Rust compiler/interpreter implementation, identifying three semantic gaps: (i) parallel memory write ordering is unspecified, (ii) loop exit condition evaluation has a one-step delay bug, and (iii) LLM failure branch recovery is incompletely implemented. We propose concrete patches grounded in the formal model. Our work fills a critical gap in the AI agent DSL landscape: while systems like AutoGen, LangGraph, and CrewAI provide engineering APIs, none offer formal semantic foundations or mechanized correctness guarantees.
 
-**Keywords:** formal semantics, operational semantics, domain-specific language, AI agent orchestration, type safety, memory isolation, LLM programming, workflow verification
+**Keywords:** formal semantics, operational semantics, domain-specific language, AI agent orchestration, type safety, memory isolation, LLM programming, workflow verification, lucky language, goal-oriented language
 
 ## Table of Contents
 
@@ -52,9 +52,9 @@ We present the first complete formal semantics for **Lucky**, a goal-oriented do
 
 The rapid proliferation of large language model (LLM) agents has produced a new class of software systems: **AI agent orchestration programs** that coordinate multiple autonomous agents, each equipped with memory, tools, and reasoning strategies, toward a declared goal. Existing approaches — AutoGen [1], LangGraph [2], CrewAI [3], and OpenAI Agents SDK [4] — represent these programs as Python scripts or configuration files with no formal semantics. Developers reason about agent behavior through trial and error, runtime logging, and ad-hoc testing. The consequences are predictable: race conditions in parallel agent execution, silent memory leaks across agent boundaries, unrecoverable tool failures, and security violations from insufficient permission checks.
 
-Lucky [5] was designed to address these engineering challenges by making AI orchestration a *language-level* concern. Its core insight is that an LLM agent workflow is not a general-purpose program with library calls — it is a fundamentally different computational model where: (a) the primary computation unit is a probabilistic LLM invocation rather than a deterministic CPU instruction, (b) agents own private mutable memory that must be isolated from concurrent peers, (c) tool calls are schema-constrained external operations subject to timeouts and degradation, and (d) human approval is a legitimate control-flow primitive, not a UI feature.
+**Lucky** [5] was designed to address these engineering challenges by making AI orchestration a *language-level* concern. Its core insight is that an LLM agent workflow is not a general-purpose program with library calls — it is a fundamentally different computational model where: (a) the primary computation unit is a probabilistic LLM invocation rather than a deterministic CPU instruction, (b) agents own private mutable memory that must be isolated from concurrent peers, (c) tool calls are schema-constrained external operations subject to timeouts and degradation, and (d) human approval is a legitimate control-flow primitive, not a UI feature.
 
-However, Lucky's current implementation — a complete Rust compiler, interpreter, and runtime — was built without prior formal modeling. The grammar was evolved incrementally during development, the type checker performs structural checks but lacks formal inference rules, and the runtime scheduler operates on heuristics rather than provable scheduling invariants. This paper provides the missing formal foundation.
+This paper lays the formal foundation of Lucky language.
 
 ### 1.2 Contributions
 
@@ -121,7 +121,7 @@ The compilation pipeline is:
 \text{Source} \overset{\text{Lexer}}{\longrightarrow} \text{Tokens} \overset{\text{Parser}}{\longrightarrow} \text{AST} \overset{\text{TypeCheck+Resolve}}{\longrightarrow} \text{TypedAST} \overset{\text{HIR Builder}}{\longrightarrow} \text{DAG} \overset{\text{MIR Lowering}}{\longrightarrow} \text{SSA} \overset{\text{Optimizer}}{\longrightarrow} \text{Optimized IR} \overset{\text{Runtime}}{\longrightarrow} \text{Execution}
 ```
 
-The runtime executes the DAG via a priority-based scheduler with retry/circuit-breaker logic, LLM backend routing (9 providers), and vector-based agent memory.
+The runtime executes the DAG via a priority-based scheduler with retry/circuit-breaker logic, LLM backend routing, and vector-based agent memory.
 
 ---
 
@@ -923,7 +923,7 @@ After timeout, the attempt-recover chain (§6.7) handles recovery: retry with ex
 
 ## 8. Metatheorems
 
-### 8.1 Type Safety (Full Proof)
+### 8.1 Type Safety
 
 **Theorem 8.1 (Progress + Preservation = Type Safety).**
 
@@ -1182,7 +1182,7 @@ The key insight is that AI agent orchestration introduces semantic challenges th
 
 ### 11.2 Future Work
 
-**Mechanized proofs in Lean 4.** The proof sketches in §8 are detailed enough for mechanization. We plan to encode the type system and operational semantics in Lean 4 and mechanically verify all four theorems. The estimated effort is 3–6 months for a trained proof engineer.
+**Mechanized proofs in Lean 4.** The proof sketches in §8 are detailed enough for mechanization. We plan to encode the type system and operational semantics in Lean 4 and mechanically verify all four theorems. 
 
 **Static verification tool.** Based on the formal type system and invariant rules, we plan to build an independent static analyzer that scans Lucky programs without executing them, detecting: (a) parallel memory race conditions, (b) tool contract mismatches, (c) unreachable recovery paths, (d) confidence threshold violations, and (e) permission boundary violations. This would be the first static verifier for any AI agent DSL.
 
@@ -1204,7 +1204,7 @@ The key insight is that AI agent orchestration introduces semantic challenges th
 
 [4] OpenAI. "Agents SDK: A Lightweight Multi-Agent Framework." *OpenAI Documentation, 2025.* https://openai.com/index/new-tools-for-building-agents/
 
-[5] Xia, Jingfeng. "Lucky Programming Language Specification v0.1." *Self-published, 2026.* https://github.com/lucky-lang/lucky
+[5] Xia, Jingfeng. "Lucky Programming Language Specification v0.1." *Self-published, 2026.* [https://github.com/jfxia/lucky/docs](https://github.com/jfxia/lucky/blob/master/docs/spec/Lucky%20Programming%20Language%20Specification%20V0.1.md)
 
 [6] Milner, R., Tofte, M., Harper, R., MacQueen, D. *The Definition of Standard ML (Revised).* MIT Press, 1997.
 
