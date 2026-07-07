@@ -21,6 +21,7 @@ A step-by-step guide to the Lucky language. By the end, you'll be able to write 
 13. [Permissions & Security](#13-permissions--security)
 14. [Human Approval](#14-human-approval)
 15. [Patterns & Best Practices](#15-patterns--best-practices)
+16. [CLI Reference](#16-cli-reference)
 
 ---
 
@@ -949,6 +950,199 @@ workflow SoftwareDevelopment
 			code = context.code,
 			bug_description = context.review.findings
 		)
+```
+
+---
+
+## 16. CLI Reference
+
+Lucky ships as a single binary with 16 commands. Every command accepts `--help` for detailed flags.
+
+### `lucky check <file>`
+
+Check a `.lk` file for syntax and semantic errors without executing it:
+
+```bash
+lucky check main.lk
+# No errors found in 'main.lk'.
+
+lucky check broken.lk
+# error: Expected ')' but found newline '\n'
+#   --> broken.lk:10:5
+```
+
+The exit code is `0` if clean, `1` if errors are found — useful for CI gates.
+
+### `lucky compile <file> [--ir] [--opt O2]`
+
+Parse a `.lk` file and output the AST (default) or the compiled IR. Without `--ir`, it dumps the debug representation of the AST module:
+
+```bash
+lucky compile main.lk          # Show parsed AST tree
+lucky compile main.lk --ir     # Show HIR + MIR JSON
+lucky compile main.lk --opt O0 # Disable optimizations
+```
+
+### `lucky run <file> [options]`
+
+Parse, compile, and execute a `.lk` file through the Lucky runtime:
+
+```bash
+# Basic execution with stub LLM responses (no API key needed)
+lucky run main.lk
+
+# Execute with a real LLM backend
+$env:DEEPSEEK_API_KEY="sk-xxx"
+lucky run main.lk
+
+# Stream LLM token output in real time
+lucky run main.lk --stream
+
+# Enforce a maximum cost budget in USD
+lucky run main.lk --budget 5.00
+
+# Log every step to a JSONL audit trail
+lucky run main.lk --audit execution.jsonl
+
+# Resume execution from a previous checkpoint
+lucky run main.lk --resume cp_20250401_123045
+
+# Auto-approve all human approval gates
+lucky run main.lk --auto-approve
+
+# Pre-approve specific gates by name
+lucky run main.lk --approve deploy --approve publish
+```
+
+### `lucky tokenize <file>`
+
+Show the raw token stream produced by the lexer, including INDENT/DEDENT tokens:
+
+```bash
+lucky tokenize main.lk
+# Tokens:
+#   Keyword 'project' at 0..7
+#   Ident 'HelloWorld' at 8..18
+#   Newline '\n' at 18..19
+#   Indent '' at 20..20
+#   ...
+```
+
+Useful for debugging indentation issues and understanding how the parser sees your code.
+
+### `lucky ir <file> [--opt O2]`
+
+Compile directly to the Intermediate Representation (JSON) without execution. Outputs both HIR (High-level IR) and MIR (optimized Mid-level IR):
+
+```bash
+lucky ir main.lk
+# {
+#   "hir": { "nodes": [...], "edges": [...] },
+#   "mir": [{ "name": "...", "blocks": [...] }]
+# }
+```
+
+### `lucky fmt <file> [--check]`
+
+Format a `.lk` file according to Lucky's style conventions (indentation, spacing, line breaks):
+
+```bash
+lucky fmt main.lk                  # Format in-place
+lucky fmt main.lk --check          # Check only, exit 1 if not formatted
+```
+
+Use `--check` in CI pipelines to enforce consistent formatting.
+
+### `lucky test <path> [<path> ...]`
+
+Discover and run `*.test.lk` test files. Each test file contains `test "name" { ... }` blocks with `assert` expressions:
+
+```bash
+lucky test .                        # Run all tests in current directory
+lucky test tests/                   # Run all tests in tests/ directory
+lucky test hello.test.lk            # Run a single test file
+```
+
+See [section 8](#8-write-a-test) for the test file format.
+
+### `lucky init`
+
+Scaffold a new Lucky project with the standard directory structure and a starter `main.lk`:
+
+```bash
+lucky init my-project
+cd my-project
+# Creates: main.lk, lucky.toml, agents/, tasks/, memory/
+```
+
+### `lucky config`
+
+Display the resolved configuration, including detected `lucky.toml`, registered models, and environment variable status:
+
+```bash
+lucky config
+# Project: my-project v0.1.0
+# Models:
+#   [deepseek-v4-pro]  provider: deepseek  API key: *** (configured)
+# Environment:
+#   DEEPSEEK_API_KEY: *** (set)
+#   OPENAI_API_KEY: (not set)
+```
+
+Use this to verify API keys and model registration before running.
+
+### `lucky doc <dir> [-o <output>]`
+
+Generate Markdown documentation from `.lk` source files. Scans a directory for `.lk` files, parses them, and generates API documentation:
+
+```bash
+lucky doc . -o docs/api
+# Generated 5 doc files in docs/api
+```
+
+### `lucky watch <dir> [--run]`
+
+Watch a directory for changes to `.lk` files and automatically re-check them. With `--run`, also execute the changed file:
+
+```bash
+lucky watch .                    # Re-check on every save
+lucky watch . --run              # Re-check and run on every save
+```
+
+### `lucky lsp`
+
+Start the Lucky Language Server Protocol server on stdin/stdout. Used by editors and IDEs for real-time diagnostics, completions, and hover information:
+
+```bash
+lucky lsp
+```
+
+Connect your editor's LSP client to this process (VS Code, Neovim, Emacs, etc.).
+
+### `lucky debug <file>`
+
+Start the Debug Adapter Protocol (DAP) server for a specific `.lk` file. Enables step-through debugging in compatible IDEs:
+
+```bash
+lucky debug main.lk
+```
+
+### `lucky serve [--port 9700]`
+
+Start the Lucky Tool Protocol (LTP) server, which executes Lucky IR over JSON-RPC. Used by external platforms (Claude Code, Codex CLI, OpenCode, Cursor, Dify) to run Lucky workflows:
+
+```bash
+lucky serve --port 9700
+```
+
+### `lucky pkg`
+
+Package management for Lucky modules. Three sub-commands:
+
+```bash
+lucky pkg search "code review"    # Search registry for packages
+lucky pkg install code-review     # Install a package
+lucky pkg publish ./my-package    # Publish a package to the registry
 ```
 
 ---
