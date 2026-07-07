@@ -1,7 +1,7 @@
 # Formal Semantics for Lucky: A Goal-Oriented DSL for AI Agent Orchestration
 
 **Jingfeng Xia**  
-Zhejiang Dongxin Financial Intelligent Security Systems / Jiujii Technology  
+
 Version 0.1, July 2026
 
 ---
@@ -62,9 +62,9 @@ We make the following contributions:
 
 1. **Formal grammar reconstruction** (§3): We extract a complete, disambiguated EBNF grammar from the existing lexer/parser implementation, identify three classes of grammatical ambiguity, and provide a normalized CFG suitable for formal reasoning.
 
-2. **Static type system formalization** (§4): We define a type system \\(\Gamma \vdash e : \tau\\) with four type universes (primitive, AI resource, tool contract, memory handle), probabilistic type constructors, and confidence subtyping. We give complete typing rules for all 19 statement forms and 28 expression forms, and prove the Type Safety theorem.
+2. **Static type system formalization** (§4): We define a type system $\Gamma \vdash e : \tau$ with four type universes (primitive, AI resource, tool contract, memory handle), probabilistic type constructors, and confidence subtyping. We give complete typing rules for all 19 statement forms and 28 expression forms, and prove the Type Safety theorem.
 
-3. **Operational semantics** (§5–7): We define a small-step operational semantics \\(\langle e, S \rangle \rightarrow \langle e', S' \rangle\\) over a rich runtime state tuple, covering: sequence, parallel with barrier, conditional branching, bounded loops, agent invocation, tool calls with contracts, LLM non-deterministic branching, three-tier memory operations, and attempt-recover chains. This is the paper's central innovation — prior formal semantics work has not modeled LLM probabilistic outputs, agent memory isolation, or tool contract validation as operational primitives.
+3. **Operational semantics** (§5–7): We define a small-step operational semantics $\langle e, S \rangle \rightarrow \langle e', S' \rangle$ over a rich runtime state tuple, covering: sequence, parallel with barrier, conditional branching, bounded loops, agent invocation, tool calls with contracts, LLM non-deterministic branching, three-tier memory operations, and attempt-recover chains. This is the paper's central innovation — prior formal semantics work has not modeled LLM probabilistic outputs, agent memory isolation, or tool contract validation as operational primitives.
 
 4. **Metatheorems** (§8): We prove four core theorems — Type Safety (progress + preservation), Memory Isolation, Deadlock Freedom, and Recovery Completeness — with detailed proof sketches suitable for mechanization in Lean 4.
 
@@ -147,11 +147,11 @@ We reconstruct the lexical specification from the two-phase lexer implementation
 
 The synthesis rule: when a NEWLINE token is followed by a line with indentation level $d$:
 
-- If \\(d > \text{top}(\sigma)\\): emit INDENT, push $d$ onto \\(\sigma\\)
-- If \\(d < \text{top}(\sigma)\\): emit DEDENT for each level popped until \\(\text{top}(\sigma) = d\\)
-- If \\(d = \text{top}(\sigma)\\): no indent/dedent emission
+- If $d > \text{top}(\sigma)$: emit INDENT, push $d$ onto $\sigma$
+- If $d < \text{top}(\sigma)$: emit DEDENT for each level popped until $\text{top}(\sigma) = d$
+- If $d = \text{top}(\sigma)$: no indent/dedent emission
 
-Blank lines and comment-only lines do not affect \\(\sigma\\).
+Blank lines and comment-only lines do not affect $\sigma$.
 
 ### 3.2 Grammar Ambiguity Analysis
 
@@ -363,19 +363,19 @@ Lucky's type system spans four universes:
 \mathcal{T} = \mathcal{T}_{\text{prim}} \cup \mathcal{T}_{\text{ai}} \cup \mathcal{T}_{\text{contract}} \cup \mathcal{T}_{\text{handle}}
 ```
 
-**Primitive types** \\(\mathcal{T}_{\text{prim}}\\):
+**Primitive types** $\mathcal{T}_{\text{prim}}$:
 
 ```math
 \mathcal{T}_{\text{prim}} = \{\text{Bool}, \text{Int}, \text{Float}, \text{Decimal}, \text{String}, \text{Bytes}, \text{Time}, \text{Duration}, \text{UUID}, \text{URI}, \text{Version}\}
 ```
 
-**AI resource types** \\(\mathcal{T}_{\text{ai}}\\) — types that have no equivalent in conventional languages:
+**AI resource types** $\mathcal{T}_{\text{ai}}$ — types that have no equivalent in conventional languages:
 
 ```math
 \mathcal{T}_{\text{ai}} = \{\text{Agent}, \text{Task}, \text{Workflow}, \text{Goal}, \text{Prompt}, \text{Memory}, \text{Knowledge}, \text{Context}, \text{Tool}, \text{Model}, \text{Artifact}, \text{Result}, \text{Capability}, \text{Approval}, \text{Embedding}, \text{Observation}, \text{Plan}, \text{Reasoning}\}
 ```
 
-**Tool contract types** \\(\mathcal{T}_{\text{contract}}\\) — schema-constrained external operation types:
+**Tool contract types** $\mathcal{T}_{\text{contract}}$ — schema-constrained external operation types:
 
 ```math
 \mathcal{T}_{\text{contract}} = \{\text{ToolCall}(t, m, \sigma_{\text{in}}, \sigma_{\text{out}}) \mid t \in \text{ToolName}, m \in \text{MethodName}, \sigma_{\text{in}}, \sigma_{\text{out}} \in \text{Schema}\}
@@ -383,7 +383,7 @@ Lucky's type system spans four universes:
 
 where Schema is a JSON Schema definition specifying input parameter types and output value types.
 
-**Memory handle types** \\(\mathcal{T}_{\text{handle}}\\):
+**Memory handle types** $\mathcal{T}_{\text{handle}}$:
 
 ```math
 \mathcal{T}_{\text{handle}} = \{\text{MemRef}(\alpha, s) \mid \alpha \in \text{AgentName}, s \in \{\text{local}, \text{session}, \text{project}, \text{global}\}\}
@@ -397,19 +397,19 @@ where Schema is a JSON Schema definition specifying input parameter types and ou
 \text{List}(\tau), \quad \text{Set}(\tau), \quad \text{Map}(\tau_k, \tau_v), \quad \text{Queue}(\tau), \quad \text{Stream}(\tau)
 ```
 
-**Nullable type:** \\(\tau?\\) = \\(\tau \cup \{\text{null}\}\\)
+**Nullable type:** $\tau?$ = $\tau \cup \{\text{null}\}$
 
-**Optional type:** \\(\tau!\\) = \\(\tau \cup \{\text{unknown}\}\\), where `unknown` denotes "not yet computed"
+**Optional type:** $\tau!$ = $\tau \cup \{\text{unknown}\}$, where `unknown` denotes "not yet computed"
 
-**Union type:** \\(\tau_1 \mid \tau_2\\) = \\(\tau_1 \cup \tau_2\\) (structural, untagged by default)
+**Union type:** $\tau_1 \mid \tau_2$ = $\tau_1 \cup \tau_2$ (structural, untagged by default)
 
-**Probabilistic type:** \\(\text{Probabilistic}(\tau, c)\\) where \\(c \in [0,1]\\) is a confidence threshold. The syntax `uncertain T` is equivalent to \\(\text{Probabilistic}(T, 0.5)\\).
+**Probabilistic type:** $\text{Probabilistic}(\tau, c)$ where $c \in [0,1]$ is a confidence threshold. The syntax `uncertain T` is equivalent to $\text{Probabilistic}(T, 0.5)$.
 
-**Parametric AI types:** \\(\text{Agent}(\alpha)\\), \\(\text{Task}(\kappa)\\), \\(\text{Workflow}(w)\\), where the parameter refines the nominal type to a specific declaration.
+**Parametric AI types:** $\text{Agent}(\alpha)$, $\text{Task}(\kappa)$, $\text{Workflow}(w)$, where the parameter refines the nominal type to a specific declaration.
 
 ### 4.3 Subtyping Relations
 
-We define a limited subtyping relation \\(\tau_1 <: \tau_2\\):
+We define a limited subtyping relation $\tau_1 <: \tau_2$:
 
 ```math
 \begin{aligned}
@@ -427,7 +427,7 @@ Subtyping is **not** transitive beyond these rules — Lucky deliberately avoids
 
 ### 4.4 Typing Rules
 
-We present the core typing judgments. A **typing environment** \\(\Gamma\\) maps variables to types and tracks agent ownership:
+We present the core typing judgments. A **typing environment** $\Gamma$ maps variables to types and tracks agent ownership:
 
 ```math
 \Gamma = \{x_1 : \tau_1, \ldots, x_n : \tau_n\} \cup \{\text{self} : \text{Agent}(\alpha)\} \cup \{\text{perms} : \text{PermSet}\}
@@ -440,7 +440,7 @@ We present the core typing judgments. A **typing environment** \\(\Gamma\\) maps
 ```
 
 ```math
-\frac{\text{eval\_at\_compile\_time}(e) = v \quad \Gamma \vdash e : \tau}{\Gamma, x : \tau \vdash \text{const}\ x : \tau = e : \text{unit}} \quad \text{(T-Const)}
+\frac{\text{eval-at-compile-time}(e) = v \quad \Gamma \vdash e : \tau}{\Gamma, x : \tau \vdash \text{const}\ x : \tau = e : \text{unit}} \quad \text{(T-Const)}
 ```
 
 **Memory assignment (restricted):**
@@ -449,29 +449,29 @@ We present the core typing judgments. A **typing environment** \\(\Gamma\\) maps
 \frac{\Gamma(\text{self}) = \text{Agent}(\alpha) \quad \text{MemRef}(\alpha, s) \in \Gamma \quad \Gamma \vdash e : \tau \quad \Gamma(\text{memory}.f) <: \tau}{\Gamma \vdash \text{memory}.f = e : \text{unit}} \quad \text{(T-MemAssign)}
 ```
 
-The precondition \\(\Gamma(\text{self}) = \text{Agent}(\alpha)\\) ensures that memory assignment is only legal within an agent context. This rule statically prevents uncontrolled mutable state.
+The precondition $\Gamma(\text{self}) = \text{Agent}(\alpha)$ ensures that memory assignment is only legal within an agent context. This rule statically prevents uncontrolled mutable state.
 
 **Agent invocation:**
 
 ```math
-\frac{\alpha \in \text{AgentDecls} \quad \kappa \in \alpha.\text{tasks} \quad \forall(x_i : \tau_i) \in \kappa.\text{inputs}: \Gamma \vdash a_i : \tau_i' \quad \tau_i' <: \tau_i}{\Gamma \vdash \alpha.\kappa(a_1, \ldots, a_n) : \kappa.\text{output\_type}} \quad \text{(T-AgentInvoke)}
+\frac{\alpha \in \text{AgentDecls} \quad \kappa \in \alpha.\text{tasks} \quad \forall(x_i : \tau_i) \in \kappa.\text{inputs}: \Gamma \vdash a_i : \tau_i' \quad \tau_i' <: \tau_i}{\Gamma \vdash \alpha.\kappa(a_1, \ldots, a_n) : \kappa.\text{output-type}} \quad \text{(T-AgentInvoke)}
 ```
 
 **Tool invocation (with contract):**
 
 ```math
-\frac{t \in \Gamma(\text{tools}) \quad \text{ToolCall}(t, m, \sigma_{\text{in}}, \sigma_{\text{out}}) \in \mathcal{T}_{\text{contract}} \quad \text{check\_schema}(\sigma_{\text{in}}, [a_1, \ldots, a_n]) = \text{ok} \quad \Gamma \vdash a_i : \tau_i \quad \tau_i <: \sigma_{\text{in}}[i]}{\Gamma \vdash t.m(a_1, \ldots, a_n) : \text{from\_schema}(\sigma_{\text{out}})} \quad \text{(T-ToolCall)}
+\frac{t \in \Gamma(\text{tools}) \quad \text{ToolCall}(t, m, \sigma_{\text{in}}, \sigma_{\text{out}}) \in \mathcal{T}_{\text{contract}} \quad \text{check-schema}(\sigma_{\text{in}}, [a_1, \ldots, a_n]) = \text{ok} \quad \Gamma \vdash a_i : \tau_i \quad \tau_i <: \sigma_{\text{in}}[i]}{\Gamma \vdash t.m(a_1, \ldots, a_n) : \text{from-schema}(\sigma_{\text{out}})} \quad \text{(T-ToolCall)}
 ```
 
-The \\(\text{check\_schema}\\) function validates that the argument list conforms to the tool's declared JSON Schema. This is a compile-time contract check — if it fails, the program is rejected statically.
+The $\text{check-schema}$ function validates that the argument list conforms to the tool's declared JSON Schema. This is a compile-time contract check — if it fails, the program is rejected statically.
 
 **LLM invocation (ask):**
 
 ```math
-\frac{\Gamma \vdash \text{prompt} : \text{Prompt}(\rho) \quad \Gamma(\text{model}) = \text{Model}(m) \quad \text{output\_type}(\rho) = \tau}{\Gamma \vdash \text{ask}\ \text{model} : \text{prompt} : \text{Probabilistic}(\tau, c_{\text{default}})} \quad \text{(T-Ask)}
+\frac{\Gamma \vdash \text{prompt} : \text{Prompt}(\rho) \quad \Gamma(\text{model}) = \text{Model}(m) \quad \text{output-type}(\rho) = \tau}{\Gamma \vdash \text{ask}\ \text{model} : \text{prompt} : \text{Probabilistic}(\tau, c_{\text{default}})} \quad \text{(T-Ask)}
 ```
 
-The result type is always \\(\text{Probabilistic}(\tau, c)\\) because LLM outputs are inherently non-deterministic. The confidence threshold \\(c_{\text{default}}\\) is derived from the prompt's declared confidence requirement.
+The result type is always $\text{Probabilistic}(\tau, c)$ because LLM outputs are inherently non-deterministic. The confidence threshold $c_{\text{default}}$ is derived from the prompt's declared confidence requirement.
 
 **Confidence check:**
 
@@ -482,10 +482,10 @@ The result type is always \\(\text{Probabilistic}(\tau, c)\\) because LLM output
 **Parallel block:**
 
 ```math
-\frac{\forall i \in [1, n]: \Gamma \vdash s_i : \tau_i \quad \text{no\_shared\_mutable\_refs}(\Gamma, [s_1, \ldots, s_n])}{\Gamma \vdash \text{parallel}\ s_1 \ldots s_n \text{wait} : \text{Map}(\text{String}, \tau_1 \mid \ldots \mid \tau_n)} \quad \text{(T-Parallel)}
+\frac{\forall i \in [1, n]: \Gamma \vdash s_i : \tau_i \quad \text{no-shared-mutable-refs}(\Gamma, [s_1, \ldots, s_n])}{\Gamma \vdash \text{parallel}\ s_1 \ldots s_n \text{wait} : \text{Map}(\text{String}, \tau_1 \mid \ldots \mid \tau_n)} \quad \text{(T-Parallel)}
 ```
 
-The side condition \\(\text{no\_shared\_mutable\_refs}\\) ensures that parallel branches do not write to the same agent memory field. This is a static race condition check.
+The side condition $\text{no-shared-mutable-refs}$ ensures that parallel branches do not write to the same agent memory field. This is a static race condition check.
 
 **Attempt-recover:**
 
@@ -493,12 +493,12 @@ The side condition \\(\text{no\_shared\_mutable\_refs}\\) ensures that parallel 
 \frac{\Gamma \vdash \text{body} : \tau \quad \forall j \in [1, m]: \Gamma \vdash r_j : \text{RecoveryAction}(\tau)}{\Gamma \vdash \text{attempt}\ \text{body}\ \text{recover}\ r_1 \ldots r_m : \tau} \quad \text{(T-Attempt)}
 ```
 
-where \\(\text{RecoveryAction}(\tau)\\) is defined as:
+where $\text{RecoveryAction}(\tau)$ is defined as:
 
-- \\(\text{retry}(n, \text{backoff}) : \text{RecoveryAction}(\tau)\\) — retries up to $n$ times
-- \\(\text{fallback}(e) : \text{RecoveryAction}(\tau)\\) if \\(\Gamma \vdash e : \tau\\) — alternative computation
-- \\(\text{human}(\text{msg}) : \text{RecoveryAction}(\text{Approval})\\) — escalates to human
-- \\(\text{abort} : \text{RecoveryAction}(\text{Never})\\) — terminates computation
+- $\text{retry}(n, \text{backoff}) : \text{RecoveryAction}(\tau)$ — retries up to $n$ times
+- $\text{fallback}(e) : \text{RecoveryAction}(\tau)$ if $\Gamma \vdash e : \tau$ — alternative computation
+- $\text{human}(\text{msg}) : \text{RecoveryAction}(\text{Approval})$ — escalates to human
+- $\text{abort} : \text{RecoveryAction}(\text{Never})$ — terminates computation
 
 **Permission check (capability security):**
 
@@ -506,15 +506,15 @@ where \\(\text{RecoveryAction}(\tau)\\) is defined as:
 \frac{\Gamma(\text{perms}) \vdash \text{op} : \text{allowed}}{\Gamma \vdash \text{op} : \tau} \quad \text{(T-PermCheck)}
 ```
 
-where the permission judgment \\(\Gamma(\text{perms}) \vdash \text{op} : \text{allowed}\\) is defined by: an operation \\(\text{op}\\) is allowed iff there exists an `allow` rule \\(\text{allow}\ p\\) where \\(p\\( matches \\(\text{op}\\), and no `deny` rule \\(\text{deny}\ p'\\) where \\)p'\\) also matches \\(\text{op}\\). Deny rules take precedence. Glob patterns: `filesystem.*` matches any filesystem operation; `git.**` matches multi-level methods like `git.remote.add.url`.
+where the permission judgment $\Gamma(\text{perms}) \vdash \text{op} : \text{allowed}$ is defined by: an operation $\text{op}$ is allowed iff there exists an `allow` rule $\text{allow}\ p$ where $p$ matches $\text{op}$, and no `deny` rule $\text{deny}\ p'$ where $p'$ also matches $\text{op}$. Deny rules take precedence. Glob patterns: `filesystem.*` matches any filesystem operation; `git.**` matches multi-level methods like `git.remote.add.url`.
 
 ### 4.5 Type Safety
 
-**Theorem 4.1 (Type Safety).** If \\(\Gamma \vdash e : \tau\\) and the permission check \\(\Gamma(\text{perms}) \vdash \text{op} : \text{allowed}\\) holds for every operation in $e$, then the evaluation of $e$ will never produce: (a) a tool contract mismatch, (b) an undefined variable reference, (c) an illegal tool invocation (permission violation), or (d) a memory isolation violation.
+**Theorem 4.1 (Type Safety).** If $\Gamma \vdash e : \tau$ and the permission check $\Gamma(\text{perms}) \vdash \text{op} : \text{allowed}$ holds for every operation in $e$, then the evaluation of $e$ will never produce: (a) a tool contract mismatch, (b) an undefined variable reference, (c) an illegal tool invocation (permission violation), or (d) a memory isolation violation.
 
 *Proof sketch.* We prove this via **progress** and **preservation** lemmas.
 
-**Lemma 4.2 (Progress).** If \\(\vdash e : \tau\\) and $e$ is not a value, then there exists a state \\(S\\( such that \\(\langle e, S \rangle \rightarrow \langle e', S' \rangle\\) for some \\)e', S'\\).
+**Lemma 4.2 (Progress).** If $\vdash e : \tau$ and $e$ is not a value, then there exists a state $S$ such that $\langle e, S \rangle \rightarrow \langle e', S' \rangle$ for some $e', S'$.
 
 *Proof.* By case analysis on $e$. For each non-value expression form:
 - **let/const**: The RHS is typed, hence either a value or can step.
@@ -526,11 +526,11 @@ where the permission judgment \\(\Gamma(\text{perms}) \vdash \text{op} : \text{a
 
 The only "stuck" case would be a tool call to a non-existent tool, which is prevented by (T-ToolCall)'s precondition. ∎
 
-**Lemma 4.3 (Preservation).** If \\(\vdash e : \tau\\) and \\(\langle e, S \rangle \rightarrow \langle e', S' \rangle\\), then \\(\vdash e' : \tau\\) (or \\(e' : \tau'\\) where \\(\tau' <: \tau\\)).
+**Lemma 4.3 (Preservation).** If $\vdash e : \tau$ and $\langle e, S \rangle \rightarrow \langle e', S' \rangle$, then $\vdash e' : \tau$ (or $e' : \tau'$ where $\tau' <: \tau$).
 
 *Proof.* By case analysis on the stepping rule. Key cases:
-- **Tool call completion**: The output type is determined by \\(\sigma_{\text{out}}\\) in (T-ToolCall), which matches \\(\tau\\).
-- **LLM output**: The result is \\(\text{Probabilistic}(\tau, c)\\), which is a subtype of \\(\tau?\\) by the Probabilistic subtyping rule.
+- **Tool call completion**: The output type is determined by $\sigma_{\text{out}}$ in (T-ToolCall), which matches $\tau$.
+- **LLM output**: The result is $\text{Probabilistic}(\tau, c)$, which is a subtype of $\tau?$ by the Probabilistic subtyping rule.
 - **Parallel branch completion**: Each branch preserves its type, and the merged result is a union of branch types, which subtypes the declared output type.
 - **Memory write**: The write type is checked by (T-MemAssign), so the value type matches the field type. ∎
 
@@ -550,28 +550,28 @@ S = (\mathcal{A}, \mathcal{M}, \mathcal{T}, \mathcal{F}, \mathcal{Q}, \mathcal{V
 
 | Component | Domain | Description |
 |-----------|--------|-------------|
-| \\(\mathcal{A}\\) | \\(\text{AgentName} \rightarrow \text{AgentState}\\) | Agent registry: each agent's model binding, tool set, permission set, prompt, and policy |
-| \\(\mathcal{M}\\) | \\(\text{MemRef}(\alpha, s) \rightarrow \text{MemStore}\\) | Memory system: per-agent per-scope key-value + vector stores |
-| \\(\mathcal{T}\\) | \\(\text{ToolName} \rightarrow \text{ToolDef}\\) | Tool table: registered tools with schema, methods, and adapters |
-| \\(\mathcal{F}\\) | \\(\text{List}(\text{StackFrame})\\) | Flow stack: execution context stack for nested agent/task calls |
-| \\(\mathcal{Q}\\) | \\(\text{AgentName} \rightarrow \text{MsgQueue}\\) | Message queues: per-agent asynchronous message channels |
-| \\(\mathcal{V}\\) | \\(\text{KnowledgeName} \rightarrow \text{VecIndex}\\) | Vector databases: embedding indices for RAG and similarity search |
-| \\(\mathcal{E}\\) | \\(\text{ErrCtx}\\) | Error context: current failure information for recovery routing |
+| $\mathcal{A}$ | $\text{AgentName} \rightarrow \text{AgentState}$ | Agent registry: each agent's model binding, tool set, permission set, prompt, and policy |
+| $\mathcal{M}$ | $\text{MemRef}(\alpha, s) \rightarrow \text{MemStore}$ | Memory system: per-agent per-scope key-value + vector stores |
+| $\mathcal{T}$ | $\text{ToolName} \rightarrow \text{ToolDef}$ | Tool table: registered tools with schema, methods, and adapters |
+| $\mathcal{F}$ | $\text{List}(\text{StackFrame})$ | Flow stack: execution context stack for nested agent/task calls |
+| $\mathcal{Q}$ | $\text{AgentName} \rightarrow \text{MsgQueue}$ | Message queues: per-agent asynchronous message channels |
+| $\mathcal{V}$ | $\text{KnowledgeName} \rightarrow \text{VecIndex}$ | Vector databases: embedding indices for RAG and similarity search |
+| $\mathcal{E}$ | $\text{ErrCtx}$ | Error context: current failure information for recovery routing |
 
 ### 5.2 Agent State
 
 ```math
-\text{AgentState} = (\text{model}, \text{tools}, \text{perms}, \text{prompt}, \text{policy}, \text{mem\_refs}, \text{status})
+\text{AgentState} = (\text{model}, \text{tools}, \text{perms}, \text{prompt}, \text{policy}, \text{mem-refs}, \text{status})
 ```
 
 where:
-- \\(\text{model} \in \text{ModelName}\\) — LLM backend binding
-- \\(\text{tools} \subseteq \text{ToolName}\\) — declared tool set
-- \\(\text{perms} : \text{PermSet}\\) — capability-security permission set
-- \\(\text{prompt} \in \text{PromptName}?\\) — default prompt template
-- \\(\text{policy} : \text{PolicyDef}\\) — retry/timeout/checkpoint configuration
-- \\(\text{mem\_refs} : \text{Set}(\text{MemRef})\\) — memory handles owned by this agent
-- \\(\text{status} \in \{\text{Idle}, \text{Running}, \text{Paused}, \text{WaitingApproval}, \text{Failed}\}\\)
+- $\text{model} \in \text{ModelName}$ — LLM backend binding
+- $\text{tools} \subseteq \text{ToolName}$ — declared tool set
+- $\text{perms} : \text{PermSet}$ — capability-security permission set
+- $\text{prompt} \in \text{PromptName}?$ — default prompt template
+- $\text{policy} : \text{PolicyDef}$ — retry/timeout/checkpoint configuration
+- $\text{mem-refs} : \text{Set}(\text{MemRef})$ — memory handles owned by this agent
+- $\text{status} \in \{\text{Idle}, \text{Running}, \text{Paused}, \text{WaitingApproval}, \text{Failed}\}$
 
 ### 5.3 Memory Store
 
@@ -585,7 +585,7 @@ Memory operations:
 \text{MemOp} = \text{remember}(k, v, \vec{e}?) \mid \text{recall}(k) \mid \text{similar}(\vec{q}, n) \mid \text{search}(q, n) \mid \text{forget}(k) \mid \text{clear}()
 ```
 
-The vector index \\(\text{VecIndex}\\) supports nearest-neighbor search:
+The vector index $\text{VecIndex}$ supports nearest-neighbor search:
 
 ```math
 \text{similar}(\vec{q}, n) = \text{top}_n\{(\text{key}, \text{score}) \mid \text{score} = \cos(\vec{q}, \vec{e}_{\text{key}}), \vec{e}_{\text{key}} \in \text{vec.embeddings}\}
@@ -609,7 +609,7 @@ The effective context for a node is computed by layered composition:
 \text{ctx}_{\text{eff}} = \text{ctx}_{\text{project}} \oplus \text{ctx}_{\text{workflow}} \oplus \text{ctx}_{\text{agent}} \oplus \text{ctx}_{\text{task}} \oplus \text{ctx}_{\text{node}}
 ```
 
-where \\(\oplus\\) denotes shadow-merge: later layers' entries override earlier layers' entries with the same key.
+where $\oplus$ denotes shadow-merge: later layers' entries override earlier layers' entries with the same key.
 
 ### 5.5 Permission Model
 
@@ -621,7 +621,7 @@ where \\(\oplus\\) denotes shadow-merge: later layers' entries override earlier 
 \text{permitted}(P, \text{op}) = \begin{cases} \text{true} & \text{if } \exists p \in P.\text{allow}: \text{match}(p, \text{op}) \land \forall p' \in P.\text{deny}: \neg\text{match}(p', \text{op}) \\ \text{false} & \text{otherwise} \end{cases}
 ```
 
-where \\(\text{match}\\) implements glob matching: `*` matches one segment, `**` matches multi-level paths, `filesystem.write(./data/*)` additionally constrains argument patterns.
+where $\text{match}$ implements glob matching: `*` matches one segment, `**` matches multi-level paths, `filesystem.write(./data/*)` additionally constrains argument patterns.
 
 Permission inheritance is **lexical and monotonically narrowing**: a sub-agent inherits its parent's permissions but may only further restrict them (add deny rules or remove allow rules), never widen them.
 
@@ -635,9 +635,9 @@ Permission inheritance is **lexical and monotonically narrowing**: a sub-agent i
 
 ### 6.1 Semantic Framework
 
-We define a small-step operational semantics over configurations \\(\langle e, S \rangle\\) where $e$ is an expression (or statement) and $S$ is the runtime state tuple. The semantics distinguishes **deterministic steps** (variable binding, memory read, arithmetic) from **non-deterministic steps** (LLM output, tool timeout/retry).
+We define a small-step operational semantics over configurations $\langle e, S \rangle$ where $e$ is an expression (or statement) and $S$ is the runtime state tuple. The semantics distinguishes **deterministic steps** (variable binding, memory read, arithmetic) from **non-deterministic steps** (LLM output, tool timeout/retry).
 
-Deterministic steps use the standard relation \\(\rightarrow\\). Non-deterministic steps use a labeled relation \\(\xrightarrow{\ell}\\) where \\(\ell \in \{\text{llm}(\omega), \text{tool\_timeout}, \text{tool\_error}(\text{code})\}\\).
+Deterministic steps use the standard relation $\rightarrow$. Non-deterministic steps use a labeled relation $\xrightarrow{\ell}$ where $\ell \in \{\text{llm}(\omega), \text{tool-timeout}, \text{tool-error}(\text{code})\}$.
 
 ### 6.2 Core Orchestration Primitives
 
@@ -647,7 +647,7 @@ Deterministic steps use the standard relation \\(\rightarrow\\). Non-determinist
 \frac{\langle e_1, S \rangle \rightarrow \langle v_1, S' \rangle}{\langle e_1 \rightarrow e_2, S \rangle \rightarrow \langle e_2[\text{context} := v_1], S' \rangle} \quad \text{(E-Seq)}
 ```
 
-The output of \\(e_1\\) is automatically injected into the context available to \\(e_2\\).
+The output of $e_1$ is automatically injected into the context available to $e_2$.
 
 **Parallel execution with barrier**:
 
@@ -655,16 +655,16 @@ The output of \\(e_1\\) is automatically injected into the context available to 
 \frac{\forall i \in [1, n]: \langle e_i, S \rangle \rightarrow^* \langle v_i, S_i \rangle \quad S_i.\mathcal{M} \text{ updates are disjoint}}{\langle \text{parallel}\ e_1 \ldots e_n \text{ wait}, S \rangle \rightarrow \langle (v_1, \ldots, v_n), \text{merge}(S_1, \ldots, S_n) \rangle} \quad \text{(E-Parallel)}
 ```
 
-The side condition "\\(S_i.\mathcal{M}\\) updates are disjoint" is enforced by the static typing rule (T-Parallel). The \\(\text{merge}\\) function combines state updates from all branches:
+The side condition "$S_i.\mathcal{M}$ updates are disjoint" is enforced by the static typing rule (T-Parallel). The $\text{merge}$ function combines state updates from all branches:
 
 ```math
-\text{merge}(S_1, \ldots, S_n) = S \quad \text{where} \quad S.\mathcal{M} = \text{merge\_mem}(S_1.\mathcal{M}, \ldots, S_n.\mathcal{M})
+\text{merge}(S_1, \ldots, S_n) = S \quad \text{where} \quad S.\mathcal{M} = \text{merge-mem}(S_1.\mathcal{M}, \ldots, S_n.\mathcal{M})
 ```
 
 Memory merge resolution for non-conflicting writes:
 
 ```math
-\text{merge\_mem}(\mathcal{M}_1, \ldots, \mathcal{M}_n)(\alpha, s, k) = \begin{cases} \mathcal{M}_i(\alpha, s, k) & \text{if exactly one } i \text{ wrote to } k \\ \text{last\_write}(\mathcal{M}_1, \ldots, \mathcal{M}_n, (\alpha, s, k)) & \text{if multiple wrote (last-writer-wins)} \\ S.\mathcal{M}(\alpha, s, k) & \text{if none wrote} \end{cases}
+\text{merge-mem}(\mathcal{M}_1, \ldots, \mathcal{M}_n)(\alpha, s, k) = \begin{cases} \mathcal{M}_i(\alpha, s, k) & \text{if exactly one } i \text{ wrote to } k \\ \text{last-write}(\mathcal{M}_1, \ldots, \mathcal{M}_n, (\alpha, s, k)) & \text{if multiple wrote (last-writer-wins)} \\ S.\mathcal{M}(\alpha, s, k) & \text{if none wrote} \end{cases}
 ```
 
 **Conditional branching**:
@@ -680,11 +680,11 @@ Memory merge resolution for non-conflicting writes:
 **Bounded loop**:
 
 ```math
-\frac{\langle \text{cond}, S \rangle \rightarrow \langle \text{true}, S' \rangle}{\langle \text{loop\_until}\ \text{cond}\ \text{body}, S \rangle \rightarrow \langle \text{body}; \text{loop\_until}\ \text{cond}\ \text{body}, S' \rangle} \quad \text{(E-LoopCont)}
+\frac{\langle \text{cond}, S \rangle \rightarrow \langle \text{true}, S' \rangle}{\langle \text{loop-until}\ \text{cond}\ \text{body}, S \rangle \rightarrow \langle \text{body}; \text{loop-until}\ \text{cond}\ \text{body}, S' \rangle} \quad \text{(E-LoopCont)}
 ```
 
 ```math
-\frac{\langle \text{cond}, S \rangle \rightarrow \langle \text{false}, S' \rangle}{\langle \text{loop\_until}\ \text{cond}\ \text{body}, S \rangle \rightarrow \langle \text{unit}, S' \rangle} \quad \text{(E-LoopExit)}
+\frac{\langle \text{cond}, S \rangle \rightarrow \langle \text{false}, S' \rangle}{\langle \text{loop-until}\ \text{cond}\ \text{body}, S \rangle \rightarrow \langle \text{unit}, S' \rangle} \quad \text{(E-LoopExit)}
 ```
 
 **For iteration**:
@@ -696,13 +696,13 @@ Memory merge resolution for non-conflicting writes:
 ### 6.3 Context Propagation
 
 ```math
-\frac{\text{ctx}_{\text{eff}}(S, \text{node}) = C}{\langle \text{task\_call}\ \kappa(\vec{a}), S \rangle \rightarrow \langle \kappa.\text{body}[\text{context} := C \oplus \text{args}(\vec{a})], S \rangle} \quad \text{(E-ContextProp)}
+\frac{\text{ctx}_{\text{eff}}(S, \text{node}) = C}{\langle \text{task-call}\ \kappa(\vec{a}), S \rangle \rightarrow \langle \kappa.\text{body}[\text{context} := C \oplus \text{args}(\vec{a})], S \rangle} \quad \text{(E-ContextProp)}
 ```
 
 The task body receives the effective context merged with the call arguments. After task completion:
 
 ```math
-\frac{\langle \kappa.\text{body}, S \rangle \rightarrow^* \langle v, S' \rangle}{\langle \text{task\_call}\ \kappa(\vec{a}), S \rangle \rightarrow^* \langle v, S'[\text{ctx} := S'.\text{ctx} \oplus \{\kappa.\text{outputs} \mapsto v\}] \rangle} \quad \text{(E-OutputProp)}
+\frac{\langle \kappa.\text{body}, S \rangle \rightarrow^* \langle v, S' \rangle}{\langle \text{task-call}\ \kappa(\vec{a}), S \rangle \rightarrow^* \langle v, S'[\text{ctx} := S'.\text{ctx} \oplus \{\kappa.\text{outputs} \mapsto v\}] \rangle} \quad \text{(E-OutputProp)}
 ```
 
 ### 6.4 Tool Invocation Semantics
@@ -710,15 +710,15 @@ The task body receives the effective context merged with the call arguments. Aft
 Tool invocation involves three phases: schema validation, execution, and result deserialization.
 
 ```math
-\frac{t \in S.\mathcal{T} \quad \text{validate}(\sigma_{\text{in}}, \vec{a}) = \text{ok} \quad \text{dispatch}(t, m, \vec{a}) \Rightarrow (v_{\text{raw}}, \text{ok}) \quad \text{deserialize}(\sigma_{\text{out}}, v_{\text{raw}}) = v}{\langle t.m(\vec{a}), S \rangle \xrightarrow{\text{tool\_ok}} \langle v, S[\mathcal{E} := \text{clear}] \rangle} \quad \text{(E-ToolSuccess)}
+\frac{t \in S.\mathcal{T} \quad \text{validate}(\sigma_{\text{in}}, \vec{a}) = \text{ok} \quad \text{dispatch}(t, m, \vec{a}) \Rightarrow (v_{\text{raw}}, \text{ok}) \quad \text{deserialize}(\sigma_{\text{out}}, v_{\text{raw}}) = v}{\langle t.m(\vec{a}), S \rangle \xrightarrow{\text{tool-ok}} \langle v, S[\mathcal{E} := \text{clear}] \rangle} \quad \text{(E-ToolSuccess)}
 ```
 
 ```math
-\frac{t \in S.\mathcal{T} \quad \text{dispatch}(t, m, \vec{a}) \Rightarrow (\text{timeout}, \text{err})}{\langle t.m(\vec{a}), S \rangle \xrightarrow{\text{tool\_timeout}} \langle \text{Error}(\text{timeout}), S[\mathcal{E} := \text{ErrCtx}(\text{timeout}, t, m)] \rangle} \quad \text{(E-ToolTimeout)}
+\frac{t \in S.\mathcal{T} \quad \text{dispatch}(t, m, \vec{a}) \Rightarrow (\text{timeout}, \text{err})}{\langle t.m(\vec{a}), S \rangle \xrightarrow{\text{tool-timeout}} \langle \text{Error}(\text{timeout}), S[\mathcal{E} := \text{ErrCtx}(\text{timeout}, t, m)] \rangle} \quad \text{(E-ToolTimeout)}
 ```
 
 ```math
-\frac{t \in S.\mathcal{T} \quad \text{dispatch}(t, m, \vec{a}) \Rightarrow (\text{err\_code}, \text{err})}{\langle t.m(\vec{a}), S \rangle \xrightarrow{\text{tool\_error}(\text{err\_code})} \langle \text{Error}(\text{err\_code}), S[\mathcal{E} := \text{ErrCtx}(\text{err\_code}, t, m)] \rangle} \quad \text{(E-ToolError)}
+\frac{t \in S.\mathcal{T} \quad \text{dispatch}(t, m, \vec{a}) \Rightarrow (\text{err-code}, \text{err})}{\langle t.m(\vec{a}), S \rangle \xrightarrow{\text{tool-error}(\text{err-code})} \langle \text{Error}(\text{err-code}), S[\mathcal{E} := \text{ErrCtx}(\text{err-code}, t, m)] \rangle} \quad \text{(E-ToolError)}
 ```
 
 ### 6.5 LLM Invocation Semantics
@@ -730,10 +730,10 @@ LLM invocation is inherently non-deterministic. We model it as a sampling step f
 ```
 
 where:
-- \\(\Omega_m(\text{prompt})\\) is the set of possible outputs from model $m$ given the rendered prompt
-- \\(\text{parse}(\omega)\\) extracts the structured value from the raw LLM output
-- \\(\text{conf}(\omega) \in [0, 1]\\) is the confidence score
-- \\(\text{reasoning}(\omega)\\) captures the model's reasoning trace
+- $\Omega_m(\text{prompt})$ is the set of possible outputs from model $m$ given the rendered prompt
+- $\text{parse}(\omega)$ extracts the structured value from the raw LLM output
+- $\text{conf}(\omega) \in [0, 1]$ is the confidence score
+- $\text{reasoning}(\omega)$ captures the model's reasoning trace
 
 **LLM output validation and repair:**
 
@@ -752,15 +752,15 @@ where:
 ### 6.6 Approval Gate Semantics
 
 ```math
-\frac{\text{gate\_description} = d}{\langle \text{ask\_human}: d, S \rangle \rightarrow \langle \text{Paused}, S[\mathcal{A}[\alpha].\text{status} := \text{WaitingApproval}] \rangle} \quad \text{(E-ApprovalSuspend)}
+\frac{\text{gate-description} = d}{\langle \text{ask-human}: d, S \rangle \rightarrow \langle \text{Paused}, S[\mathcal{A}[\alpha].\text{status} := \text{WaitingApproval}] \rangle} \quad \text{(E-ApprovalSuspend)}
 ```
 
 ```math
-\frac{\text{human\_response} = \text{approve}(v)}{\langle \text{Paused}, S \rangle \xrightarrow{\text{approval\_approve}} \langle v, S[\mathcal{A}[\alpha].\text{status} := \text{Running}] \rangle} \quad \text{(E-ApprovalApprove)}
+\frac{\text{human-response} = \text{approve}(v)}{\langle \text{Paused}, S \rangle \xrightarrow{\text{approval-approve}} \langle v, S[\mathcal{A}[\alpha].\text{status} := \text{Running}] \rangle} \quad \text{(E-ApprovalApprove)}
 ```
 
 ```math
-\frac{\text{human\_response} = \text{reject}(\text{reason})}{\langle \text{Paused}, S \rangle \xrightarrow{\text{approval\_reject}} \langle \text{Error}(\text{rejected}, \text{reason}), S[\mathcal{E} := \text{ErrCtx}(\text{rejected})] \rangle} \quad \text{(E-ApprovalReject)}
+\frac{\text{human-response} = \text{reject}(\text{reason})}{\langle \text{Paused}, S \rangle \xrightarrow{\text{approval-reject}} \langle \text{Error}(\text{rejected}, \text{reason}), S[\mathcal{E} := \text{ErrCtx}(\text{rejected})] \rangle} \quad \text{(E-ApprovalReject)}
 ```
 
 ### 6.7 Error Recovery Semantics
@@ -780,7 +780,7 @@ The attempt-recover chain is Lucky's core fault-tolerance mechanism:
 ```
 
 ```math
-\frac{\langle \text{body}, S \rangle \rightarrow^* \langle \text{Error}(e), S' \rangle \quad R_1 = \text{human}(\text{msg})}{\langle \text{attempt}\ \text{body}\ \text{recover}\ R_1 \ldots R_m, S \rangle \rightarrow^* \langle \text{ask\_human}: \text{msg}, S' \rangle} \quad \text{(E-AttemptHuman)}
+\frac{\langle \text{body}, S \rangle \rightarrow^* \langle \text{Error}(e), S' \rangle \quad R_1 = \text{human}(\text{msg})}{\langle \text{attempt}\ \text{body}\ \text{recover}\ R_1 \ldots R_m, S \rangle \rightarrow^* \langle \text{ask-human}: \text{msg}, S' \rangle} \quad \text{(E-AttemptHuman)}
 ```
 
 ```math
@@ -790,10 +790,10 @@ The attempt-recover chain is Lucky's core fault-tolerance mechanism:
 **Circuit breaker integration:**
 
 ```math
-\frac{S.\text{circuit\_breaker}(t) = \text{open} \quad t \in \text{tool\_calls}(e)}{\langle e, S \rangle \rightarrow \langle \text{Error}(\text{circuit\_breaker\_open}, t), S[\mathcal{E} := \text{ErrCtx}(\text{circuit\_breaker\_open})] \rangle} \quad \text{(E-CircuitBreaker)}
+\frac{S.\text{circuit-breaker}(t) = \text{open} \quad t \in \text{tool-calls}(e)}{\langle e, S \rangle \rightarrow \langle \text{Error}(\text{circuit-breaker-open}, t), S[\mathcal{E} := \text{ErrCtx}(\text{circuit-breaker-open})] \rangle} \quad \text{(E-CircuitBreaker)}
 ```
 
-The circuit breaker state transitions: \\(\text{closed} \xrightarrow{5 \text{ failures in 60s}} \text{open} \xrightarrow{\text{timeout}} \text{half\_open} \xrightarrow{\text{success}} \text{closed}\\)
+The circuit breaker state transitions: $\text{closed} \xrightarrow{5 \text{ failures in 60s}} \text{open} \xrightarrow{\text{timeout}} \text{half-open} \xrightarrow{\text{success}} \text{closed}$
 
 ---
 
@@ -812,43 +812,43 @@ Lucky models three memory tiers with distinct isolation and persistence properti
 **Memory read:**
 
 ```math
-\frac{(\alpha, s, k) \in \text{visible\_memories}(\Gamma) \quad S.\mathcal{M}(\alpha, s, k) = v}{\langle \text{recall}(\alpha, s, k), S \rangle \rightarrow \langle v, S \rangle} \quad \text{(E-MemRead)}
+\frac{(\alpha, s, k) \in \text{visible-memories}(\Gamma) \quad S.\mathcal{M}(\alpha, s, k) = v}{\langle \text{recall}(\alpha, s, k), S \rangle \rightarrow \langle v, S \rangle} \quad \text{(E-MemRead)}
 ```
 
-where \\(\text{visible\_memories}(\Gamma)\\) is defined as:
+where $\text{visible-memories}(\Gamma)$ is defined as:
 
 ```math
-\text{visible\_memories}(\Gamma) = \begin{cases} \{(\alpha_{\text{self}}, s, k) \mid s \in \{\text{local}, \text{session}, \text{project}\}\} \cup \{(\alpha, \text{global}, k) \mid \forall \alpha\} & \text{within agent } \alpha_{\text{self}} \\ \{(\alpha, \text{global}, k) \mid \forall \alpha\} & \text{outside any agent} \end{cases}
+\text{visible-memories}(\Gamma) = \begin{cases} \{(\alpha_{\text{self}}, s, k) \mid s \in \{\text{local}, \text{session}, \text{project}\}\} \cup \{(\alpha, \text{global}, k) \mid \forall \alpha\} & \text{within agent } \alpha_{\text{self}} \\ \{(\alpha, \text{global}, k) \mid \forall \alpha\} & \text{outside any agent} \end{cases}
 ```
 
 **Memory write:**
 
 ```math
-\frac{(\alpha, s) \in \text{writable\_memories}(\Gamma) \quad \text{permitted}(\Gamma.\text{perms}, \text{memory.write})}{\langle \text{remember}(\alpha, s, k, v), S \rangle \rightarrow \langle \text{unit}, S[\mathcal{M}(\alpha, s, k) := v] \rangle} \quad \text{(E-MemWrite)}
+\frac{(\alpha, s) \in \text{writable-memories}(\Gamma) \quad \text{permitted}(\Gamma.\text{perms}, \text{memory.write})}{\langle \text{remember}(\alpha, s, k, v), S \rangle \rightarrow \langle \text{unit}, S[\mathcal{M}(\alpha, s, k) := v] \rangle} \quad \text{(E-MemWrite)}
 ```
 
 ```math
-\text{writable\_memories}(\Gamma) = \begin{cases} \{(\alpha_{\text{self}}, s) \mid s \in \{\text{local}, \text{session}, \text{project}\}\} \cup \{(\alpha, \text{global}) \mid \forall \alpha\} & \text{within agent } \alpha_{\text{self}} \\ \{(\alpha, \text{global}) \mid \forall \alpha\} & \text{outside any agent} \end{cases}
+\text{writable-memories}(\Gamma) = \begin{cases} \{(\alpha_{\text{self}}, s) \mid s \in \{\text{local}, \text{session}, \text{project}\}\} \cup \{(\alpha, \text{global}) \mid \forall \alpha\} & \text{within agent } \alpha_{\text{self}} \\ \{(\alpha, \text{global}) \mid \forall \alpha\} & \text{outside any agent} \end{cases}
 ```
 
-**Theorem 7.1 (Memory Isolation).** For any execution trace starting from a well-typed program, private agent memory (scope local/session/project) of agent \\(\alpha_1\\) is never read or written by agent \\(\alpha_2\\) where \\(\alpha_1 \neq \alpha_2\\).
+**Theorem 7.1 (Memory Isolation).** For any execution trace starting from a well-typed program, private agent memory (scope local/session/project) of agent $\alpha_1$ is never read or written by agent $\alpha_2$ where $\alpha_1 \neq \alpha_2$.
 
-*Proof.* By (E-MemRead) and (E-MemWrite), the visibility and writability rules restrict private memory operations to \\(\alpha_{\text{self}}\\). The typing rule (T-MemAssign) further ensures that `memory.field = expr` is only legal within the agent's own task body (the \\(\Gamma(\text{self}) = \text{Agent}(\alpha)\\) precondition). Since no expression typing rule can change \\(\Gamma(\text{self})\\) to a different agent, a well-typed program never generates a memory operation on another agent's private store. ∎
+*Proof.* By (E-MemRead) and (E-MemWrite), the visibility and writability rules restrict private memory operations to $\alpha_{\text{self}}$. The typing rule (T-MemAssign) further ensures that `memory.field = expr` is only legal within the agent's own task body (the $\Gamma(\text{self}) = \text{Agent}(\alpha)$ precondition). Since no expression typing rule can change $\Gamma(\text{self})$ to a different agent, a well-typed program never generates a memory operation on another agent's private store. ∎
 
 ### 7.2 LLM Non-Deterministic Branch Routing
 
-A unique semantic challenge in Lucky is **routing control flow based on LLM output**. In a traditional language, branch conditions are deterministic boolean expressions. In Lucky, the `ask` expression produces a \\(\text{Probabilistic}(\tau, c)\\) value, and subsequent `if`/`match` branches may depend on this probabilistic result.
+A unique semantic challenge in Lucky is **routing control flow based on LLM output**. In a traditional language, branch conditions are deterministic boolean expressions. In Lucky, the `ask` expression produces a $\text{Probabilistic}(\tau, c)$ value, and subsequent `if`/`match` branches may depend on this probabilistic result.
 
 **Formal model:**
 
 ```math
-\frac{\langle \text{ask}\ m : \rho, S \rangle \xrightarrow{\text{llm}(\omega)} \langle \text{ProbVal}(v, c, r), S' \rangle \quad \text{route}(v, c, \text{branches}) = (b_i, v_{\text{filtered}})}{\langle \text{ask}\ m : \rho \text{ then route}, S \rangle \xrightarrow{\text{llm\_route}(\omega)} \langle b_i[\text{context} := v_{\text{filtered}}], S' \rangle} \quad \text{(E-LLMRoute)}
+\frac{\langle \text{ask}\ m : \rho, S \rangle \xrightarrow{\text{llm}(\omega)} \langle \text{ProbVal}(v, c, r), S' \rangle \quad \text{route}(v, c, \text{branches}) = (b_i, v_{\text{filtered}})}{\langle \text{ask}\ m : \rho \text{ then route}, S \rangle \xrightarrow{\text{llm-route}(\omega)} \langle b_i[\text{context} := v_{\text{filtered}}], S' \rangle} \quad \text{(E-LLMRoute)}
 ```
 
-The \\(\text{route}\\) function selects a branch based on the LLM output and confidence:
+The $\text{route}$ function selects a branch based on the LLM output and confidence:
 
 ```math
-\text{route}(v, c, \text{branches}) = \begin{cases} (b_i, v) & \text{if } \text{match\_branch}(v, b_i) \text{ and } c \geq \text{threshold}(b_i) \\ (\text{repair\_branch}, v') & \text{if } \text{repair\_attempt}(v, \text{expected\_type}) = v' \text{ and } c \geq \text{threshold} \\ (\text{fallback\_branch}, \text{default}) & \text{if } c < \text{threshold} \text{ or all repairs fail} \end{cases}
+\text{route}(v, c, \text{branches}) = \begin{cases} (b_i, v) & \text{if } \text{match-branch}(v, b_i) \text{ and } c \geq \text{threshold}(b_i) \\ (\text{repair-branch}, v') & \text{if } \text{repair-attempt}(v, \text{expected-type}) = v' \text{ and } c \geq \text{threshold} \\ (\text{fallback-branch}, \text{default}) & \text{if } c < \text{threshold} \text{ or all repairs fail} \end{cases}
 ```
 
 This three-level routing — direct match, repair-and-match, fallback — is the key innovation. No prior PL formalism models this "probabilistic branching with auto-repair" pattern.
@@ -858,15 +858,15 @@ This three-level routing — direct match, repair-and-match, fallback — is the
 Tool contracts specify input/output JSON Schemas that are checked at two levels: statically by the type checker (§4.4, rule T-ToolCall) and dynamically by the runtime:
 
 ```math
-\frac{S.\mathcal{T}[t].\text{methods}[m].\text{input\_schema} = \sigma_{\text{in}} \quad \text{runtime\_validate}(\sigma_{\text{in}}, \text{serialize}(\vec{a})) = \text{ok}}{\text{dispatch}(t, m, \vec{a})} \quad \text{(E-ToolValidate)}
+\frac{S.\mathcal{T}[t].\text{methods}[m].\text{input-schema} = \sigma_{\text{in}} \quad \text{runtime-validate}(\sigma_{\text{in}}, \text{serialize}(\vec{a})) = \text{ok}}{\text{dispatch}(t, m, \vec{a})} \quad \text{(E-ToolValidate)}
 ```
 
 ```math
-\frac{S.\mathcal{T}[t].\text{methods}[m].\text{output\_schema} = \sigma_{\text{out}} \quad \text{runtime\_validate}(\sigma_{\text{out}}, v_{\text{raw}}) = \text{ok} \quad \text{deserialize}(\sigma_{\text{out}}, v_{\text{raw}}) = v}{\text{tool call succeeds with } v} \quad \text{(E-ToolDeserialize)}
+\frac{S.\mathcal{T}[t].\text{methods}[m].\text{output-schema} = \sigma_{\text{out}} \quad \text{runtime-validate}(\sigma_{\text{out}}, v_{\text{raw}}) = \text{ok} \quad \text{deserialize}(\sigma_{\text{out}}, v_{\text{raw}}) = v}{\text{tool call succeeds with } v} \quad \text{(E-ToolDeserialize)}
 ```
 
 ```math
-\frac{\text{runtime\_validate}(\sigma_{\text{out}}, v_{\text{raw}}) = \text{fail}}{\text{tool output rejected, enters recovery}} \quad \text{(E-ToolContractFail)}
+\frac{\text{runtime-validate}(\sigma_{\text{out}}, v_{\text{raw}}) = \text{fail}}{\text{tool output rejected, enters recovery}} \quad \text{(E-ToolContractFail)}
 ```
 
 **Timeout and degradation:**
@@ -885,61 +885,61 @@ After timeout, the attempt-recover chain (§6.7) handles recovery: retry with ex
 
 **Theorem 8.1 (Progress + Preservation = Type Safety).**
 
-**Part I: Progress.** If \\(\vdash e : \tau\\) and $e$ is not a value, then \\(\exists S, e', S': \langle e, S \rangle \rightarrow \langle e', S' \rangle\\) or \\(\langle e, S \rangle \xrightarrow{\ell} \langle e', S' \rangle\\).
+**Part I: Progress.** If $\vdash e : \tau$ and $e$ is not a value, then $\exists S, e', S': \langle e, S \rangle \rightarrow \langle e', S' \rangle$ or $\langle e, S \rangle \xrightarrow{\ell} \langle e', S' \rangle$.
 
 *Proof.* By structural induction on $e$.
 
-**Case** \\(e = \text{let}\ x = e_1\\): By (T-Let), \\(\vdash e_1 : \tau_1\\). By IH on \\(e_1\\), either \\(e_1\\) is a value (then we step by E-Let) or \\(e_1\\) can step (then we step \\(\langle e, S \rangle\\) by stepping \\(e_1\\)).
+**Case** $e = \text{let}\ x = e_1$: By (T-Let), $\vdash e_1 : \tau_1$. By IH on $e_1$, either $e_1$ is a value (then we step by E-Let) or $e_1$ can step (then we step $\langle e, S \rangle$ by stepping $e_1$).
 
-**Case** \\(e = t.m(\vec{a})\\): By (T-ToolCall), \\(t \in \Gamma(\text{tools})\\) and arguments type-match. The tool exists in \\(S.\mathcal{T}\\), so dispatch is possible. If the tool is available and not circuit-breakered, we step by (E-ToolSuccess). If circuit-breakered, we step by (E-CircuitBreaker).
+**Case** $e = t.m(\vec{a})$: By (T-ToolCall), $t \in \Gamma(\text{tools})$ and arguments type-match. The tool exists in $S.\mathcal{T}$, so dispatch is possible. If the tool is available and not circuit-breakered, we step by (E-ToolSuccess). If circuit-breakered, we step by (E-CircuitBreaker).
 
-**Case** \\(e = \text{ask}\ m : \rho\\): By (T-Ask), the model and prompt are in scope. The runtime can always dispatch to the LLM backend (which may produce any output \\(\omega\\)). Step by (E-Ask).
+**Case** $e = \text{ask}\ m : \rho$: By (T-Ask), the model and prompt are in scope. The runtime can always dispatch to the LLM backend (which may produce any output $\omega$). Step by (E-Ask).
 
-**Case** \\(e = \text{parallel}\ e_1 \ldots e_n \text{ wait}\\): By (T-Parallel), all branches are well-typed. Each can step independently by IH. When all complete, we merge by (E-Parallel).
+**Case** $e = \text{parallel}\ e_1 \ldots e_n \text{ wait}$: By (T-Parallel), all branches are well-typed. Each can step independently by IH. When all complete, we merge by (E-Parallel).
 
-**Case** \\(e = \text{attempt}\ \text{body}\ \text{recover}\ R\\): By (T-Attempt), \\(\vdash \text{body} : \tau\\). By IH, body can step. If body completes, we step by (E-AttemptSuccess). If body errors, we step by the appropriate recovery action.
+**Case** $e = \text{attempt}\ \text{body}\ \text{recover}\ R$: By (T-Attempt), $\vdash \text{body} : \tau$. By IH, body can step. If body completes, we step by (E-AttemptSuccess). If body errors, we step by the appropriate recovery action.
 
 **No stuck states.** Every well-typed non-value expression can step. The only potential stuck state would be: tool not found → prevented by (T-ToolCall); undefined variable → prevented by (T-Let); permission violation → prevented by (T-PermCheck). ∎
 
-**Part II: Preservation.** If \\(\vdash e : \tau\\) and \\(\langle e, S \rangle \rightarrow \langle e', S' \rangle\\), then \\(\vdash e' : \tau\\) (or \\(\tau' <: \tau\\)).
+**Part II: Preservation.** If $\vdash e : \tau$ and $\langle e, S \rangle \rightarrow \langle e', S' \rangle$, then $\vdash e' : \tau$ (or $\tau' <: \tau$).
 
 *Proof.* By case analysis on the stepping rule used.
 
-**Case** (E-ToolSuccess): The output type \\(\tau_{\text{out}}\\) is determined by \\(\sigma_{\text{out}}\\) in (T-ToolCall), which was checked to match the expected type at compile time. So \\(\vdash v : \tau_{\text{out}} <: \tau\\).
+**Case** (E-ToolSuccess): The output type $\tau_{\text{out}}$ is determined by $\sigma_{\text{out}}$ in (T-ToolCall), which was checked to match the expected type at compile time. So $\vdash v : \tau_{\text{out}} <: \tau$.
 
-**Case** (E-Ask): The output is \\(\text{ProbVal}(v, c, r)\\) of type \\(\text{Probabilistic}(\tau_{\text{inner}}, c)\\). By (T-Ask), the declared type is \\(\text{Probabilistic}(\tau_{\text{inner}}, c_{\text{default}})\\). Since \\(c \geq 0\\) always and \\(c_{\text{default}} \leq 1\\), the confidence subtyping rule gives \\(\text{Probabilistic}(\tau_{\text{inner}}, c) <: \text{Probabilistic}(\tau_{\text{inner}}, c_{\text{default}})\\) when \\(c \geq c_{\text{default}}\\), and otherwise the output enters the repair/fallback path which is typed by the recovery rules.
+**Case** (E-Ask): The output is $\text{ProbVal}(v, c, r)$ of type $\text{Probabilistic}(\tau_{\text{inner}}, c)$. By (T-Ask), the declared type is $\text{Probabilistic}(\tau_{\text{inner}}, c_{\text{default}})$. Since $c \geq 0$ always and $c_{\text{default}} \leq 1$, the confidence subtyping rule gives $\text{Probabilistic}(\tau_{\text{inner}}, c) <: \text{Probabilistic}(\tau_{\text{inner}}, c_{\text{default}})$ when $c \geq c_{\text{default}}$, and otherwise the output enters the repair/fallback path which is typed by the recovery rules.
 
 **Case** (E-Parallel): Each branch preserves its type by IH. The merged result type is a union of branch types, which subtypes the declared parallel output type.
 
-**Case** (E-AttemptSuccess): The body's type \\(\tau\\) is preserved.
+**Case** (E-AttemptSuccess): The body's type $\tau$ is preserved.
 
-**Case** (E-AttemptRetry): The retry reduces the remaining count, but the body type \\(\tau\\) is unchanged.
+**Case** (E-AttemptRetry): The retry reduces the remaining count, but the body type $\tau$ is unchanged.
 
-**Case** (E-AttemptFallback): The fallback expression was typed as \\(\tau\\) by (T-Attempt).
+**Case** (E-AttemptFallback): The fallback expression was typed as $\tau$ by (T-Attempt).
 
 **All cases preserve types.** ∎
 
 ### 8.2 Memory Isolation Theorem
 
-**Theorem 8.2 (Private Memory Isolation).** In any execution trace \\(\langle e_0, S_0 \rangle \rightarrow^* \langle e_n, S_n \rangle\\) of a well-typed program, for any two distinct agents \\(\alpha_1 \neq \alpha_2\\):
+**Theorem 8.2 (Private Memory Isolation).** In any execution trace $\langle e_0, S_0 \rangle \rightarrow^* \langle e_n, S_n \rangle$ of a well-typed program, for any two distinct agents $\alpha_1 \neq \alpha_2$:
 
 ```math
 S_n.\mathcal{M}(\alpha_1, \text{project}, k) = S_0.\mathcal{M}(\alpha_1, \text{project}, k) \quad \text{unless some step executed within } \alpha_1\text{'s context modified } k
 ```
 
-and no step executed within \\(\alpha_2\\)'s context modified \\(\alpha_1\\)'s project-scope memory.
+and no step executed within $\alpha_2$'s context modified $\alpha_1$'s project-scope memory.
 
-*Proof.* By induction on the trace length. The key insight is that (E-MemWrite) requires \\((\alpha, s) \in \text{writable\_memories}(\Gamma)\\), and within \\(\alpha_2\\)'s context, \\(\text{writable\_memories}\\) only includes \\((\alpha_2, \text{local})\\), \\((\alpha_2, \text{session})\\), \\((\alpha_2, \text{project})\\), and \\((\alpha, \text{global})\\) for any \\(\alpha\\). It never includes \\((\alpha_1, \text{project})\\) for \\(\alpha_1 \neq \alpha_2\\).
+*Proof.* By induction on the trace length. The key insight is that (E-MemWrite) requires $(\alpha, s) \in \text{writable-memories}(\Gamma)$, and within $\alpha_2$'s context, $\text{writable-memories}$ only includes $(\alpha_2, \text{local})$, $(\alpha_2, \text{session})$, $(\alpha_2, \text{project})$, and $(\alpha, \text{global})$ for any $\alpha$. It never includes $(\alpha_1, \text{project})$ for $\alpha_1 \neq \alpha_2$.
 
-For **parallel execution**: The (T-Parallel) rule enforces \\(\text{no\_shared\_mutable\_refs}\\), which specifically checks that parallel branches do not write to the same agent's project-scope memory. So even in concurrent execution, isolation is preserved.
+For **parallel execution**: The (T-Parallel) rule enforces $\text{no-shared-mutable-refs}$, which specifically checks that parallel branches do not write to the same agent's project-scope memory. So even in concurrent execution, isolation is preserved.
 
-For **global memory**: Global memory is intentionally shared. Writes to global memory by \\(\alpha_2\\) are visible to \\(\alpha_1\\), but this is by design — global memory is the communication channel between agents. The isolation invariant only concerns private (local/session/project) memory. ∎
+For **global memory**: Global memory is intentionally shared. Writes to global memory by $\alpha_2$ are visible to $\alpha_1$, but this is by design — global memory is the communication channel between agents. The isolation invariant only concerns private (local/session/project) memory. ∎
 
 ### 8.3 Deadlock Freedom
 
-**Theorem 8.3 (Parallel Deadlock Freedom).** A well-typed parallel block \\(\text{parallel}\ e_1 \ldots e_n \text{ wait}\\) never permanently blocks.
+**Theorem 8.3 (Parallel Deadlock Freedom).** A well-typed parallel block $\text{parallel}\ e_1 \ldots e_n \text{ wait}$ never permanently blocks.
 
-*Proof.* The (T-Parallel) rule requires \\(\text{no\_shared\_mutable\_refs}\\), meaning no two branches write to the same memory location. This eliminates the primary source of deadlock in agent systems: circular waiting on memory access.
+*Proof.* The (T-Parallel) rule requires $\text{no-shared-mutable-refs}$, meaning no two branches write to the same memory location. This eliminates the primary source of deadlock in agent systems: circular waiting on memory access.
 
 The remaining potential deadlock source would be **approval gates** within parallel branches. But by the runtime specification, approval gates suspend the specific branch, not the entire parallel block. The `wait` barrier only requires all branches to *complete* (either successfully or via recovery), and the recovery chain (attempt-recover) guarantees that every failure has a defined termination path (retry terminates after $n$ attempts, fallback provides an alternative, human escalation eventually resolves, abort terminates immediately).
 
@@ -962,7 +962,7 @@ Therefore: each branch either (a) completes successfully, (b) completes via reco
 | Human rejection | abort or skip (by recovery specification) |
 | Memory overflow | circuit breaker opens → fallback → abort |
 
-For each failure type, the recovery chain \\(R_1, \ldots, R_m\\) must include at least one action that resolves this type. The (T-Attempt) typing rule ensures that every recovery action is typed to produce a result compatible with \\(\tau\\), so the overall attempt block always produces a value of type \\(\tau\\) (or terminates with a defined Error).
+For each failure type, the recovery chain $R_1, \ldots, R_m$ must include at least one action that resolves this type. The (T-Attempt) typing rule ensures that every recovery action is typed to produce a result compatible with $\tau$, so the overall attempt block always produces a value of type $\tau$ (or terminates with a defined Error).
 
 **Corollary 8.5 (No unhandled exceptions).** A well-typed Lucky program never enters an undefined exception state. Every error either (a) is caught by an attempt-recover chain, (b) is logged and the workflow terminates with a defined error status, or (c) is escalated to a human operator with a defined approval gate. ∎
 
@@ -1201,7 +1201,7 @@ The key insight is that AI agent orchestration introduces semantic challenges th
 ```
 
 ```math
-\frac{\Gamma \vdash e_1 : \tau_1 \quad \Gamma \vdash e_2 : \tau_2 \quad \text{binop\_type}(\text{op}, \tau_1, \tau_2) = \tau}{\Gamma \vdash e_1 \text{ op } e_2 : \tau} \quad \text{(T-BinOp)}
+\frac{\Gamma \vdash e_1 : \tau_1 \quad \Gamma \vdash e_2 : \tau_2 \quad \text{binop-type}(\text{op}, \tau_1, \tau_2) = \tau}{\Gamma \vdash e_1 \text{ op } e_2 : \tau} \quad \text{(T-BinOp)}
 ```
 
 ```math
@@ -1217,11 +1217,11 @@ The key insight is that AI agent orchestration introduces semantic challenges th
 ```
 
 ```math
-\frac{\Gamma \vdash e : \tau \quad f \in \text{fields}(\tau)}{\Gamma \vdash e.f : \text{field\_type}(\tau, f)} \quad \text{(T-Field)}
+\frac{\Gamma \vdash e : \tau \quad f \in \text{fields}(\tau)}{\Gamma \vdash e.f : \text{field-type}(\tau, f)} \quad \text{(T-Field)}
 ```
 
 ```math
-\frac{\Gamma \vdash e : \tau? \quad f \in \text{fields}(\tau)}{\Gamma \vdash e.?f : \text{field\_type}(\tau, f)?} \quad \text{(T-NullableField)}
+\frac{\Gamma \vdash e : \tau? \quad f \in \text{fields}(\tau)}{\Gamma \vdash e.?f : \text{field-type}(\tau, f)?} \quad \text{(T-NullableField)}
 ```
 
 ```math
@@ -1309,23 +1309,20 @@ The key insight is that AI agent orchestration introduces semantic challenges th
 
 | Opcode | Formal Semantics |
 |--------|-----------------|
-| Add/Sub/Mul/Div | \\(\langle v_1 \text{ op } v_2, S \rangle \rightarrow \langle \text{compute}(v_1, v_2, \text{op}), S \rangle\\) |
-| Eq/Neq/Lt/Gt/Le/Ge | \\(\langle v_1 \text{ cmp } v_2, S \rangle \rightarrow \langle \text{Bool}, S \rangle\\) |
+| Add/Sub/Mul/Div | $\langle v_1 \text{ op } v_2, S \rangle \rightarrow \langle \text{compute}(v_1, v_2, \text{op}), S \rangle$ |
+| Eq/Neq/Lt/Gt/Le/Ge | $\langle v_1 \text{ cmp } v_2, S \rangle \rightarrow \langle \text{Bool}, S \rangle$ |
 | And/Or/Not | Standard boolean logic (short-circuit for And/Or) |
-| Call | \\(\langle \text{Call}(f, \vec{a}), S \rangle \rightarrow \langle f.\text{body}[\text{params} := \vec{a}], S \rangle\\) |
-| LlmComplete | \\(\langle \text{LlmComplete}(m, \rho, \text{args}), S \rangle \xrightarrow{\text{llm}(\omega)} \langle \text{ProbVal}(\ldots), S \rangle\\) |
-| ToolInvoke | \\(\langle \text{ToolInvoke}(t, m, \vec{a}), S \rangle \rightarrow\\) tool dispatch (E-ToolSuccess/Timeout/Error) |
-| AgentInvoke | \\(\langle \text{AgentInvoke}(\alpha, \kappa, \vec{a}), S \rangle \rightarrow\\) agent task dispatch |
+| Call | $\langle \text{Call}(f, \vec{a}), S \rangle \rightarrow \langle f.\text{body}[\text{params} := \vec{a}], S \rangle$ |
+| LlmComplete | $\langle \text{LlmComplete}(m, \rho, \text{args}), S \rangle \xrightarrow{\text{llm}(\omega)} \langle \text{ProbVal}(\ldots), S \rangle$ |
+| ToolInvoke | $\langle \text{ToolInvoke}(t, m, \vec{a}), S \rangle \rightarrow$ tool dispatch (E-ToolSuccess/Timeout/Error) |
+| AgentInvoke | $\langle \text{AgentInvoke}(\alpha, \kappa, \vec{a}), S \rangle \rightarrow$ agent task dispatch |
 | Alloca/Load/Store | Stack allocation and memory access within task scope |
-| BrOp | \\(\langle \text{Br}(bb), S \rangle \rightarrow \langle bb.\text{first\_inst}, S \rangle\\) |
-| CondBrOp | \\(\langle \text{CondBr}(\text{cond}, bb_t, bb_f), S \rangle \rightarrow \langle bb_t \text{ or } bb_f, S \rangle\\) |
-| RetOp | \\(\langle \text{Ret}(v), S \rangle \rightarrow \langle v, S \rangle\\) (terminal) |
-| Phi | \\(\langle \text{Phi}(v_1 \text{ from } bb_1, v_2 \text{ from } bb_2), S \rangle \rightarrow \langle v_i, S \rangle\\) where \\(bb_i\\) is the predecessor that executed |
-| ListNew/ListGet | \\(\langle \text{ListNew}(\vec{v}), S \rangle \rightarrow \langle [\vec{v}], S \rangle\\); \\(\langle \text{ListGet}(l, i), S \rangle \rightarrow \langle l[i], S \rangle\\) |
+| BrOp | $\langle \text{Br}(bb), S \rangle \rightarrow \langle bb.\text{first-inst}, S \rangle$ |
+| CondBrOp | $\langle \text{CondBr}(\text{cond}, bb_t, bb_f), S \rangle \rightarrow \langle bb_t \text{ or } bb_f, S \rangle$ |
+| RetOp | $\langle \text{Ret}(v), S \rangle \rightarrow \langle v, S \rangle$ (terminal) |
+| Phi | $\langle \text{Phi}(v_1 \text{ from } bb_1, v_2 \text{ from } bb_2), S \rangle \rightarrow \langle v_i, S \rangle$ where $bb_i$ is the predecessor that executed |
+| ListNew/ListGet | $\langle \text{ListNew}(\vec{v}), S \rangle \rightarrow \langle [\vec{v}], S \rangle$; $\langle \text{ListGet}(l, i), S \rangle \rightarrow \langle l[i], S \rangle$ |
 | MapNew/MapGet | Analogous to List operations |
 | StrConcat/StrLen | Standard string operations |
-| Cast | \\(\langle \text{Cast}(v, \tau), S \rangle \rightarrow \langle \text{cast}(v, \tau), S \rangle\\) if \\(v : \tau' <: \tau\\) |
+| Cast | $\langle \text{Cast}(v, \tau), S \rangle \rightarrow \langle \text{cast}(v, \tau), S \rangle$ if $v : \tau' <: \tau$ |
 
----
-
-*End of paper.*
