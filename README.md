@@ -60,6 +60,40 @@ Lucky **is** for:
 
 ---
 
+### Lucky vs. Prompts vs. SKILLS
+
+There are three levels of abstraction for working with AI agents, and Lucky occupies the highest layer:
+
+| | **Natural Language Prompts** | **SKILL Files** | **Lucky Language** |
+|---|---|---|---|
+| **What it is** | Ad-hoc instructions written for a single LLM call | Reusable Markdown files with structured instructions (XML-like tags, metadata, workflow steps) | A compiled programming language with goals, tasks, agents, workflows, and IR |
+| **Structure** | Free-form text | Semi-structured sections (instruction, environment, demo, reminder) | Formal grammar with AST, HIR, MIR — compiled to a portable SSA-based IR |
+| **Reusability** | None — each prompt is written from scratch | Moderate — SKILL files can be shared and installed, but composition is manual | Full — tasks, agents, workflows, and policies are named, typed, and composable |
+| **Orchestration** | Single-shot or manual chaining | Linear step sequences within a single skill file | Directed acyclic graphs with parallel branches, conditionals, loops, and recovery chains |
+| **Determinism** | None — same prompt can produce different results | Low — relies on LLM following SKILL instructions | High — the execution graph is built at compile time; runtime follows the planned DAG |
+| **State management** | Stateless — context must be manually passed | Implicit — relies on conversation state within the agent | Explicit — context auto-propagates through the workflow DAG; memory persists across executions |
+| **Error recovery** | Manual — "try again" or rewrite the prompt | Manual — the skill can suggest recovery steps | Declarative — `attempt`/`recover` chains with retry, fallback, escalation, and circuit breakers |
+| **Permissions** | None — the LLM has whatever access it was given | Limited — can specify required tools/capabilities | First-class — `allow`/`deny` per agent, lexical inheritance, human approval gates |
+| **Audit trail** | None | None built-in | Built-in — every decision, tool call, and approval is logged to a structured audit file |
+| **Portability** | Tied to the LLM | Tied to the agent platform (OpenCode, Claude Code) | Platform-neutral — Lucky IR runs on any LTP-compatible runtime |
+| **Best for** | Simple questions, single-step tasks | Reusable agent capabilities (code review, research, testing) | Multi-agent orchestration, production workflows, compliance-critical systems |
+
+Think of the hierarchy this way:
+
+```
+Natural Language Prompts
+    ↓  (add structure)
+SKILL Files
+    ↓  (add compilation, types, state, permissions, recovery)
+Lucky Language
+```
+
+Prompts are the assembly language of AI — flexible but untyped, unreusable, and unverifiable. SKILLs add reusable structure for individual agent capabilities. Lucky adds full programming language semantics for **orchestrating multiple agents** — the OS for AI, not a script for one.
+
+> **When to use each:** Write a prompt for a one-off question. Install a SKILL when you want a repeatable agent capability (e.g., "review my code"). Write Lucky when you need to orchestrate multiple agents across a multi-step workflow with permissions, error recovery, and audit trails — the kind of thing that would otherwise require a Python script bolted onto an LLM SDK.
+
+---
+
 ### Key Capabilities
 
 **Multi-Agent Orchestration.** Define agents with models, tools, memory, and permissions. Compose them into workflows with `->` for sequential chains, or let them run in parallel at the same indentation level. Use `parallel`/`wait` for fork-join, `swarm` for mass fan-out, `if`/`else` for branching.
