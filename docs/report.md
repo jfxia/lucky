@@ -132,17 +132,59 @@ The runtime executes the DAG via a priority-based scheduler with retry/circuit-b
 We reconstruct the lexical specification from the two-phase lexer implementation. The formal token algebra is:
 
 ```math
-\text{Token} = \text{Keyword}_{101} \mid \text{Ident} \mid \text{IntLit} \mid \text{FloatLit} \mid \text{StringLit} \mid \text{BoolLit} \mid \text{NullLit} \mid \text{UnknownLit} \mid \text{Operator} \mid \text{Comment} \mid \text{Newline} \mid \text{Indent} \mid \text{Dedent} \mid \text{EOF}
+\text{Token}
+=
+\text{Keyword}_{101}
+\mid
+\text{Ident}
+\mid
+\text{IntLit}
+\mid
+\text{FloatLit}
+\mid
+\text{StringLit}
+\mid
+\text{BoolLit}
+\mid
+\text{NullLit}
+\mid
+\text{UnknownLit}
+\mid
+\text{Operator}
+\mid
+\text{Comment}
+\mid
+\text{Newline}
+\mid
+\text{Indent}
+\mid
+\text{Dedent}
+\mid
+\text{EOF}
 ```
 
-**Identifiers** follow the pattern \\(\text{Ident} = (L \mid \text{\_}) \cdot (L \mid N \mid \text{\_})^*\\) where $L$ denotes Unicode Letter categories (Lu, Ll, Lt, Lm, Lo) and $N$ denotes Number categories (Nd, Nl, No), excluding $N$ as first character.
+**Identifiers** follow the pattern
 
-**String literals** support interpolation: `"text\{expr}text"` where \\(\text{expr}\\) is any Lucky expression. Triple-quoted strings `"""..."""` preserve indentation relative to the closing delimiter.
+$\text{Ident}=(L\mid\)\cdot(L\mid N\mid\)^{*}$
 
-**Indentation tokens** (INDENT/DEDENT) are synthesized in a second lexer phase using an indent stack \\(\sigma : \text{List}(\mathbb{N})\\), following Python's rules:
+where $L$ denotes Unicode Letter categories (Lu, Ll, Lt, Lm, Lo), and $N$ denotes Unicode Number categories (Nd, Nl, No), excluding $N$ as the first character.
+
+**String literals** support interpolation:
+
+`"text\{expr}text"`
+
+where *expr* is any Lucky expression.
+
+Triple-quoted strings `"""..."""` preserve indentation relative to the closing delimiter.
+
+**Indentation tokens** (INDENT/DEDENT) are synthesized in a second lexer phase using an indent stack
+$\sigma : \text{List}(\mathbb{N})$,
+following Python's rules:
 
 ```math
-\text{IndentPhase}(\text{raw\_tokens}, \sigma_0 = [0]) \rightarrow (\text{final\_tokens}, \sigma_f)
+\text{IndentPhase}(\text{raw\_tokens}, \sigma_0=[0])
+\rightarrow
+(\text{final\_tokens}, \sigma_f)
 ```
 
 The synthesis rule: when a NEWLINE token is followed by a line with indentation level $d$:
