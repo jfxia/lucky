@@ -118,7 +118,7 @@ goal BuildReport
 The compilation pipeline is:
 
 ```math
-\text{Source} \xrightarrow{\text{Lexer}} \text{Tokens} \xrightarrow{\text{Parser}} \text{AST} \xrightarrow{\text{TypeCheck+Resolve}} \text{TypedAST} \xrightarrow{\text{HIR Builder}} \text{DAG} \xrightarrow{\text{MIR Lowering}} \text{SSA} \xrightarrow{\text{Optimizer}} \text{Optimized IR} \xrightarrow{\text{Runtime}} \text{Execution}
+\text{Source} \overset{\text{Lexer}}{\longrightarrow} \text{Tokens} \overset{\text{Parser}}{\longrightarrow} \text{AST} \overset{\text{TypeCheck+Resolve}}{\longrightarrow} \text{TypedAST} \overset{\text{HIR Builder}}{\longrightarrow} \text{DAG} \overset{\text{MIR Lowering}}{\longrightarrow} \text{SSA} \overset{\text{Optimizer}}{\longrightarrow} \text{Optimized IR} \overset{\text{Runtime}}{\longrightarrow} \text{Execution}
 ```
 
 The runtime executes the DAG via a priority-based scheduler with retry/circuit-breaker logic, LLM backend routing (9 providers), and vector-based agent memory.
