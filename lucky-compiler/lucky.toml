@@ -20,68 +20,105 @@ budget_usd = 10.0
 # Give each model a name you can reference from .lk files with `use ModelName`.
 # API keys: set in this file OR as environment variables (see below).
 #
-# Provider             Env Var                 Default Model
-# ────────             ───────                 ─────────────
-# deepseek             DEEPSEEK_API_KEY        deepseek-chat
-# openai               OPENAI_API_KEY          gpt-4o
-# anthropic            ANTHROPIC_API_KEY       claude-sonnet-4-20250514
-# google               GOOGLE_API_KEY          gemini-2.0-flash
+# Provider             Env Var                 Matches model names like
+# ────────             ───────                 ─────────────────────
+# deepseek             DEEPSEEK_API_KEY        deepseek-v4-pro, deepseek-v4-flash
+# openai               OPENAI_API_KEY          gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna
+# anthropic            ANTHROPIC_API_KEY       claude-fable-5, claude-sonnet-5, claude-opus-4.8
+# google               GOOGLE_API_KEY          gemini-3.5-flash, gemini-3.5-pro
 # kimi                 KIMI_API_KEY            kimi-latest
-# qwen                 QWEN_API_KEY            qwen-max
+# qwen                 QWEN_API_KEY            qwen3.7-max
 # doubao               DOUBAO_API_KEY          doubao-pro-32k
 # glm                  GLM_API_KEY             glm-4-plus
-# ollama               (none, local)           llama3
+# ollama               (none, local)           llama3, mistral, qwen
 
 # ── DeepSeek ──────────────────────────────────────────────────────────
 # https://platform.deepseek.com/
+# 100万上下文窗口。
 
-[models.deepseek-v4]
+[models.deepseek-v4-pro]
 provider = "deepseek"
-# api_key = "sk-..."            # Optional: set here or in DEEPSEEK_API_KEY env var
-# endpoint = "https://api.deepseek.com/chat/completions"  # Optional, has default
+# api_key = "sk-..."                     # 或设置 DEEPSEEK_API_KEY 环境变量
+# endpoint = "https://api.deepseek.com/chat/completions"
+# 高性能版本，适合复杂推理任务。100万上下文。
 # temperature = 0.7
-# max_tokens = 4096
+
+[models.deepseek-v4-flash]
+provider = "deepseek"
+# api_key = "sk-..."
+# 轻量经济版本，响应更快。同样拥有100万上下文。
+# temperature = 0.5
 
 # ── OpenAI ────────────────────────────────────────────────────────────
 # https://platform.openai.com/
 
-[models.gpt-4o]
+[models.gpt-5.6-sol]
 provider = "openai"
 # api_key = "sk-..."
 # endpoint = "https://api.openai.com/v1/chat/completions"
+# 旗舰型号，面向最复杂推理与科研任务。
 # temperature = 0.7
 
-[models.gpt-4o-mini]
+[models.gpt-5.6-terra]
 provider = "openai"
 # api_key = "sk-..."
-# A cheaper, faster model — override temperature for coding tasks
-# temperature = 0.3
+# 均衡型版本，适合企业及日常生产力场景。
+# temperature = 0.7
+
+[models.gpt-5.6-luna]
+provider = "openai"
+# api_key = "sk-..."
+# 轻量版，追求高速度和低成本。
+# temperature = 0.5
 
 # ── Anthropic Claude ──────────────────────────────────────────────────
 # https://console.anthropic.com/
 
-[models.claude-sonnet]
+[models.claude-fable-5]
 provider = "anthropic"
 # api_key = "sk-ant-..."
 # endpoint = "https://api.anthropic.com/v1/messages"
+# 目前能力最强的公开发布版本。
+# temperature = 0.7
 
-[models.claude-haiku]
+[models.claude-mythos-5]
 provider = "anthropic"
 # api_key = "sk-ant-..."
+# 能力更完整，仅向特定信任机构开放。
+# temperature = 0.7
+
+[models.claude-sonnet-5]
+provider = "anthropic"
+# api_key = "sk-ant-..."
+# 中端主力模型，适合代码生成和长文档分析。
 # temperature = 0.5
+
+[models.claude-opus-4.8]
+provider = "anthropic"
+# api_key = "sk-ant-..."
+# 高阶旗舰模型，能力强劲。
+# temperature = 0.7
 
 # ── Google Gemini ─────────────────────────────────────────────────────
 # https://aistudio.google.com/apikey
 
-[models.gemini-pro]
+[models.gemini-3.5-flash]
 provider = "google"
 # api_key = "AIza..."
 # endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+# 已发布版本，擅长编程和Agent任务。
+# temperature = 0.7
+
+[models.gemini-3.5-pro]
+provider = "google"
+# api_key = "AIza..."
+# 功能更强大的Pro版。
+# temperature = 0.7
 
 # ── Kimi (Moonshot) ──────────────────────────────────────────────────
 # https://platform.moonshot.cn/
 
-[models.kimi]
+[models.kimi-latest]
 provider = "kimi"
 # api_key = "sk-..."
 # endpoint = "https://api.moonshot.cn/v1/chat/completions"
@@ -89,19 +126,16 @@ provider = "kimi"
 # ── Qwen (Alibaba DashScope) ─────────────────────────────────────────
 # https://dashscope.aliyun.com/
 
-[models.qwen-max]
+[models.qwen3.7-max]
 provider = "qwen"
 # api_key = "sk-..."
 # endpoint = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-
-[models.qwen-plus]
-provider = "qwen"
-# api_key = "sk-..."
+# 旗舰文本模型，侧重推理与编程能力。
 
 # ── Doubao (ByteDance Volcano Ark) ────────────────────────────────────
 # https://console.volcengine.com/ark
 
-[models.doubao]
+[models.doubao-pro-32k]
 provider = "doubao"
 # api_key = "..."
 # endpoint = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
@@ -109,7 +143,7 @@ provider = "doubao"
 # ── GLM (Zhipu AI) ───────────────────────────────────────────────────
 # https://open.bigmodel.cn/
 
-[models.glm-4]
+[models.glm-4-plus]
 provider = "glm"
 # api_key = "..."
 # endpoint = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
