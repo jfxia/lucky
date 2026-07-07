@@ -911,6 +911,12 @@ fn cmd_config() {
                         if let Some(ref ep) = config.endpoint {
                             println!("    Endpoint: {}", ep);
                         }
+                        let key_status = if config.api_key.as_ref().map_or(false, |k| !k.is_empty()) {
+                            "*** (configured)"
+                        } else {
+                            "(not set)"
+                        };
+                        println!("    API key: {}", key_status);
                         println!("    Temperature: {}", config.temperature);
                         println!("    Max tokens: {}", config.max_tokens);
                     }

@@ -9,11 +9,14 @@ pub struct DeepSeekBackend {
 }
 
 impl DeepSeekBackend {
-    pub fn new(endpoint: Option<String>) -> Self {
+    pub fn new(endpoint: Option<String>, api_key: Option<String>) -> Self {
         let endpoint = endpoint.unwrap_or_else(|| {
             "https://api.deepseek.com/chat/completions".to_string()
         });
-        let api_key = std::env::var("DEEPSEEK_API_KEY").unwrap_or_default();
+        let api_key = api_key
+            .filter(|k| !k.is_empty())
+            .or_else(|| std::env::var("DEEPSEEK_API_KEY").ok())
+            .unwrap_or_default();
         Self { endpoint, api_key }
     }
 

@@ -163,6 +163,7 @@ pub fn parse_manifest_with_models(
 
     let mut model_name = String::new();
     let mut model_provider = String::new();
+    let mut model_api_key: Option<String> = None;
     let mut model_temperature: Option<f64> = None;
     let mut model_max_tokens: Option<u32> = None;
     let mut model_endpoint: Option<String> = None;
@@ -178,12 +179,14 @@ pub fn parse_manifest_with_models(
         if trimmed.starts_with('[') && trimmed.ends_with(']') {
             let section = trimmed[1..trimmed.len() - 1].trim().to_string();
 
-            if current_section.starts_with("models.") && !model_name.is_empty() {
+            if (current_section.starts_with("models.") || (current_section == "models" && !model_name.is_empty()))
+                && !model_name.is_empty() {
                 models.insert(
                     model_name.clone(),
                     super::super::backends::ModelConfig {
                         model_name: model_name.clone(),
                         provider: model_provider.clone(),
+                        api_key: model_api_key.clone(),
                         endpoint: model_endpoint.clone(),
                         temperature: model_temperature.unwrap_or(0.7),
                         max_tokens: model_max_tokens.unwrap_or(4096),
@@ -194,6 +197,7 @@ pub fn parse_manifest_with_models(
             if section.starts_with("models.") {
                 model_name = section["models.".len()..].to_string();
                 model_provider = String::new();
+                model_api_key = None;
                 model_temperature = None;
                 model_max_tokens = None;
                 model_endpoint = None;
@@ -230,6 +234,7 @@ pub fn parse_manifest_with_models(
             "models" => {
                 match key.as_str() {
                     "provider" => model_provider = unquote(&value).unwrap_or(value),
+                    "api_key" => model_api_key = Some(unquote(&value).unwrap_or(value)),
                     "temperature" => {
                         model_temperature = unquote(&value).unwrap_or(value).parse().ok();
                     }
@@ -251,6 +256,7 @@ pub fn parse_manifest_with_models(
                 super::super::backends::ModelConfig {
                     model_name: model_name.clone(),
                     provider: model_provider,
+                    api_key: model_api_key,
                     endpoint: model_endpoint,
                     temperature: model_temperature.unwrap_or(0.7),
                     max_tokens: model_max_tokens.unwrap_or(4096),

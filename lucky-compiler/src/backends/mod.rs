@@ -87,6 +87,7 @@ impl Default for BackendRouter {
 pub struct ModelConfig {
     pub model_name: String,
     pub provider: String,
+    pub api_key: Option<String>,
     pub endpoint: Option<String>,
     pub temperature: f64,
     pub max_tokens: u32,
@@ -95,19 +96,19 @@ pub struct ModelConfig {
 pub fn create_default_router() -> BackendRouter {
     let mut router = BackendRouter::new();
 
-    router.register("deepseek-v4", Box::new(deepseek::DeepSeekBackend::new(None)));
-    router.register("deepseek-chat", Box::new(deepseek::DeepSeekBackend::new(None)));
-    router.register("DeepSeek", Box::new(deepseek::DeepSeekBackend::new(None)));
+    router.register("deepseek-v4", Box::new(deepseek::DeepSeekBackend::new(None, None)));
+    router.register("deepseek-chat", Box::new(deepseek::DeepSeekBackend::new(None, None)));
+    router.register("DeepSeek", Box::new(deepseek::DeepSeekBackend::new(None, None)));
 
-    router.register("gpt-4o", Box::new(openai::OpenAiBackend::new(None)));
-    router.register("gpt-4", Box::new(openai::OpenAiBackend::new(None)));
-    router.register("gpt-3.5-turbo", Box::new(openai::OpenAiBackend::new(None)));
-    router.register("GPT", Box::new(openai::OpenAiBackend::new(None)));
+    router.register("gpt-4o", Box::new(openai::OpenAiBackend::new(None, None)));
+    router.register("gpt-4", Box::new(openai::OpenAiBackend::new(None, None)));
+    router.register("gpt-3.5-turbo", Box::new(openai::OpenAiBackend::new(None, None)));
+    router.register("GPT", Box::new(openai::OpenAiBackend::new(None, None)));
 
-    router.register("llama3", Box::new(ollama::OllamaBackend::new(None)));
-    router.register("llama3.1", Box::new(ollama::OllamaBackend::new(None)));
-    router.register("ollama", Box::new(ollama::OllamaBackend::new(None)));
-    router.register("Ollama", Box::new(ollama::OllamaBackend::new(None)));
+    router.register("llama3", Box::new(ollama::OllamaBackend::new(None, None)));
+    router.register("llama3.1", Box::new(ollama::OllamaBackend::new(None, None)));
+    router.register("ollama", Box::new(ollama::OllamaBackend::new(None, None)));
+    router.register("Ollama", Box::new(ollama::OllamaBackend::new(None, None)));
 
     router
 }
@@ -120,19 +121,28 @@ pub fn load_router_from_manifest(models: &HashMap<String, ModelConfig>) -> Backe
             "deepseek" => {
                 router.register(
                     model_name,
-                    Box::new(deepseek::DeepSeekBackend::new(config.endpoint.clone())),
+                    Box::new(deepseek::DeepSeekBackend::new(
+                        config.endpoint.clone(),
+                        config.api_key.clone(),
+                    )),
                 );
             }
             "openai" => {
                 router.register(
                     model_name,
-                    Box::new(openai::OpenAiBackend::new(config.endpoint.clone())),
+                    Box::new(openai::OpenAiBackend::new(
+                        config.endpoint.clone(),
+                        config.api_key.clone(),
+                    )),
                 );
             }
             "ollama" => {
                 router.register(
                     model_name,
-                    Box::new(ollama::OllamaBackend::new(config.endpoint.clone())),
+                    Box::new(ollama::OllamaBackend::new(
+                        config.endpoint.clone(),
+                        config.api_key.clone(),
+                    )),
                 );
             }
             other => {

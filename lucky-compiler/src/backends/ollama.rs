@@ -8,7 +8,7 @@ pub struct OllamaBackend {
 }
 
 impl OllamaBackend {
-    pub fn new(endpoint: Option<String>) -> Self {
+    pub fn new(endpoint: Option<String>, _api_key: Option<String>) -> Self {
         let endpoint = endpoint.unwrap_or_else(|| {
             "http://localhost:11434/api/generate".to_string()
         });

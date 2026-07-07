@@ -10,11 +10,14 @@ pub struct OpenAiBackend {
 }
 
 impl OpenAiBackend {
-    pub fn new(endpoint: Option<String>) -> Self {
+    pub fn new(endpoint: Option<String>, api_key: Option<String>) -> Self {
         let endpoint = endpoint.unwrap_or_else(|| {
             "https://api.openai.com/v1/chat/completions".to_string()
         });
-        let api_key = std::env::var("OPENAI_API_KEY").unwrap_or_default();
+        let api_key = api_key
+            .filter(|k| !k.is_empty())
+            .or_else(|| std::env::var("OPENAI_API_KEY").ok())
+            .unwrap_or_default();
         let model = std::env::var("OPENAI_MODEL").unwrap_or_else(|_| "gpt-4o".to_string());
         Self { endpoint, api_key, model }
     }
