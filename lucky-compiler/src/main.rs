@@ -937,14 +937,20 @@ fn cmd_config() {
         println!("No lucky.toml found — using provider-based defaults.");
         println!();
         println!("Available providers (configure via lucky.toml for API keys):");
-        println!("  deepseek → any model name containing 'deepseek' or 'claude'");
-        println!("  openai   → any model name containing 'gpt', 'o1', or 'o3'");
-        println!("  ollama   → any model name containing 'llama', 'mistral', 'qwen', etc.");
+        println!("  deepseek  → DeepSeek (DEEPSEEK_API_KEY)");
+        println!("  openai    → OpenAI (OPENAI_API_KEY)");
+        println!("  anthropic → Anthropic Claude (ANTHROPIC_API_KEY)");
+        println!("  google    → Google Gemini (GOOGLE_API_KEY)");
+        println!("  kimi      → Kimi Moonshot (KIMI_API_KEY)");
+        println!("  qwen      → Qwen DashScope (QWEN_API_KEY)");
+        println!("  doubao    → Doubao Volcano Ark (DOUBAO_API_KEY)");
+        println!("  glm       → GLM Zhipu AI (GLM_API_KEY)");
+        println!("  ollama    → Ollama local (no API key needed)");
     }
 
     println!();
     println!("Environment:");
-    for var in &["DEEPSEEK_API_KEY", "OPENAI_API_KEY"] {
+    for var in &["DEEPSEEK_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_API_KEY", "KIMI_API_KEY", "QWEN_API_KEY", "DOUBAO_API_KEY", "GLM_API_KEY"] {
         let val = std::env::var(var).unwrap_or_default();
         let display = if val.is_empty() { "(not set)" } else { "*** (set)" };
         println!("  {}: {}", var, display);

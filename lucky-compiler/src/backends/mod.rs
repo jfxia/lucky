@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
 pub mod tls;
+pub mod http;
+pub mod openai_compat;
+pub mod anthropic;
 pub mod deepseek;
 pub mod openai;
 pub mod ollama;
@@ -8,6 +11,12 @@ pub mod ollama;
 /// Internal provider keys (not user-facing) — one per supported provider.
 const PROVIDER_DEEPSEEK: &str = "__lucky_provider_deepseek__";
 const PROVIDER_OPENAI: &str = "__lucky_provider_openai__";
+const PROVIDER_KIMI: &str = "__lucky_provider_kimi__";
+const PROVIDER_QWEN: &str = "__lucky_provider_qwen__";
+const PROVIDER_DOUBAO: &str = "__lucky_provider_doubao__";
+const PROVIDER_GLM: &str = "__lucky_provider_glm__";
+const PROVIDER_GOOGLE: &str = "__lucky_provider_google__";
+const PROVIDER_ANTHROPIC: &str = "__lucky_provider_anthropic__";
 const PROVIDER_OLLAMA: &str = "__lucky_provider_ollama__";
 
 pub struct CompleteOptions {
@@ -69,17 +78,14 @@ impl BackendRouter {
     }
 
     pub fn route(&self, model_name: &str) -> Option<&dyn Backend> {
-        // 1. Exact match by model name (from lucky.toml or previously registered)
         if let Some(backend) = self.routes.get(model_name) {
             return Some(backend.as_ref());
         }
-        // 2. Fallback: guess provider from model name pattern
         if let Some(provider_key) = guess_provider(model_name) {
             if let Some(backend) = self.routes.get(provider_key) {
                 return Some(backend.as_ref());
             }
         }
-        // 3. Last resort: return any registered backend
         self.routes.values().next().map(|b| b.as_ref())
     }
 
@@ -90,6 +96,12 @@ impl BackendRouter {
         if models.is_empty() {
             models.push("deepseek (default)".to_string());
             models.push("openai (default)".to_string());
+            models.push("kimi (default)".to_string());
+            models.push("qwen (default)".to_string());
+            models.push("doubao (default)".to_string());
+            models.push("glm (default)".to_string());
+            models.push("google (default)".to_string());
+            models.push("anthropic (default)".to_string());
             models.push("ollama (default)".to_string());
         }
         models
@@ -116,30 +128,55 @@ pub struct ModelConfig {
 }
 
 /// Guess the LLM provider from a model name string.
-/// This avoids hardcoding specific model version names that go stale quickly.
+/// No hardcoded model versions — matches by pattern so new model names
+/// like "gpt-5" or "claude-4" work without code changes.
 fn guess_provider(model_name: &str) -> Option<&'static str> {
     let lower = model_name.to_lowercase();
-    if lower.contains("deepseek") || lower.contains("claude") {
+    if lower.contains("deepseek") {
         Some(PROVIDER_DEEPSEEK)
+    } else if lower.contains("claude") || lower.contains("anthropic") {
+        Some(PROVIDER_ANTHROPIC)
     } else if lower.contains("gpt") || lower.contains("openai") || lower.contains("o1") || lower.contains("o3") {
         Some(PROVIDER_OPENAI)
+    } else if lower.contains("kimi") || lower.contains("moonshot") {
+        Some(PROVIDER_KIMI)
+    } else if lower.contains("qwen") || lower.contains("dashscope") {
+        Some(PROVIDER_QWEN)
+    } else if lower.contains("doubao") || lower.contains("volc") || lower.contains("ark") {
+        Some(PROVIDER_DOUBAO)
+    } else if lower.contains("glm") || lower.contains("zhipu") || lower.contains("chatglm") {
+        Some(PROVIDER_GLM)
+    } else if lower.contains("gemini") || lower.contains("google") {
+        Some(PROVIDER_GOOGLE)
     } else if lower.contains("llama") || lower.contains("ollama") || lower.contains("mistral")
         || lower.contains("qwen") || lower.contains("gemma") || lower.contains("phi")
     {
         Some(PROVIDER_OLLAMA)
     } else {
-        // Default to DeepSeek for unrecognized names (generic fallback)
         Some(PROVIDER_DEEPSEEK)
     }
 }
 
-/// Create a default router with one generic backend per provider.
-/// No hardcoded model version names — the `route()` method uses
-/// `guess_provider()` to match any model name like "gpt-5" or "claude-4".
+fn make_openai_compat_backend(
+    config: &'static openai_compat::OpenAiCompatConfig,
+    endpoint: Option<String>, api_key: Option<String>,
+) -> Box<dyn Backend> {
+    Box::new(openai_compat::OpenAiCompatBackend::new(config, endpoint, api_key))
+}
+
+/// Create a default router with generic backends for all supported providers.
+/// No hardcoded model version names — `route()` uses `guess_provider()` to
+/// match any model name like "gpt-5" or "claude-4" or "kimi-latest".
 pub fn create_default_router() -> BackendRouter {
     let mut router = BackendRouter::new();
-    router.register(PROVIDER_DEEPSEEK, Box::new(deepseek::DeepSeekBackend::new(None, None)));
-    router.register(PROVIDER_OPENAI, Box::new(openai::OpenAiBackend::new(None, None)));
+    router.register(PROVIDER_DEEPSEEK, make_openai_compat_backend(&openai_compat::DEEPSEEK_CONFIG, None, None));
+    router.register(PROVIDER_OPENAI, make_openai_compat_backend(&openai_compat::OPENAI_CONFIG, None, None));
+    router.register(PROVIDER_KIMI, make_openai_compat_backend(&openai_compat::KIMI_CONFIG, None, None));
+    router.register(PROVIDER_QWEN, make_openai_compat_backend(&openai_compat::QWEN_CONFIG, None, None));
+    router.register(PROVIDER_DOUBAO, make_openai_compat_backend(&openai_compat::DOUBAO_CONFIG, None, None));
+    router.register(PROVIDER_GLM, make_openai_compat_backend(&openai_compat::GLM_CONFIG, None, None));
+    router.register(PROVIDER_GOOGLE, make_openai_compat_backend(&openai_compat::GOOGLE_CONFIG, None, None));
+    router.register(PROVIDER_ANTHROPIC, Box::new(anthropic::AnthropicBackend::new(None, None)));
     router.register(PROVIDER_OLLAMA, Box::new(ollama::OllamaBackend::new(None, None)));
     router
 }
@@ -147,41 +184,35 @@ pub fn create_default_router() -> BackendRouter {
 pub fn load_router_from_manifest(models: &HashMap<String, ModelConfig>) -> BackendRouter {
     let mut has_deepseek = false;
     let mut has_openai = false;
+    let mut has_kimi = false;
+    let mut has_qwen = false;
+    let mut has_doubao = false;
+    let mut has_glm = false;
+    let mut has_google = false;
+    let mut has_anthropic = false;
     let mut has_ollama = false;
     let mut router = BackendRouter::new();
 
     for (model_name, config) in models {
         match config.provider.as_str() {
-            "deepseek" => {
-                has_deepseek = true;
-                router.register(
-                    model_name,
-                    Box::new(deepseek::DeepSeekBackend::new(
-                        config.endpoint.clone(),
-                        config.api_key.clone(),
-                    )),
-                );
-            }
-            "openai" => {
-                has_openai = true;
-                router.register(
-                    model_name,
-                    Box::new(openai::OpenAiBackend::new(
-                        config.endpoint.clone(),
-                        config.api_key.clone(),
-                    )),
-                );
-            }
-            "ollama" => {
-                has_ollama = true;
-                router.register(
-                    model_name,
-                    Box::new(ollama::OllamaBackend::new(
-                        config.endpoint.clone(),
-                        config.api_key.clone(),
-                    )),
-                );
-            }
+            "deepseek" => { has_deepseek = true;
+                router.register(model_name, make_openai_compat_backend(&openai_compat::DEEPSEEK_CONFIG, config.endpoint.clone(), config.api_key.clone())); }
+            "openai" => { has_openai = true;
+                router.register(model_name, make_openai_compat_backend(&openai_compat::OPENAI_CONFIG, config.endpoint.clone(), config.api_key.clone())); }
+            "kimi" => { has_kimi = true;
+                router.register(model_name, make_openai_compat_backend(&openai_compat::KIMI_CONFIG, config.endpoint.clone(), config.api_key.clone())); }
+            "qwen" => { has_qwen = true;
+                router.register(model_name, make_openai_compat_backend(&openai_compat::QWEN_CONFIG, config.endpoint.clone(), config.api_key.clone())); }
+            "doubao" => { has_doubao = true;
+                router.register(model_name, make_openai_compat_backend(&openai_compat::DOUBAO_CONFIG, config.endpoint.clone(), config.api_key.clone())); }
+            "glm" => { has_glm = true;
+                router.register(model_name, make_openai_compat_backend(&openai_compat::GLM_CONFIG, config.endpoint.clone(), config.api_key.clone())); }
+            "google" => { has_google = true;
+                router.register(model_name, make_openai_compat_backend(&openai_compat::GOOGLE_CONFIG, config.endpoint.clone(), config.api_key.clone())); }
+            "anthropic" => { has_anthropic = true;
+                router.register(model_name, Box::new(anthropic::AnthropicBackend::new(config.endpoint.clone(), config.api_key.clone()))); }
+            "ollama" => { has_ollama = true;
+                router.register(model_name, Box::new(ollama::OllamaBackend::new(config.endpoint.clone(), config.api_key.clone()))); }
             other => {
                 eprintln!("Warning: unknown provider '{}' for model '{}', skipping", other, model_name);
             }
@@ -190,15 +221,15 @@ pub fn load_router_from_manifest(models: &HashMap<String, ModelConfig>) -> Backe
 
     // Register generic provider backends so that route() can match
     // unregistered model names via the heuristic (e.g. "gpt-5" → openai)
-    if has_deepseek {
-        router.register(PROVIDER_DEEPSEEK, Box::new(deepseek::DeepSeekBackend::new(None, None)));
-    }
-    if has_openai {
-        router.register(PROVIDER_OPENAI, Box::new(openai::OpenAiBackend::new(None, None)));
-    }
-    if has_ollama {
-        router.register(PROVIDER_OLLAMA, Box::new(ollama::OllamaBackend::new(None, None)));
-    }
+    if has_deepseek { router.register(PROVIDER_DEEPSEEK, make_openai_compat_backend(&openai_compat::DEEPSEEK_CONFIG, None, None)); }
+    if has_openai { router.register(PROVIDER_OPENAI, make_openai_compat_backend(&openai_compat::OPENAI_CONFIG, None, None)); }
+    if has_kimi { router.register(PROVIDER_KIMI, make_openai_compat_backend(&openai_compat::KIMI_CONFIG, None, None)); }
+    if has_qwen { router.register(PROVIDER_QWEN, make_openai_compat_backend(&openai_compat::QWEN_CONFIG, None, None)); }
+    if has_doubao { router.register(PROVIDER_DOUBAO, make_openai_compat_backend(&openai_compat::DOUBAO_CONFIG, None, None)); }
+    if has_glm { router.register(PROVIDER_GLM, make_openai_compat_backend(&openai_compat::GLM_CONFIG, None, None)); }
+    if has_google { router.register(PROVIDER_GOOGLE, make_openai_compat_backend(&openai_compat::GOOGLE_CONFIG, None, None)); }
+    if has_anthropic { router.register(PROVIDER_ANTHROPIC, Box::new(anthropic::AnthropicBackend::new(None, None))); }
+    if has_ollama { router.register(PROVIDER_OLLAMA, Box::new(ollama::OllamaBackend::new(None, None))); }
 
     if router.routes.is_empty() {
         return create_default_router();
