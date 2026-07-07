@@ -1,0 +1,139 @@
+# Lucky Project Manifest
+# ======================
+# Place this file in your project root directory.
+# Lucky will auto-detect it when you run `lucky run` or `lucky config`.
+
+[package]
+name = "my-agent-project"
+version = "0.1.0"
+description = "An AI agent built with Lucky"
+authors = ["Your Name <you@example.com>"]
+
+# ── Runtime Settings ─────────────────────────────────────────────────
+
+[runtime]
+# Maximum cost budget in USD before execution stops
+budget_usd = 10.0
+
+# ── LLM Providers ────────────────────────────────────────────────────
+# Each model section defines an LLM provider backend.
+# Give each model a name you can reference from .lk files with `use ModelName`.
+# API keys: set in this file OR as environment variables (see below).
+#
+# Provider             Env Var                 Default Model
+# ────────             ───────                 ─────────────
+# deepseek             DEEPSEEK_API_KEY        deepseek-chat
+# openai               OPENAI_API_KEY          gpt-4o
+# anthropic            ANTHROPIC_API_KEY       claude-sonnet-4-20250514
+# google               GOOGLE_API_KEY          gemini-2.0-flash
+# kimi                 KIMI_API_KEY            kimi-latest
+# qwen                 QWEN_API_KEY            qwen-max
+# doubao               DOUBAO_API_KEY          doubao-pro-32k
+# glm                  GLM_API_KEY             glm-4-plus
+# ollama               (none, local)           llama3
+
+# ── DeepSeek ──────────────────────────────────────────────────────────
+# https://platform.deepseek.com/
+
+[models.deepseek-v4]
+provider = "deepseek"
+# api_key = "sk-..."            # Optional: set here or in DEEPSEEK_API_KEY env var
+# endpoint = "https://api.deepseek.com/chat/completions"  # Optional, has default
+# temperature = 0.7
+# max_tokens = 4096
+
+# ── OpenAI ────────────────────────────────────────────────────────────
+# https://platform.openai.com/
+
+[models.gpt-4o]
+provider = "openai"
+# api_key = "sk-..."
+# endpoint = "https://api.openai.com/v1/chat/completions"
+# temperature = 0.7
+
+[models.gpt-4o-mini]
+provider = "openai"
+# api_key = "sk-..."
+# A cheaper, faster model — override temperature for coding tasks
+# temperature = 0.3
+
+# ── Anthropic Claude ──────────────────────────────────────────────────
+# https://console.anthropic.com/
+
+[models.claude-sonnet]
+provider = "anthropic"
+# api_key = "sk-ant-..."
+# endpoint = "https://api.anthropic.com/v1/messages"
+
+[models.claude-haiku]
+provider = "anthropic"
+# api_key = "sk-ant-..."
+# temperature = 0.5
+
+# ── Google Gemini ─────────────────────────────────────────────────────
+# https://aistudio.google.com/apikey
+
+[models.gemini-pro]
+provider = "google"
+# api_key = "AIza..."
+# endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+
+# ── Kimi (Moonshot) ──────────────────────────────────────────────────
+# https://platform.moonshot.cn/
+
+[models.kimi]
+provider = "kimi"
+# api_key = "sk-..."
+# endpoint = "https://api.moonshot.cn/v1/chat/completions"
+
+# ── Qwen (Alibaba DashScope) ─────────────────────────────────────────
+# https://dashscope.aliyun.com/
+
+[models.qwen-max]
+provider = "qwen"
+# api_key = "sk-..."
+# endpoint = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+
+[models.qwen-plus]
+provider = "qwen"
+# api_key = "sk-..."
+
+# ── Doubao (ByteDance Volcano Ark) ────────────────────────────────────
+# https://console.volcengine.com/ark
+
+[models.doubao]
+provider = "doubao"
+# api_key = "..."
+# endpoint = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
+
+# ── GLM (Zhipu AI) ───────────────────────────────────────────────────
+# https://open.bigmodel.cn/
+
+[models.glm-4]
+provider = "glm"
+# api_key = "..."
+# endpoint = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+
+# ── Local (Ollama) ────────────────────────────────────────────────────
+# No API key needed. Run `ollama pull llama3` first.
+# https://ollama.com/
+
+[models.llama3]
+provider = "ollama"
+# endpoint = "http://localhost:11434/api/generate"
+
+[models.mistral]
+provider = "ollama"
+# endpoint = "http://localhost:11434/api/generate"
+
+# ── Dependencies ──────────────────────────────────────────────────────
+# Lucky packages from the registry (future feature)
+
+[dependencies]
+# my-tools = "0.1.0"
+
+# ── Exports ───────────────────────────────────────────────────────────
+# Which modules are exposed when this project is used as a dependency
+
+[exports]
+modules = []
