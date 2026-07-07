@@ -31,6 +31,46 @@ impl Parser {
         Block::new(stmts, span)
     }
 
+    /// Parse a workflow body after INDENT has already been consumed.
+    pub fn parse_workflow_body_from_indent(&mut self, start: Span) -> Block {
+        let mut stmts = Vec::new();
+
+        while !self.is_eof() && !self.at_dedent() {
+            // Handle sub-indented arrow markers
+            if self.kind() == TokenKind::Indent {
+                self.bump();
+                if self.kind() == TokenKind::Arrow {
+                    self.bump();
+                    while self.kind() == TokenKind::Newline { self.bump(); }
+                    if self.at_dedent() { self.bump(); }
+                }
+                continue;
+            }
+
+            if self.kind() == TokenKind::Arrow {
+                self.bump();
+                while self.kind() == TokenKind::Newline { self.bump(); }
+                continue;
+            }
+
+            if self.at_dedent() { break; }
+
+            if let Some(stmt) = self.parse_stmt() {
+                stmts.push(stmt);
+            } else {
+                self.bump();
+            }
+
+            while self.kind() == TokenKind::Newline {
+                self.bump();
+            }
+        }
+        self.eat_dedent();
+
+        let span = start.merge(self.span());
+        Block::new(stmts, span)
+    }
+
     /// Parse a workflow body: INDENT { step [-> step]* } DEDENT.
     /// Handles arrow-separated chains spread across lines.
     pub fn parse_workflow_body(&mut self) -> Block {

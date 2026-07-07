@@ -385,14 +385,28 @@ impl Parser {
         let start = self.span();
         self.bump(); // 'workflow'
         let (name, _) = self.expect_ident("workflow name")?;
-        let context = Vec::new();
+        let mut context = Vec::new();
 
-        // Skip any intervening newlines before the body
         while self.kind() == TokenKind::Newline { self.bump(); }
 
-        let body = self.parse_workflow_body();
-        let span = start.merge(body.span);
-        Some(WorkflowDecl { name, context, body, span })
+        if self.kind() == TokenKind::Indent {
+            self.bump(); // workflow body INDENT
+            // Check for context section before body statements
+            while self.kind() == TokenKind::Newline { self.bump(); }
+            if self.is_keyword("context") {
+                self.bump();
+                self.parse_typed_idents(&mut context);
+                while self.kind() == TokenKind::Newline { self.bump(); }
+            }
+            // Parse body statements until DEDENT
+            let body = self.parse_workflow_body_from_indent(start);
+            let span = start.merge(body.span);
+            Some(WorkflowDecl { name, context, body, span })
+        } else {
+            let body = crate::ast::stmt::Block::empty(start);
+            let span = start.merge(body.span);
+            Some(WorkflowDecl { name, context, body, span })
+        }
     }
 
     // --- Goal ---
@@ -594,37 +608,63 @@ impl Parser {
 
         if self.kind() == TokenKind::Indent {
             self.bump();
-            while !self.is_eof() && !self.at_dedent() {
-                if self.is_keyword("role") {
+            loop {
+                while self.kind() == TokenKind::Newline { self.bump(); }
+                if self.at_dedent() { self.bump(); continue; }
+                if self.is_eof() { break; }
+                let txt = self.text();
+                if txt != "role" && txt != "rules" && txt != "context"
+                    && txt != "examples" && txt != "format" {
+                    break;
+                }
+
+                if txt == "role" {
                     self.bump();
+                    while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+                        self.bump();
+                    }
                     let text = self.collect_text_block();
                     sections.push(PromptSection::Role { text, span: start });
-                } else if self.is_keyword("rules") {
+                } else if txt == "rules" {
                     self.bump();
+                    while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+                        self.bump();
+                    }
                     let mut items = Vec::new();
-                    while !self.at_dedent() && self.kind() != TokenKind::Newline && !self.is_stuck() {
+                    loop {
+                        if self.at_dedent() { break; }
+                        let t = self.text();
+                        if t == "role" || t == "rules" || t == "context"
+                            || t == "examples" || t == "format" { break; }
                         items.push(self.collect_text_block());
+                        while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+                            self.bump();
+                        }
                     }
                     sections.push(PromptSection::Rules { items, span: start });
-                } else if self.is_keyword("context") {
+                } else if txt == "context" {
                     self.bump();
+                    while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+                        self.bump();
+                    }
                     let text = self.collect_text_block();
                     sections.push(PromptSection::Context { text, span: start });
-                } else if self.is_keyword("examples") {
+                } else if txt == "examples" {
                     self.bump();
-                    // Collect example pairs (input/output)
+                    while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+                        self.bump();
+                    }
                     let mut pairs = Vec::new();
                     sections.push(PromptSection::Examples { pairs, span: start });
-                } else if self.is_keyword("format") {
+                } else if txt == "format" {
                     self.bump();
+                    while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+                        self.bump();
+                    }
                     let text = self.collect_text_block();
                     sections.push(PromptSection::Format { text, span: start });
-                } else {
-                    self.bump();
                 }
-                while self.kind() == TokenKind::Newline { self.bump(); }
             }
-            while self.kind() == TokenKind::Dedent { self.bump(); }
         }
 
         let span = start.merge(self.span());
@@ -633,9 +673,10 @@ impl Parser {
 
     fn collect_text_block(&mut self) -> String {
         let mut lines = Vec::new();
-        while !self.is_eof() && !self.at_dedent() && !self.is_keyword("role") && !self.is_stuck()
-            && !self.is_keyword("rules") && !self.is_keyword("context")
-            && !self.is_keyword("examples") && !self.is_keyword("format") {
+        while !self.is_eof() && !self.at_dedent() && self.kind() != TokenKind::Indent {
+            let t = self.text();
+            if t == "role" || t == "rules" || t == "context"
+                || t == "examples" || t == "format" { break; }
             if self.kind() == TokenKind::Newline {
                 self.bump();
                 continue;
