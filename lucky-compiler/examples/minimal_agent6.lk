@@ -1,0 +1,4 @@
+project MinimalAgent6
+
+agent MyAgent
+    model MyModel

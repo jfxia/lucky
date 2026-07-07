@@ -1,0 +1,78 @@
+project MinimalCombined
+
+model PipelineModel(
+	provider = "openai",
+	version = "gpt-4o-mini",
+	temperature = 0.0,
+)
+
+task IngestCSV
+	input
+		path: String
+	output
+		raw_data: List<Map<String, String>>
+		row_count: Int
+	steps
+		let content = Filesystem.read_lines(path)
+		let header = content[0].split(",")
+		let rows = []
+		for i in 1..content.len()
+			let values = content[i].split(",")
+			let row = {}
+			for j in 0..header.len()
+				row[header[j]] = values[j]
+			rows = rows.append(row)
+		return rows
+
+agent Extractor
+	model PipelineModel
+	tools
+		Filesystem, HTTP, Database
+	permissions
+		allow filesystem.read
+		allow http.get
+		allow database.query
+	policy
+		retry 3 with backoff exponential(max: 60s)
+		timeout 10m
+
+permissions ETLPermissions
+	allow
+		filesystem.read
+		filesystem.write(./data/*)
+		http.get
+		database.query
+		database.execute
+	deny
+		filesystem.delete
+		database.execute(DROP *)
+
+workflow ETLPipeline
+	context
+		source_type: String
+		source_path: String
+		transformations: List<String>
+		schema: Map<String, String>
+		target_table: String
+
+	if context.source_type == "csv"
+		IngestCSV(path = context.source_path)
+
+	ValidateData(
+		data = context.raw_data,
+		schema = context.schema,
+	)
+		->
+		if context.report.error_count > 0
+			attempt
+				TransformData(
+					data = context.raw_data,
+					transformations = context.transformations,
+				)
+					->
+				ValidateData(
+					data = context.cleaned,
+					schema = context.schema,
+				)
+			recover
+				log.warn("Transformation pipeline had errors, proceeding with valid data only")

@@ -30,7 +30,8 @@ pub enum TokenKind {
     Le,          // <=
     Ge,          // >=
     Arrow,       // ->
-    Pipe,        // |>
+    FatArrow,    // =>
+    Pipe,        // |> 
     Dot,         // .
     DotDot,      // ..
     DotDotEq,    // ..=

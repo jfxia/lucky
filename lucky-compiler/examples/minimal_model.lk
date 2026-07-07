@@ -1,0 +1,3 @@
+project MinimalModel
+
+model MyModel(provider: "openai", version: "gpt-4")

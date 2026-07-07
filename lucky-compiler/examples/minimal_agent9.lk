@@ -1,0 +1,40 @@
+project MinimalAgent9
+
+model PipelineModel(
+	provider = "openai",
+	version = "gpt-4o-mini",
+	temperature = 0.0,
+)
+
+agent Extractor
+	model PipelineModel
+	tools
+		Filesystem, HTTP, Database
+	permissions
+		allow filesystem.read
+		allow http.get
+		allow database.query
+	policy
+		retry 3 with backoff exponential(max: 60s)
+		timeout 10m
+
+agent Transformer
+	model PipelineModel
+	tools
+		Filesystem
+	permissions
+		allow filesystem.read
+		allow filesystem.write
+	policy
+		retry 2
+
+permissions ETLPermissions
+	allow
+		filesystem.read
+		filesystem.write(./data/*)
+		http.get
+		database.query
+		database.execute
+	deny
+		filesystem.delete
+		database.execute(DROP *)

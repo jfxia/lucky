@@ -138,6 +138,10 @@ impl Lexer {
                 self.advance();
                 Some(Token::new(TokenKind::Pipe, "|>", self.span(start)))
             }
+            '=' if self.current() == '>' => {
+                self.advance();
+                Some(Token::new(TokenKind::FatArrow, "=>", self.span(start)))
+            }
             '=' if self.current() == '=' => {
                 self.advance();
                 Some(Token::new(TokenKind::EqEq, "==", self.span(start)))

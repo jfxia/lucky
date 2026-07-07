@@ -1,0 +1,9 @@
+project MinimalAgent3
+
+model MyModel(provider: "openai", version: "gpt-4")
+
+agent MyAgent
+    model MyModel
+    permissions
+        allow filesystem.read
+        allow http.get

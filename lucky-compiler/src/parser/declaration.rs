@@ -203,15 +203,38 @@ impl Parser {
                         self.bump();
                         tools.push(QualifiedName::simple(&tname, tspan));
                     }
+                    // Consume the DEDENT that closes the tools block
+                    while self.kind() == TokenKind::Newline { self.bump(); }
+                    if self.kind() == TokenKind::Dedent {
+                        self.bump();
+                    }
                 } else if self.is_keyword("permissions") {
                     permissions = Some(self.parse_permission_decl()?);
                 } else if self.is_keyword("policy") {
-                    self.bump();
-                    while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
+                    self.bump(); // 'policy'
+                    // Check if there's a name on the same line (named policy reference)
+                    if self.is_ident() {
+                        let name = self.text().to_string();
+                        let span = self.span();
                         self.bump();
-                    }
-                    if let Some((n, s)) = self.expect_ident("policy name") {
-                        policy = Some(QualifiedName::simple(&n, s));
+                        policy = Some(QualifiedName::simple(&name, span));
+                    } else {
+                        // Inline policy body: consume the policy-section tokens
+                        while self.kind() == TokenKind::Newline { self.bump(); }
+                        if self.kind() == TokenKind::Indent {
+                            self.bump(); // consume INDENT
+                            // Skip all tokens until DEDENT
+                            let mut depth = 1;
+                            while !self.is_eof() && depth > 0 {
+                                match self.kind() {
+                                    TokenKind::Indent => { self.bump(); depth += 1; }
+                                    TokenKind::Dedent => { self.bump(); depth -= 1; }
+                                    _ => { self.bump(); }
+                                }
+                            }
+                        }
+                        // Use a placeholder name - inline policy body was consumed
+                        policy = Some(QualifiedName::simple("_inline", start));
                     }
                 } else if self.is_keyword("prompt") {
                     self.bump();
@@ -641,7 +664,13 @@ impl Parser {
                         let t = self.text();
                         if t == "role" || t == "rules" || t == "context"
                             || t == "examples" || t == "format" { break; }
+                        let before = self.save_pos();
                         items.push(self.collect_text_block());
+                        // If collect_text_block didn't advance (e.g., hit unexpected keyword),
+                        // consume the blocking token to prevent infinite loop
+                        if self.pos_unchanged(before) && !self.is_eof() && !self.at_dedent() {
+                            self.bump();
+                        }
                         while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
                             self.bump();
                         }
@@ -821,32 +850,35 @@ impl Parser {
             while !self.is_eof() {
                 outer_safety += 1;
                 if outer_safety > 500 { break; }
-                while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent
-                    || self.kind() == TokenKind::Dedent {
+                // Skip NEWLINEs and INDENTs but NOT DEDENTs
+                while self.kind() == TokenKind::Newline || self.kind() == TokenKind::Indent {
                     self.bump();
                 }
                 if self.is_eof() || self.at_dedent() { break; }
 
-            if self.is_keyword("allow") {
-                self.bump();
-                current_is_allow = true;
-                self.parse_permission_inline_entries(&mut allow);
-            } else if self.is_keyword("deny") {
-                self.bump();
-                current_is_allow = false;
-                self.parse_permission_inline_entries(&mut deny);
-            } else if self.is_keyword("model") || self.is_keyword("memory")
-                || self.is_keyword("tools") || self.is_keyword("task")
-                || self.is_keyword("permissions") || self.is_keyword("policy")
-                || self.is_keyword("prompt") {
-                break;
-            } else {
-                let entry = self.parse_permission_entry();
-                if current_is_allow { allow.push(entry); } else { deny.push(entry); }
-                if self.kind() == TokenKind::Comma { self.bump(); }
+                if self.is_keyword("allow") {
+                    self.bump();
+                    current_is_allow = true;
+                    self.parse_permission_inline_entries(&mut allow);
+                } else if self.is_keyword("deny") {
+                    self.bump();
+                    current_is_allow = false;
+                    self.parse_permission_inline_entries(&mut deny);
+                } else if self.is_keyword("model") || self.is_keyword("memory")
+                    || self.is_keyword("tools") || self.is_keyword("task")
+                    || self.is_keyword("permissions") || self.is_keyword("policy")
+                    || self.is_keyword("prompt") {
+                    break;
+                } else {
+                    let entry = self.parse_permission_entry();
+                    if current_is_allow { allow.push(entry); } else { deny.push(entry); }
+                    if self.kind() == TokenKind::Comma { self.bump(); }
+                }
             }
+            // Only eat DEDENT if present
+            if self.kind() == TokenKind::Dedent {
+                self.bump();
             }
-            self.eat_dedent();
         } else {
             // Inline permissions (no sub-INDENT): parse allow/deny at current indent
             while !self.is_eof() && !self.at_dedent() {

@@ -1,0 +1,14 @@
+project MinimalAgent
+
+model MyModel(provider: "openai", version: "gpt-4")
+
+agent MyAgent
+    model MyModel
+    tools
+        Filesystem, HTTP
+    permissions
+        allow filesystem.read
+        allow http.get
+    policy
+        retry 3 with backoff exponential(max: 60s)
+        timeout 10m

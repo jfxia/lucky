@@ -1,0 +1,7 @@
+project MinimalModel5
+
+model PipelineModel(
+	provider = "openai",
+	version = "gpt-4o-mini",
+	temperature = 0.0,
+)

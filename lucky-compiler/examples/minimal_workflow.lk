@@ -1,0 +1,14 @@
+project MinimalWorkflow
+
+workflow ETLPipeline
+	context
+		source_type: String
+		source_path: String
+		transformations: List<String>
+		schema: Map<String, String>
+		target_table: String
+
+	if context.source_type == "csv"
+		IngestCSV(path = context.source_path)
+	else if context.source_type == "api"
+		IngestAPI(url = context.source_path, batch_size = 100)

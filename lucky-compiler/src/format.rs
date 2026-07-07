@@ -809,6 +809,7 @@ impl Formatter {
             TokenKind::Le => self.emit(" <= "),
             TokenKind::Ge => self.emit(" >= "),
             TokenKind::Arrow => self.emit(" -> "),
+            TokenKind::FatArrow => self.emit(" => "),
             TokenKind::Pipe => self.emit(" |> "),
             TokenKind::Plus => self.emit(" + "),
             TokenKind::Minus => {

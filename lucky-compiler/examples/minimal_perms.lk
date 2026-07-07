@@ -1,0 +1,6 @@
+project MinimalPermissions
+
+permissions TestPerms
+    allow
+        filesystem.read
+        http.get

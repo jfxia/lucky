@@ -22,6 +22,21 @@ impl Parser {
                     self.bump();
                     continue;
                 }
+                // Handle workflow continuation arrows (indented or not)
+                if self.kind() == TokenKind::Indent {
+                    self.bump();
+                    if self.kind() == TokenKind::Arrow {
+                        self.bump(); // consume Arrow
+                        while self.kind() == TokenKind::Newline { self.bump(); }
+                        if self.at_dedent() { self.bump(); }
+                    }
+                    continue;
+                }
+                if self.kind() == TokenKind::Arrow {
+                    self.bump(); // consume Arrow
+                    while self.kind() == TokenKind::Newline { self.bump(); }
+                    continue;
+                }
                 if let Some(stmt) = self.parse_stmt() {
                     stmts.push(stmt);
                 }
@@ -132,6 +147,13 @@ impl Parser {
         // Skip standalone comments at statement level
         if self.kind() == TokenKind::Comment || self.kind() == TokenKind::DocComment {
             self.bump();
+            return None;
+        }
+
+        // Workflow step continuation arrow `->` — consume and continue
+        if self.kind() == TokenKind::Arrow {
+            self.bump();
+            while self.kind() == TokenKind::Newline { self.bump(); }
             return None;
         }
 
@@ -254,6 +276,10 @@ impl Parser {
         if self.kind() == TokenKind::Indent {
             self.bump(); // INDENT
             while !self.is_eof() && !self.at_dedent() {
+                // Skip newlines between arms
+                while self.kind() == TokenKind::Newline { self.bump(); }
+                if self.at_dedent() { break; }
+
                 let arm_start = self.span();
                 let pattern = self.parse_pattern();
 
@@ -265,8 +291,16 @@ impl Parser {
                     None
                 };
 
-                // The body is an indented block
-                let body = self.parse_block();
+                // Expect '=>'
+                self.expect(TokenKind::FatArrow, "match arm");
+
+                let body = if self.kind() == TokenKind::Indent {
+                    self.parse_block()
+                } else {
+                    let expr = self.parse_expr();
+                    let span = expr.span();
+                    Block::new(vec![Stmt::ExprStmt { expr, span }], span)
+                };
                 let span = arm_start.merge(body.span);
                 arms.push(MatchArm { pattern, guard, body, span });
             }

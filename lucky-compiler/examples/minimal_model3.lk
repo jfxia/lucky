@@ -1,0 +1,3 @@
+project MinimalModel3
+
+model MyModel(provider: "openai")

@@ -165,6 +165,15 @@ impl Parser {
         }
     }
 
+    /// Save and restore position guard for detecting parser progress.
+    pub fn save_pos(&self) -> usize {
+        self.pos
+    }
+
+    pub fn pos_unchanged(&self, saved: usize) -> bool {
+        self.pos == saved
+    }
+
     /// Expect and consume an identifier, returning its text and span.
     pub fn expect_ident(&mut self, context: &str) -> Option<(String, Span)> {
         if self.is_ident() {
@@ -310,6 +319,7 @@ fn token_name(kind: TokenKind) -> &'static str {
         TokenKind::Le => "'<='",
         TokenKind::Ge => "'>='",
         TokenKind::Arrow => "'->'",
+        TokenKind::FatArrow => "'=>'",
         TokenKind::Pipe => "'|>'",
         TokenKind::Dot => "'.'",
         TokenKind::DotDot => "'..'",

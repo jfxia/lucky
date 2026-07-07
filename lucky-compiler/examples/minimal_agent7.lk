@@ -1,0 +1,6 @@
+project MinimalAgent7
+
+model MyModel(provider: "openai", version: "gpt-4")
+
+agent MyAgent
+    model MyModel

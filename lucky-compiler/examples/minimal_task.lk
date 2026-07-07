@@ -1,0 +1,11 @@
+project MinimalTask
+
+task IngestCSV
+	input
+		path: String
+	output
+		raw_data: List<Map<String, String>>
+		row_count: Int
+	steps
+		let content = Filesystem.read_lines(path)
+		return content

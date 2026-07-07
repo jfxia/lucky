@@ -6,6 +6,8 @@ use crate::lexer::token::TokenKind;
 
 use super::parser::Parser;
 
+const RANGE_PREC: u8 = 3;
+
 impl Parser {
     /// Parse an expression using Pratt parsing.
     pub fn parse_expr(&mut self) -> Expr {
@@ -60,6 +62,17 @@ impl Parser {
                 let rhs = self.parse_expr_prec(1);
                 let span = start.merge(rhs.span());
                 lhs = Expr::NullCoalesce { expr: Box::new(lhs), default: Box::new(rhs), span };
+                continue;
+            }
+
+            // Check for range expression: lhs..rhs or lhs..=rhs
+            if self.kind() == TokenKind::DotDot || self.kind() == TokenKind::DotDotEq {
+                let inclusive = self.kind() == TokenKind::DotDotEq;
+                let token_span = self.span();
+                self.bump();
+                let rhs = self.parse_expr_prec(RANGE_PREC);
+                let span = lhs.span().merge(rhs.span());
+                lhs = Expr::Range { start: Some(Box::new(lhs)), end: Some(Box::new(rhs)), inclusive, span };
                 continue;
             }
 
@@ -436,7 +449,7 @@ impl Parser {
             }
         }
 
-        self.expect_keyword("=>", "lambda arrow"); // Using `=>` as keyword or we need a new token
+        self.expect(TokenKind::FatArrow, "lambda arrow");
         let body = self.parse_expr();
         let span = start.merge(body.span());
         Expr::Lambda { params, body: Box::new(body), span }
@@ -523,9 +536,7 @@ impl Parser {
                 None
             };
             // Expect '=>'
-            // Since '=>' isn't a dedicated token, we use a convention:
-            // After pattern [if guard], the next NEWLINE starts a block
-            self.bump(); // skip NEWLINE if present
+            self.expect(TokenKind::FatArrow, "match arm");
 
             // The body is a block (indented)
             let body = if self.kind() == TokenKind::Indent {
