@@ -34,6 +34,12 @@ pub enum Pattern {
         span: Span,
     },
 
+    /// Tuple destructure pattern: `(a, b)`.
+    Tuple {
+        elements: Vec<Pattern>,
+        span: Span,
+    },
+
     /// Error pattern (recovery).
     Error { span: Span },
 }
@@ -47,6 +53,7 @@ impl Pattern {
             Pattern::Constructor { span, .. } => *span,
             Pattern::List { span, .. } => *span,
             Pattern::Map { span, .. } => *span,
+            Pattern::Tuple { span, .. } => *span,
             Pattern::Error { span } => *span,
         }
     }

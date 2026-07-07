@@ -420,6 +420,10 @@ fn pattern_to_string(pat: &Pattern) -> String {
             format!("[{}]", e.join(", "))
         }
         Pattern::Map { .. } => "{{..}}".to_string(),
+        Pattern::Tuple { elements, .. } => {
+            let e: Vec<String> = elements.iter().map(|p| pattern_to_string(p)).collect();
+            format!("({})", e.join(", "))
+        }
         Pattern::Error { .. } => "<error>".to_string(),
     }
 }

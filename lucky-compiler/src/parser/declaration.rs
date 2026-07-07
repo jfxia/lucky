@@ -41,7 +41,7 @@ impl Parser {
 
     fn recover_to_decl(&mut self) {
         let decl_keywords = [
-            "import", "agent", "task", "workflow", "goal", "memory",
+            "import", "use", "agent", "task", "workflow", "goal", "memory",
             "tool", "model", "prompt", "policy", "type", "context",
             "permissions", "approval", "pub", "project",
         ];
@@ -61,6 +61,7 @@ impl Parser {
         let result = if !self.is_keyword("") && self.kind() == TokenKind::Keyword {
             match self.text() {
                 "import" => Some(ModuleItem::Import(self.parse_import_decl()?)),
+                "use" => Some(ModuleItem::Use(self.parse_use_decl()?)),
                 "agent" => Some(ModuleItem::Agent(self.parse_agent_decl()?)),
                 "task" => Some(ModuleItem::Task(self.parse_task_decl()?)),
                 "workflow" => Some(ModuleItem::Workflow(self.parse_workflow_decl()?)),
@@ -140,6 +141,16 @@ impl Parser {
 
         let span = start.merge(self.span());
         Some(ImportDecl { path, select, alias, span })
+    }
+
+    // --- Use ---
+
+    fn parse_use_decl(&mut self) -> Option<UseDecl> {
+        let start = self.span();
+        self.bump(); // 'use'
+        let (name, name_span) = self.expect_ident("model name in use declaration")?;
+        let span = start.merge(name_span);
+        Some(UseDecl { name, span })
     }
 
     // --- Agent ---

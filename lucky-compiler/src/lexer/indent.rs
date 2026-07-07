@@ -46,7 +46,7 @@ impl IndentProcessor {
                 TokenKind::Comment | TokenKind::DocComment => {
                     // Comments at a lower indent level should trigger DEDENTs.
                     // Comments at a higher indent are ignored (no INDENT).
-                    if self.at_line_start {
+                    if self.at_line_start && token.span.start >= self.line_start_offset {
                         let indent = token.span.start - self.line_start_offset;
                         let current_indent = *self.indent_stack.last().unwrap_or(&0);
                         if indent < current_indent {
@@ -69,9 +69,11 @@ impl IndentProcessor {
                 _ => {
                     if self.at_line_start {
                         self.at_line_start = false;
-                        // Compute indentation as byte offset from start of line
-                        let indent = token.span.start - self.line_start_offset;
-                        self.handle_indent(indent, token.span, &mut result);
+                        // Compute indentation as offset from start of line
+                        if token.span.start >= self.line_start_offset {
+                            let indent = token.span.start - self.line_start_offset;
+                            self.handle_indent(indent, token.span, &mut result);
+                        }
                     }
                     self.seen_token_on_line = true;
                     result.push(token);

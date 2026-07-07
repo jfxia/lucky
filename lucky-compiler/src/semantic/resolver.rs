@@ -73,6 +73,7 @@ impl NameResolver {
     fn resolve_item(&mut self, item: &ModuleItem) {
         match item {
             ModuleItem::Import(d) => self.resolve_import(d),
+            ModuleItem::Use(_) => {}
             ModuleItem::Agent(d) => self.resolve_agent(d),
             ModuleItem::Task(d) => self.resolve_task_decl(d),
             ModuleItem::Workflow(d) => self.resolve_workflow(d),
@@ -511,6 +512,11 @@ impl NameResolver {
                 for (key, value) in entries {
                     self.resolve_pattern_bindings(key);
                     self.resolve_pattern_bindings(value);
+                }
+            }
+            Pattern::Tuple { elements, .. } => {
+                for elem in elements {
+                    self.resolve_pattern_bindings(elem);
                 }
             }
             _ => {}

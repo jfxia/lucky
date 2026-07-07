@@ -797,6 +797,17 @@ impl Parser {
                 let span = start.merge(self.span());
                 Pattern::List { elements, rest, span }
             }
+            TokenKind::LParen => {
+                self.bump();
+                let mut elements = Vec::new();
+                while !self.is_eof() && self.kind() != TokenKind::RParen {
+                    elements.push(self.parse_pattern());
+                    if self.kind() == TokenKind::Comma { self.bump(); }
+                }
+                self.expect(TokenKind::RParen, "tuple pattern");
+                let span = start.merge(self.span());
+                Pattern::Tuple { elements, span }
+            }
             _ => {
                 let span = self.span();
                 self.error(format!("Expected pattern, found '{}'", self.text()));

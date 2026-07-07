@@ -34,6 +34,7 @@ pub struct ProjectDecl {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ModuleItem {
     Import(ImportDecl),
+    Use(UseDecl),
     Agent(AgentDecl),
     Task(TaskDecl),
     Workflow(WorkflowDecl),
@@ -54,6 +55,7 @@ impl ModuleItem {
     pub fn span(&self) -> Span {
         match self {
             ModuleItem::Import(d) => d.span,
+            ModuleItem::Use(d) => d.span,
             ModuleItem::Agent(d) => d.span,
             ModuleItem::Task(d) => d.span,
             ModuleItem::Workflow(d) => d.span,
@@ -87,6 +89,14 @@ pub enum ImportSelect {
     All,
     Named(Vec<String>),
     Nothing,  // import the module itself
+}
+
+// --- Use ---
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct UseDecl {
+    pub name: String,
+    pub span: Span,
 }
 
 // --- Agent ---
