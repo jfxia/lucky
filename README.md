@@ -1,6 +1,7 @@
-![Lucky-lang logo](logo/logo256.png)
-
-## Lucky: a Goal-Oriented Agent Language
+<div align="center">
+  <img src="logo/logo256.png">
+  <h1>Lucky: a Goal-Oriented Agent Language</h1>
+</div>
 
 Lucky is a goal-oriented orchestration language for AI agents. Unlike traditional programming languages designed around CPU execution and deterministic algorithms, Lucky is designed around goal execution — the coordination of autonomous AI agents that reason, plan, and act under explicit human supervision.
 
