@@ -202,6 +202,7 @@ approval
 | [Standard Library](docs/spec/Lucky%20Standard%20Library%20Specification%20V0.1.md) | Built-in types, AI primitives, tools |
 | [IR Specification](docs/spec/Lucky%20IR%20Specification%20V0.1.md) | SSA execution graph, opcodes, optimization |
 | [Tool Protocol (LTP)](docs/spec/Lucky%20Tool%20Protocol%20Specification%20V0.1.md) | JSON-RPC protocol for cross-platform execution |
+| [Scenarios Diagram](docs/spec/Lucky%20Scenarios%20Diagram.html) | Visual overview of when to use Lucky |
 | [Roadmap](ROADMAP.md) | v0.1 → v0.2 → v0.3 plans |
 | [Examples](lucky-compiler/examples/) | CI/CD bot, research assistant, security audit, ETL pipeline |
 

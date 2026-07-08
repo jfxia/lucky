@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lucky — Applicable Scenarios</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #020617;
+    font-family: 'JetBrains Mono', monospace;
+    color: #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+  .container { max-width: 1100px; width: 100%; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #f1f5f9;
+    letter-spacing: -0.5px;
+  }
+  .header h1 span { color: #22d3ee; }
+  .header .subtitle {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 8px;
+    letter-spacing: 0.3px;
+  }
+  .header .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #22d3ee;
+    margin-right: 8px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Section Title */
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin: 32px 0 20px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  /* Scenario Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    right: 0; height: 3px;
+  }
+  .card.cyan::before  { background: #22d3ee; }
+  .card.emerald::before { background: #34d399; }
+  .card.violet::before { background: #a78bfa; }
+  .card.rose::before   { background: #fb7185; }
+  .card.amber::before  { background: #fbbf24; }
+  .card.orange::before { background: #fb923c; }
+
+  .card:hover {
+    border-color: #334155;
+  }
+
+  .card-icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+    display: inline-block;
+  }
+  .card h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #f1f5f9;
+    margin-bottom: 8px;
+  }
+  .card .tag {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .tag.cyan    { background: rgba(34, 211, 238, 0.15); color: #22d3ee; }
+  .tag.emerald { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+  .tag.violet  { background: rgba(167, 139, 250, 0.15); color: #a78bfa; }
+  .tag.rose    { background: rgba(251, 113, 133, 0.15); color: #fb7185; }
+  .tag.amber   { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+  .tag.orange  { background: rgba(251, 146, 60, 0.15); color: #fb923c; }
+
+  .card p {
+    font-size: 12px;
+    line-height: 1.7;
+    color: #94a3b8;
+    margin-bottom: 12px;
+  }
+  .card .code-snip {
+    background: rgba(2, 6, 23, 0.6);
+    border: 1px solid #1e293b;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: #cbd5e1;
+    font-family: 'JetBrains Mono', monospace;
+    overflow-x: auto;
+  }
+  .card .code-snip .kw   { color: #22d3ee; }
+  .card .code-snip .str  { color: #34d399; }
+  .card .code-snip .cmt  { color: #64748b; }
+  .card .code-snip .op   { color: #fbbf24; }
+
+  /* Full-width card */
+  .card.full {
+    grid-column: 1 / -1;
+  }
+
+  /* Ecosystem Map */
+  .eco-map {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    padding: 32px;
+    margin-top: 16px;
+    text-align: center;
+  }
+  .eco-map h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #f1f5f9;
+    margin-bottom: 24px;
+  }
+
+  .eco-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .eco-node {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1.5px solid #334155;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #e2e8f0;
+    white-space: nowrap;
+  }
+  .eco-node.highlight {
+    border-color: #22d3ee;
+    background: rgba(34, 211, 238, 0.08);
+  }
+  .eco-node.platform {
+    border-color: #34d399;
+    background: rgba(52, 211, 153, 0.08);
+  }
+  .eco-arrow {
+    font-size: 18px;
+    color: #475569;
+  }
+
+  /* Summary Cards */
+  .summary-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 40px;
+  }
+  @media (max-width: 768px) {
+    .summary-row { grid-template-columns: 1fr; }
+  }
+  .summary-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .summary-card .num {
+    font-size: 28px;
+    font-weight: 700;
+    color: #22d3ee;
+  }
+  .summary-card .label {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .summary-card p {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 48px;
+    font-size: 11px;
+    color: #475569;
+    padding-bottom: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1><span class="dot"></span>Lucky Language — <span>Applicable Scenarios</span></h1>
+    <div class="subtitle">A goal-oriented orchestration language for AI agents — where Lucky fits in your workflow</div>
+  </div>
+
+  <!-- Core Concept -->
+  <div class="section-title">⛓️ Value Chain</div>
+
+  <div class="eco-map">
+    <h3>You describe the workflow. Lucky compiles it. Your agent platform executes it.</h3>
+    <div class="eco-flow">
+      <div class="eco-node highlight">Write .lk</div>
+      <div class="eco-arrow">→</div>
+      <div class="eco-node highlight">Compile → .lir</div>
+      <div class="eco-arrow">→</div>
+      <div class="eco-node highlight">LTP Runtime</div>
+      <div class="eco-arrow">→</div>
+      <div class="eco-node platform">Claude Code</div>
+      <div class="eco-node platform">Codex CLI</div>
+      <div class="eco-node platform">Cursor</div>
+      <div class="eco-node platform">WorkBuddy</div>
+      <div class="eco-node platform">Windsurf</div>
+    </div>
+    <p style="font-size:11px; color:#64748b; margin-top:20px;">
+      Lucky is not a standalone runtime. It's the orchestration layer — the bridge between what you want and what agents do.
+    </p>
+  </div>
+
+  <!-- Scenarios -->
+  <div class="section-title">🎯 Applicable Scenarios</div>
+
+  <div class="grid">
+
+    <!-- 1. CI/CD Pipeline -->
+    <div class="card cyan">
+      <div class="card-icon">🔁</div>
+      <h3>CI/CD & Code Review Pipeline</h3>
+      <div class="tag cyan">Best fit</div>
+      <p>Automate PR review, test execution, security scanning, and staged deployment with multi-agent coordination under human supervision.</p>
+      <div class="code-snip">
+<span class="cmt"># On PR → review, test, deploy staging</span><br>
+<span class="kw">workflow</span> PRCheck<br>
+&nbsp;&nbsp;CloneRepo&nbsp;<span class="op">-></span><br>
+&nbsp;&nbsp;<span class="kw">parallel</span> ReviewDiff,&nbsp;RunTests&nbsp;<span class="kw">wait</span>&nbsp;<span class="op">-></span><br>
+&nbsp;&nbsp;<span class="kw">if</span>&nbsp;passed&nbsp;<span class="kw">then</span>&nbsp;DeployStaging&nbsp;<span class="kw">else</span>&nbsp;PostFailure
+      </div>
+    </div>
+
+    <!-- 2. Research Pipeline -->
+    <div class="card emerald">
+      <div class="card-icon">🔬</div>
+      <h3>Research & Analysis Pipeline</h3>
+      <div class="tag emerald">Best fit</div>
+      <p>Multi-stage investigation: search, analyze, cross-reference, synthesize, and report. Each stage uses a specialized agent.</p>
+      <div class="code-snip">
+<span class="cmt"># Research topic → analyze → report</span><br>
+<span class="kw">workflow</span> ResearchPipeline<br>
+&nbsp;&nbsp;SearchPapers&nbsp;<span class="op">-></span><br>
+&nbsp;&nbsp;<span class="kw">parallel</span> Summarize,&nbsp;ExtractFindings&nbsp;<span class="kw">wait</span>&nbsp;<span class="op">-></span><br>
+&nbsp;&nbsp;CrossReference&nbsp;<span class="op">-></span>&nbsp;GenerateReport
+      </div>
+    </div>
+
+    <!-- 3. Document Generation -->
+    <div class="card violet">
+      <div class="card-icon">📄</div>
+      <h3>Document Generation & Review</h3>
+      <div class="tag violet">Great fit</div>
+      <p>Multi-stage document creation with dedicated writers, reviewers, and approvers. Audit trail for compliance.</p>
+      <div class="code-snip">
+<span class="cmt"># Draft → review ← iterate → finalize</span><br>
+<span class="kw">workflow</span> DocPipeline<br>
+&nbsp;&nbsp;DraftDocument&nbsp;<span class="op">-></span><br>
+&nbsp;&nbsp;<span class="kw">attempt</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;ReviewDocument&nbsp;<span class="op">-></span>&nbsp;ApplyFeedback<br>
+&nbsp;&nbsp;<span class="kw">recover</span>&nbsp;<span class="kw">retry</span>&nbsp;3&nbsp;<span class="op">-></span>&nbsp;<span class="kw">approval</span><br>
+&nbsp;&nbsp;FinalizeAndPublish
+      </div>
+    </div>
+
+    <!-- 4. Security Auditing -->
+    <div class="card rose">
+      <div class="card-icon">🛡️</div>
+      <h3>Security Auditing</h3>
+      <div class="tag rose">Great fit</div>
+      <p>Multi-dimensional security review across dependency scan, static analysis, secret detection, and penetration testing — with explicit permission boundaries.</p>
+      <div class="code-snip">
+<span class="cmt"># Secure audit with least privilege</span><br>
+<span class="kw">agent</span> Scanner<br>
+&nbsp;&nbsp;<span class="kw">permissions</span> <span class="kw">allow</span> filesystem.read&nbsp;<span class="kw">deny</span> shell.exec<br><br>
+<span class="kw">workflow</span> SecurityAudit<br>
+&nbsp;&nbsp;<span class="kw">parallel</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;DependencyScan<br>
+&nbsp;&nbsp;&nbsp;&nbsp;StaticAnalysis<br>
+&nbsp;&nbsp;&nbsp;&nbsp;SecretDetection&nbsp;<span class="kw">wait</span><br>
+&nbsp;&nbsp;<span class="op">-></span>&nbsp;GenerateAuditReport
+      </div>
+    </div>
+
+    <!-- 5. Data Pipeline -->
+    <div class="card amber">
+      <div class="card-icon">📊</div>
+      <h3>Data Pipeline & ETL</h3>
+      <div class="tag amber">Good fit</div>
+      <p>Extract, transform, and load with AI-driven data cleaning, schema mapping, deduplication, and validation agents.</p>
+      <div class="code-snip">
+<span class="cmt"># ETL with AI-powered transforms</span><br>
+<span class="kw">workflow</span> ETLPipeline<br>
+&nbsp;&nbsp;ExtractSources&nbsp;<span class="op">-></span><br>
+&nbsp;&nbsp;<span class="kw">parallel</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;CleanData&nbsp;<span class="op">|></span>&nbsp;ValidateSchema<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Deduplicate&nbsp;<span class="op">|></span>&nbsp;MapFields&nbsp;<span class="kw">wait</span><br>
+&nbsp;&nbsp;<span class="op">-></span>&nbsp;LoadToWarehouse
+      </div>
+    </div>
+
+    <!-- 6. Multi-Agent Orchestration -->
+    <div class="card orange">
+      <div class="card-icon">🧠</div>
+      <h3>Any Multi-Agent Workflow</h3>
+      <div class="tag orange">Universal</div>
+      <p>Any process where multiple AI agents coordinate under human oversight. Parallel fan-out, swarm execution, conditional branching, and declarative recovery.</p>
+      <div class="code-snip">
+<span class="cmt"># Scale horizontally with swarm</span><br>
+<span class="kw">workflow</span> BatchProcess<br>
+&nbsp;&nbsp;FetchFileList&nbsp;<span class="op">-></span><br>
+&nbsp;&nbsp;<span class="kw">swarm</span> 20&nbsp;Analyzer.process_file(files)<br>
+&nbsp;&nbsp;<span class="op">-></span>&nbsp;AggregateResults
+      </div>
+    </div>
+
+  </div>
+
+  <!-- When NOT to use Lucky -->
+  <div class="section-title">⛔ When Not to Use Lucky</div>
+
+  <div class="grid">
+    <div class="card" style="background: rgba(136, 19, 55, 0.08); border-color: #2d1b25;">
+      <p style="font-size:12px; color:#94a3b8; margin-bottom:0;">
+        ❌ <strong style="color:#fb7185;">Number crunching</strong> — use Rust, Go, Python<br>
+        ❌ <strong style="color:#fb7185;">Real-time systems</strong> — LLM latency is unpredictable<br>
+        ❌ <strong style="color:#fb7185;">Web servers / APIs</strong> — Lucky is not a general-purpose language<br>
+        ❌ <strong style="color:#fb7185;">Single-shot LLM calls</strong> — just use a prompt<br>
+        ❌ <strong style="color:#fb7185;">Embedded devices</strong> — requires a runtime
+      </p>
+    </div>
+  </div>
+
+  <!-- Key Differentiators -->
+  <div class="section-title">⚡ What Makes Lucky Different</div>
+
+  <div class="grid">
+    <div class="card cyan">
+      <h3 style="font-size:13px;">Compiled Orchestration</h3>
+      <p style="font-size:11px;">Lucky compiles to a portable DAG-based IR. The execution graph is verified at compile time — not at runtime.</p>
+    </div>
+    <div class="card emerald">
+      <h3 style="font-size:13px;">First-Class Permissions</h3>
+      <p style="font-size:11px;">Every agent runs with explicit <code style="color:#34d399;">allow</code>/<code style="color:#fb7185;">deny</code> permissions. Lexical inheritance, restrict-only semantics.</p>
+    </div>
+    <div class="card violet">
+      <h3 style="font-size:13px;">Declarative Recovery</h3>
+      <p style="font-size:11px;">Replace try/catch with <code style="color:#a78bfa;">attempt</code>/<code style="color:#a78bfa;">recover</code>: retry, fallback, escalate — all at language level.</p>
+    </div>
+    <div class="card rose">
+      <h3 style="font-size:13px;">Human in the Loop</h3>
+      <p style="font-size:11px;"><code style="color:#fb7185;">approval</code> blocks pause execution for human sign-off. Audit trail captures every decision.</p>
+    </div>
+    <div class="card amber">
+      <h3 style="font-size:13px;">Platform Neutral</h3>
+      <p style="font-size:11px;">Same <code>.lir</code> runs on Claude Code, Codex CLI, OpenCode, Cursor, Dify, WorkBuddy — via LTP.</p>
+    </div>
+    <div class="card orange">
+      <h3 style="font-size:13px;">Cost Budgets Built-in</h3>
+      <p style="font-size:11px;"><code>--budget USD</code> enforces cost limits. Every LLM call is tracked. Execution halts when budget is exceeded.</p>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-row">
+    <div class="summary-card">
+      <div class="num">6+</div>
+      <div class="label">Platform Adapters</div>
+      <p>Claude Code, Codex CLI, OpenCode, Cursor, Dify, WorkBuddy — and growing.</p>
+    </div>
+    <div class="summary-card">
+      <div class="num">16</div>
+      <div class="label">CLI Commands</div>
+      <p>init, check, compile, fmt, ir, run, test, debug, pkg, serve, lsp, watch, doc, config, and more.</p>
+    </div>
+    <div class="summary-card">
+      <div class="num">v0.2</div>
+      <div class="label">Production Ready</div>
+      <p>Full compiler, runtime, 4 LLM backends, checkpoint/resume, cost budgets, audit trails.</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    Lucky Language — Think in goals, not syntax. &nbsp;·&nbsp; github.com/jfxia/lucky
+  </div>
+
+</div>
+
+</body>
+</html>
