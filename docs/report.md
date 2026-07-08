@@ -64,7 +64,7 @@ We make the following contributions:
 
 2. **Static type system formalization** (§4): We define a type system $\Gamma \vdash e : \tau$ with four type universes (primitive, AI resource, tool contract, memory handle), probabilistic type constructors, and confidence subtyping. We give complete typing rules for all 19 statement forms and 28 expression forms, and prove the Type Safety theorem.
 
-3. **Operational semantics** (§5–7): We define a small-step operational semantics $\langle e, S \rangle \rightarrow \langle e', S' \rangle$ over a rich runtime state tuple, covering: sequence, parallel with barrier, conditional branching, bounded loops, agent invocation, tool calls with contracts, LLM non-deterministic branching, three-tier memory operations, and attempt-recover chains. This is the paper's central innovation — prior formal semantics work has not modeled LLM probabilistic outputs, agent memory isolation, or tool contract validation as operational primitives.
+3. **Operational semantics** (§5–7): We define a small-step operational semantics $\langle e, S \rangle \rightarrow \langle e', S' \rangle$ over a rich runtime state tuple, covering: sequence, parallel with barrier, conditional branching, bounded loops, agent invocation, tool calls with contracts, LLM non-deterministic branching, four-tier memory operations, and attempt-recover chains. This is the paper's central innovation — prior formal semantics work has not modeled LLM probabilistic outputs, agent memory isolation, or tool contract validation as operational primitives.
 
 4. **Metatheorems** (§8): We prove four core theorems — Type Safety (progress + preservation), Memory Isolation, Deadlock Freedom, and Recovery Completeness — with detailed proof sketches suitable for mechanization in Lean 4.
 
@@ -1125,7 +1125,7 @@ The formalization of programming language semantics has a rich tradition from Mi
 However, **no prior PL formalization** includes:
 - LLM invocation as a primitive (all prior work assumes deterministic computation)
 - Probabilistic type constructors with confidence subtyping
-- Three-tier memory with agent isolation invariants
+- Four-tier memory with agent isolation invariants
 - Tool contract types with schema validation
 - Human approval as a control-flow gate
 - Attempt-recover chains as a core semantic construct
