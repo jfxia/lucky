@@ -1,5 +1,7 @@
 # Formal Semantics for Lucky: A Goal-Oriented DSL for AI Agent Orchestration
 
+<img src="../logo/logo128.png" alt="Lucky logo" width="64" align="right" />
+
 **Jingfeng Xia**  
 
 Version 0.1, July 2026
