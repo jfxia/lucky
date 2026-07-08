@@ -2582,7 +2582,7 @@ becomes:
 ### Node types
 
 | Node Type | IR Kind | Description |
-|---|---|---|---|
+|---|---|---|
 | `GoalNode` | `goal` | Root node declaring success criteria |
 | `WorkflowNode` | `workflow` | Named subgraph of agents and tasks |
 | `TaskNode` | `task` | Executes a task with given inputs |
