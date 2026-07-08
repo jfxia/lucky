@@ -1,4 +1,6 @@
 # Lucky Tool Protocol (LTP)
+<img src="../logo/logo128.png" alt="Lucky logo" width="64" align="right" />
+
 
 **Version:** 0.1 Draft
 **Status:** Protocol Specification
