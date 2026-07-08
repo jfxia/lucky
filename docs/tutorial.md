@@ -1,5 +1,7 @@
 # Lucky Tutorial
 
+<img src="../logo/logo128.png" alt="Lucky logo" width="64" align="right" />
+
 A step-by-step guide to the Lucky language. By the end, you'll be able to write goal-oriented AI agent programs.
 
 ---

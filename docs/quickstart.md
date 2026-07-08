@@ -1,5 +1,7 @@
 # Lucky Quickstart Guide
 
+<img src="../logo/logo128.png" alt="Lucky logo" width="64" align="right" />
+
 Get up and running with Lucky in 5 minutes.
 
 ---
