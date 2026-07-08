@@ -132,87 +132,89 @@
 
 Full design: [Lucky v0.3 Design Plan](docs/spec/Lucky%20v0.3%20Design%20Plan.md)
 
-### A) Language Completeness (35%)
+### A) Platform Integration — 30% (Top Priority)
 
 | # | Feature | Effort | Description | Status |
 |---|---|---|---|---|
-| A1 | `reason` mode | S | `reason deep` / `reason fast` / `reason none` as first-class expressions | Planned |
-| A2 | `confidence` | M | Lower `Expr::Confidence` to HIR/MIR. Runtime `Probabilistic` decision branching | Planned |
-| A3 | `deploy` declaration | M | `DeployDecl` in AST. `lucky deploy` CLI. Docker/local/cloud targets | Planned |
-| A4 | `when` / reactive events | L | Event bus, file watchers, git hooks, cron. `when X changes run Y` | Planned |
-| A5 | `transaction` blocks | M | `Transaction{body}` with checkpoint + automatic rollback | Planned |
-| A6 | `pub` visibility | S | Visibility enforcement in semantic analysis + package export | Planned |
-| A7 | Custom type declarations | M | `type` aliases, sum types (enum), product types (struct). Full type checker | Planned |
-| A8 | Stream types | L | `Stream<T>`. `from_iter`, `from_channel`, map/filter/take/batch | Planned |
-| A9 | Extended pattern matching | M | Destructuring, nested patterns, `@` bindings, or-patterns | Planned |
-| A10 | Knowledge declarations | S | `knowledge` for RAG. Vector store integration at runtime | Planned |
+| A1 | LTP Embedding C SDK | M | `lucky.h` + `liblucky.so` — 100KB static lib, pure C99, compile-once link-anywhere | Planned |
+| A2 | Python/Node/Rust bindings | M | Auto-generated language bindings: `pip install lucky-sdk`, `npm install lucky-sdk` | Planned |
+| A3 | Adapter CI pipelines | M | GitHub Actions for every adapter — compile, submit IR, assert events | Planned |
+| A4 | WorkBuddy integration | M | New adapter — plugin or MCP-based for multi-agent code review | Planned |
+| A5 | Windsurf / Cline integration | M | New MCP-based adapter. LTP as MCP server | Planned |
+| A6 | Integration guide | S | "Add Lucky to your agent tool in 5 minutes" | Planned |
+| A7 | LTP MCP bridge | M | Package LTP as MCP server. Works with Claude Desktop, Windsurf, Cline, Continue | Planned |
+| A8 | Adapter health dashboard | S | `lucky adapter check` — smoke test each platform adapter | Planned |
 
-### B) Distributed Runtime (20%)
+### B) Security & Sandboxing — 15%
 
 | # | Feature | Effort | Description | Status |
 |---|---|---|---|---|
-| B1 | NATS message bus | L | NATS pub/sub + request/reply for distributed coordination | Planned |
-| B2 | Coordinator service | L | Stateless coordinator owns DAG state, ready queue, scheduling | Planned |
-| B3 | Worker agent | L | Receives IR nodes, executes via local runtime, returns results | Planned |
-| B4 | Affinity scheduling | M | Schedule nodes to workers by model, tool, or data locality | Planned |
-| B5 | Distributed checkpoint | M | NATS KV / etcd-backed DAG + memory checkpointing | Planned |
-| B6 | CLI integration | S | `lucky run --dist` flag for distributed execution | Planned |
+| B1 | Docker sandbox | M | Ephemeral containers for tool execution. Filesystem, network, resource isolation | Planned |
+| B2 | Runtime permission audit | S | Enforce lexical restrict-only permissions at runtime. Log every allow/deny | Planned |
+| B3 | Secrets management | S | `lucky secret set KEY=value`. Encrypted at rest, injected as `secret.X` | Planned |
+| B4 | LTP mTLS | M | Optional mutual TLS for LTP connections | Planned |
+| B5 | Path traversal protection | S | Filesystem root enforcement — `../../etc/passwd` always denied | Planned |
 
-### C) Advanced Optimizer & IR (15%)
-
-| # | Feature | Effort | Description | Status |
-|---|---|---|---|---|
-| C1 | GVN pass | M | Global Value Numbering across basic blocks | Planned |
-| C2 | LICM pass | M | Loop Invariant Code Motion | Planned |
-| C3 | Inlining pass | M | Inline small task/function calls | Planned |
-| C4 | AI-specific optimization | L | LLM call fusion, prompt caching hints, speculative execution | Planned |
-| C5 | Low-level IR (LIR) | L | Linear instruction sequence, virtual register allocation | Planned |
-| C6 | Binary IR serialization | M | `.lkr` via FlatBuffers — zero-copy, 60% smaller than JSON | Planned |
-| C7 | Critical path analysis | S | Compute critical path, identify bottleneck nodes | Planned |
-
-### D) Observability & Telemetry (10%)
+### C) Standard Library Runtime — 15%
 
 | # | Feature | Effort | Description | Status |
 |---|---|---|---|---|
-| D1 | OpenTelemetry SDK | M | `opentelemetry-rust` integration, OTLP export | Planned |
-| D2 | Structured metrics | M | All spec metrics: counters, histograms, gauges | Planned |
-| D3 | Distributed tracing | M | Span per node, parent-child, trace ID across workers | Planned |
-| D4 | Structured logging | S | JSON-format structured logs replacing ad-hoc `eprintln!` | Planned |
-| D5 | `lucky observe` | S | Real-time TUI/web dashboard: DAG viz, cost, status | Planned |
+| C1 | Core type methods | M | Bool, Int, Float, String, Bytes, Char runtime methods | Planned |
+| C2 | Collection methods | M | List::map/filter/reduce/sort, Map::get/insert/keys/values | Planned |
+| C3 | `ai` package | L | ai.ask, ai.summarize, ai.translate, ai.embed, ai.rag | Planned |
+| C4 | `http` package | M | http.get/post/put/delete with retry, timeout, backoff | Planned |
+| C5 | `json`, `time`, `math`, `crypto` packages | M | Parse/stringify, temporal ops, math functions, hashing/encryption | Planned |
+| C6 | Std library docs | S | Per-function docs published to docs.lucky-lang.org | Planned |
 
-### E) Security & Sandboxing (10%)
-
-| # | Feature | Effort | Description | Status |
-|---|---|---|---|---|
-| E1 | Docker sandbox | M | Tool execution in ephemeral Docker containers | Planned |
-| E2 | LTP mTLS | M | Mutual TLS, certificate-based auth for LTP | Planned |
-| E3 | OAuth2 CLI auth | S | Device code flow for CLI authentication | Planned |
-| E4 | Permission inheritance audit | S | Runtime enforcement of lexical restrict-only permissions | Planned |
-| E5 | Secrets management | S | `lucky secret set/get`. Encrypted at rest, injected as `secret.X` | Planned |
-
-### F) Ecosystem & Tooling (10%)
+### D) Language Completeness — 15%
 
 | # | Feature | Effort | Description | Status |
 |---|---|---|---|---|
-| F1 | Package registry | L | Central OCI-based registry, Ed25519 signing, semver | Planned |
-| F2 | Std library runtime | L | Runtime methods for Bool, Int, Float, String, List, Map, Bytes, `ai`, `http` | Planned |
-| F3 | Docker deployment | M | `lucky deploy docker` — Dockerfile generation | Planned |
-| F4 | Kubernetes operator | L | `lucky` CRD, workflow-as-K8s-Job | Stretch goal |
-| F5 | Snapshot testing | S | `lucky test --snapshot`. Property-based type checker tests | Planned |
-| F6 | LSP enhancements | M | Inlay hints, code actions, call hierarchy | Planned |
+| D1 | `reason` mode | S | `reason deep` / `reason fast` / `reason none` for LLM reasoning control | Planned |
+| D2 | `deploy` declaration | M | `deploy Docker` / `deploy local`. `lucky deploy` CLI | Planned |
+| D3 | `when` / reactive events | L | Event bus, file watchers, git hooks, cron. `when X changes run Y` | Planned |
+| D4 | `pub` visibility | S | Visibility enforcement in semantic analysis + package export | Planned |
+| D5 | Extended pattern matching | M | Destructuring, nested patterns, `@` bindings, or-patterns | Planned |
+| D6 | `transaction` blocks | M | `Transaction{body}` with auto-rollback on failure | Planned |
+| D7 | Custom type declarations | M | `type` aliases, sum types (enum), product types (struct) | Planned |
+
+### E) Observability & Telemetry — 10%
+
+| # | Feature | Effort | Description | Status |
+|---|---|---|---|---|
+| E1 | Structured SDK events | M | Events carry JSON payloads with labels, costs, errors | Planned |
+| E2 | Platform-friendly event format | S | NodeStarted, ApprovalRequired, CostUpdated — designed for platform UI | Planned |
+| E3 | Cost tracking in events | S | tokens_prompt, tokens_completion, cost_usd per NodeCompleted | Planned |
+| E4 | OpenTelemetry export | M | Optional OTLP export for platforms already using OTel | Planned |
+| E5 | `lucky observe` CLI | S | Standalone TUI showing live workflow progress | Planned |
+
+### F) Distributed Runtime — 10%
+
+| # | Feature | Effort | Description | Status |
+|---|---|---|---|---|
+| F1 | Simple TCP coordinator | M | No NATS — just TCP + JSON. Good for 2-10 workers | Planned |
+| F2 | `lucky run --workers N` | S | Fan out to N local worker processes | Planned |
+| F3 | Remote worker | M | `lucky worker --connect host:port` | Planned |
+| F4 | Basic affinity | S | Match nodes to workers by capability (GPU, filesystem) | Planned |
+| F5 | Distributed checkpoint (local FS) | M | Checkpoint to shared NFS/SMB mount | Planned |
+
+### Deferred to v0.4
+
+GVN / LICM / Inlining, Low-level IR (LIR), Binary IR (FlatBuffers), Kubernetes operator, Package registry server, AI-specific optimizer, Firecracker sandbox, confidence expressions, stream types, knowledge declarations.
 
 ### Proposed Timeline
 
 | Milestone | Weeks | Content | Status |
 |---|---|---|---|
-| **M1** | 1-4 | Language core: reason, confidence, deploy, pub, pattern matching | Planned |
-| **M2** | 5-8 | Language advanced: reactive, transaction, types, streams, knowledge | Planned |
-| **M3** | 9-12 | Distributed runtime: NATS bus, coordinator, worker, CLI | Planned |
-| **M4** | 13-15 | Distributed checkpoint + affinity, GVN, LICM, inlining | Planned |
-| **M5** | 16-18 | Observability (OTel, metrics, tracing, `observe`), Docker sandbox, mTLS | Planned |
-| **M6** | 19-22 | Ecosystem: package registry, std lib runtime, Docker deploy, snapshot tests, LSP | Planned |
-| **M7** | 23-24 | Polish: AI opt, LIR, binary IR, critical path + K8s operator + release | Planned |
+| **M1** | 1-4 | Embeddable Runtime: C SDK, language bindings, MCP bridge | Planned |
+| **M2** | 5-7 | Platform Proof: adapter CI, WorkBuddy, Windsurf, integration guide | Planned |
+| **M3** | 8-10 | Security Foundation: Docker sandbox, audit, secrets, path protection | Planned |
+| **M4** | 11-13 | Standard Library: core types, collections, ai/http/json/time/math/crypto | Planned |
+| **M5** | 14-16 | Language + Observability: reason, deploy, reactive, events, OTel, observe | Planned |
+| **M6** | 17-20 | Distributed + Release: TCP coordinator, workers, affinity, polish | Planned |
+
+M1, M3, M4 run in parallel.
 
 ---
 
-*Last updated: July 2026 — v0.2 complete, v0.3 in design*
+*Last updated: July 2026 — v0.2 complete, v0.3 in design (revised: platform-first)*
