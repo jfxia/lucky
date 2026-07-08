@@ -128,19 +128,91 @@
 
 ---
 
-## v0.3 — Ecosystem Maturity (Future)
+## v0.3 — Ecosystem Maturity (In Design)
 
-| Area | Features |
-|---|---|
-| **Distributed execution** | Coordinator + worker architecture, NATS message bus, affinity scheduling |
-| **Multi-language IR** | IR bindings for Python, JavaScript, Go runtimes |
-| **Cloud deployment** | Docker image, Kubernetes operator, managed Lucky service |
-| **Observability** | OpenTelemetry metrics, distributed tracing, Prometheus exporter |
-| **Advanced optimizer** | GVN (global value numbering), LICM (loop invariant code motion), AI-specific passes (LLM call fusion, prompt caching) |
-| **Testing** | Snapshot testing, property-based testing, coverage reports |
-| **Security** | mTLS for LTP, OAuth2 integration, sandbox isolation (Docker/Firecracker) |
-| **Package registry** | Central registry server, package signing, automated CI/CD for packages |
+Full design: [Lucky v0.3 Design Plan](docs/spec/Lucky%20v0.3%20Design%20Plan.md)
+
+### A) Language Completeness (35%)
+
+| # | Feature | Effort | Description | Status |
+|---|---|---|---|---|
+| A1 | `reason` mode | S | `reason deep` / `reason fast` / `reason none` as first-class expressions | Planned |
+| A2 | `confidence` | M | Lower `Expr::Confidence` to HIR/MIR. Runtime `Probabilistic` decision branching | Planned |
+| A3 | `deploy` declaration | M | `DeployDecl` in AST. `lucky deploy` CLI. Docker/local/cloud targets | Planned |
+| A4 | `when` / reactive events | L | Event bus, file watchers, git hooks, cron. `when X changes run Y` | Planned |
+| A5 | `transaction` blocks | M | `Transaction{body}` with checkpoint + automatic rollback | Planned |
+| A6 | `pub` visibility | S | Visibility enforcement in semantic analysis + package export | Planned |
+| A7 | Custom type declarations | M | `type` aliases, sum types (enum), product types (struct). Full type checker | Planned |
+| A8 | Stream types | L | `Stream<T>`. `from_iter`, `from_channel`, map/filter/take/batch | Planned |
+| A9 | Extended pattern matching | M | Destructuring, nested patterns, `@` bindings, or-patterns | Planned |
+| A10 | Knowledge declarations | S | `knowledge` for RAG. Vector store integration at runtime | Planned |
+
+### B) Distributed Runtime (20%)
+
+| # | Feature | Effort | Description | Status |
+|---|---|---|---|---|
+| B1 | NATS message bus | L | NATS pub/sub + request/reply for distributed coordination | Planned |
+| B2 | Coordinator service | L | Stateless coordinator owns DAG state, ready queue, scheduling | Planned |
+| B3 | Worker agent | L | Receives IR nodes, executes via local runtime, returns results | Planned |
+| B4 | Affinity scheduling | M | Schedule nodes to workers by model, tool, or data locality | Planned |
+| B5 | Distributed checkpoint | M | NATS KV / etcd-backed DAG + memory checkpointing | Planned |
+| B6 | CLI integration | S | `lucky run --dist` flag for distributed execution | Planned |
+
+### C) Advanced Optimizer & IR (15%)
+
+| # | Feature | Effort | Description | Status |
+|---|---|---|---|---|
+| C1 | GVN pass | M | Global Value Numbering across basic blocks | Planned |
+| C2 | LICM pass | M | Loop Invariant Code Motion | Planned |
+| C3 | Inlining pass | M | Inline small task/function calls | Planned |
+| C4 | AI-specific optimization | L | LLM call fusion, prompt caching hints, speculative execution | Planned |
+| C5 | Low-level IR (LIR) | L | Linear instruction sequence, virtual register allocation | Planned |
+| C6 | Binary IR serialization | M | `.lkr` via FlatBuffers — zero-copy, 60% smaller than JSON | Planned |
+| C7 | Critical path analysis | S | Compute critical path, identify bottleneck nodes | Planned |
+
+### D) Observability & Telemetry (10%)
+
+| # | Feature | Effort | Description | Status |
+|---|---|---|---|---|
+| D1 | OpenTelemetry SDK | M | `opentelemetry-rust` integration, OTLP export | Planned |
+| D2 | Structured metrics | M | All spec metrics: counters, histograms, gauges | Planned |
+| D3 | Distributed tracing | M | Span per node, parent-child, trace ID across workers | Planned |
+| D4 | Structured logging | S | JSON-format structured logs replacing ad-hoc `eprintln!` | Planned |
+| D5 | `lucky observe` | S | Real-time TUI/web dashboard: DAG viz, cost, status | Planned |
+
+### E) Security & Sandboxing (10%)
+
+| # | Feature | Effort | Description | Status |
+|---|---|---|---|---|
+| E1 | Docker sandbox | M | Tool execution in ephemeral Docker containers | Planned |
+| E2 | LTP mTLS | M | Mutual TLS, certificate-based auth for LTP | Planned |
+| E3 | OAuth2 CLI auth | S | Device code flow for CLI authentication | Planned |
+| E4 | Permission inheritance audit | S | Runtime enforcement of lexical restrict-only permissions | Planned |
+| E5 | Secrets management | S | `lucky secret set/get`. Encrypted at rest, injected as `secret.X` | Planned |
+
+### F) Ecosystem & Tooling (10%)
+
+| # | Feature | Effort | Description | Status |
+|---|---|---|---|---|
+| F1 | Package registry | L | Central OCI-based registry, Ed25519 signing, semver | Planned |
+| F2 | Std library runtime | L | Runtime methods for Bool, Int, Float, String, List, Map, Bytes, `ai`, `http` | Planned |
+| F3 | Docker deployment | M | `lucky deploy docker` — Dockerfile generation | Planned |
+| F4 | Kubernetes operator | L | `lucky` CRD, workflow-as-K8s-Job | Stretch goal |
+| F5 | Snapshot testing | S | `lucky test --snapshot`. Property-based type checker tests | Planned |
+| F6 | LSP enhancements | M | Inlay hints, code actions, call hierarchy | Planned |
+
+### Proposed Timeline
+
+| Milestone | Weeks | Content | Status |
+|---|---|---|---|
+| **M1** | 1-4 | Language core: reason, confidence, deploy, pub, pattern matching | Planned |
+| **M2** | 5-8 | Language advanced: reactive, transaction, types, streams, knowledge | Planned |
+| **M3** | 9-12 | Distributed runtime: NATS bus, coordinator, worker, CLI | Planned |
+| **M4** | 13-15 | Distributed checkpoint + affinity, GVN, LICM, inlining | Planned |
+| **M5** | 16-18 | Observability (OTel, metrics, tracing, `observe`), Docker sandbox, mTLS | Planned |
+| **M6** | 19-22 | Ecosystem: package registry, std lib runtime, Docker deploy, snapshot tests, LSP | Planned |
+| **M7** | 23-24 | Polish: AI opt, LIR, binary IR, critical path + K8s operator + release | Planned |
 
 ---
 
-*Last updated: July 2026 — v0.2 complete*
+*Last updated: July 2026 — v0.2 complete, v0.3 in design*
