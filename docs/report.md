@@ -165,15 +165,13 @@ We reconstruct the lexical specification from the two-phase lexer implementation
 
 **Identifiers** follow the pattern
 
-$\text{Ident}=(L\mid\)\cdot(L\mid N\mid\)^{*}$
+```math 
+\text{Ident} = (L \mid \_) \cdot (L \mid N \mid \_)^* 
+```
 
 where $L$ denotes Unicode Letter categories (Lu, Ll, Lt, Lm, Lo), and $N$ denotes Unicode Number categories (Nd, Nl, No), excluding $N$ as the first character.
 
-**String literals** support interpolation:
-
-`"text\{expr}text"`
-
-where *expr* is any Lucky expression.
+**String literals** support interpolation: `"text{expr}text"` , where *expr* is any Lucky expression.
 
 Triple-quoted strings `"""..."""` preserve indentation relative to the closing delimiter.
 
@@ -841,14 +839,15 @@ The circuit breaker state transitions: $\text{closed} \xrightarrow{5 \text{ fail
 
 ## 7. AI-Domain-Specific Semantics
 
-### 7.1 Three-Tier Memory Semantics
+### 7.1 Four-Tier Memory Semantics
 
-Lucky models three memory tiers with distinct isolation and persistence properties:
+Lucky models four memory tiers with distinct isolation and persistence properties:
 
 | Tier | Scope | Persistence | Isolation |
 |------|-------|-------------|-----------|
 | **Local** | Single task execution | Task duration | Private to task |
-| **Session/Project** | Agent lifetime | Agent lifetime (checkpointed) | Private to agent |
+| **Session** | Agent session | Agent session lifetime | Private to agent session |
+| **Project** | Agent lifetime | Agent lifetime (checkpointed) | Private to agent |
 | **Global** | All agents | Program lifetime | Shared, writable |
 
 **Memory read:**
