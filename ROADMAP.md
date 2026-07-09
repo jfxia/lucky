@@ -166,41 +166,48 @@ Full design: [Lucky v0.3 Design Plan](docs/spec/Lucky%20v0.3%20Design%20Plan.md)
 | C5 | `json`, `time`, `math`, `crypto` packages | M | Parse/stringify, temporal ops, math functions, hashing/encryption | Planned |
 | C6 | Std library docs | S | Per-function docs published to docs.lucky-lang.org | Planned |
 
-### D) Language Completeness — 15%
+### D) Dynamic Sub-Agent System — 15%
+
+Based on analysis of Solon AI Harness sub-agent patterns: Lucky's static compilation model needs controlled dynamism for sub-agent registration, isolation, and plugin-style loading.
 
 | # | Feature | Effort | Description | Status |
 |---|---|---|---|---|
-| D1 | `reason` mode | S | `reason deep` / `reason fast` / `reason none` for LLM reasoning control | Planned |
-| D2 | `deploy` declaration | M | `deploy Docker` / `deploy local`. `lucky deploy` CLI | Planned |
-| D3 | `when` / reactive events | L | Event bus, file watchers, git hooks, cron. `when X changes run Y` | Planned |
-| D4 | `pub` visibility | S | Visibility enforcement in semantic analysis + package export | Planned |
-| D5 | Extended pattern matching | M | Destructuring, nested patterns, `@` bindings, or-patterns | Planned |
-| D6 | `transaction` blocks | M | `Transaction{body}` with auto-rollback on failure | Planned |
-| D7 | Custom type declarations | M | `type` aliases, sum types (enum), product types (struct) | Planned |
+| D1 | `register agent` statement | M | Dynamic agent registration at runtime. `register agent Foo { prompt "..."; tools ... }`. Compile-time verified, runtime instantiated. | Planned |
+| D2 | Sub-session isolation (`isolate`) | M | Explicit context scoping with `isolate`. Each sub-agent gets independent session, inherited context (opt-in), own memory scope. Replaces automatic propagation. | Planned |
+| D3 | External agent definitions (mount) | M | `mount agents from "./agents/"` — load agent definitions from YAML/JSON/MD files. Plugin-style extensibility. | Planned |
+| D4 | Agent registry runtime API | S | `agents()` built-in to query registered agents. `register agent from "./custom.yaml"`. C SDK binding. | Planned |
 
-### E) Observability & Telemetry — 10%
+### E) Language Completeness — 10%
 
 | # | Feature | Effort | Description | Status |
 |---|---|---|---|---|
-| E1 | Structured SDK events | M | Events carry JSON payloads with labels, costs, errors | Planned |
-| E2 | Platform-friendly event format | S | NodeStarted, ApprovalRequired, CostUpdated — designed for platform UI | Planned |
-| E3 | Cost tracking in events | S | tokens_prompt, tokens_completion, cost_usd per NodeCompleted | Planned |
-| E4 | OpenTelemetry export | M | Optional OTLP export for platforms already using OTel | Planned |
-| E5 | `lucky observe` CLI | S | Standalone TUI showing live workflow progress | Planned |
+| E1 | `reason` mode | S | `reason deep` / `reason fast` / `reason none` for LLM reasoning control | Planned |
+| E2 | `deploy` declaration | M | `deploy Docker` / `deploy local`. `lucky deploy` CLI | Planned |
+| E3 | `when` / reactive events | L | Event bus, file watchers, git hooks, cron. `when X changes run Y` | Planned |
+| E4 | `pub` visibility | S | Visibility enforcement in semantic analysis + package export | Planned |
+| E5 | Extended pattern matching | M | Destructuring, nested patterns, `@` bindings, or-patterns | Planned |
+| E6 | `transaction` blocks | M | `Transaction{body}` with auto-rollback on failure | Planned |
+| E7 | Custom type declarations | M | `type` aliases, sum types (enum), product types (struct) | Planned |
 
-### F) Distributed Runtime — 10%
+### F) Observability & Telemetry — 10%
 
 | # | Feature | Effort | Description | Status |
 |---|---|---|---|---|
-| F1 | Simple TCP coordinator | M | No NATS — just TCP + JSON. Good for 2-10 workers | Planned |
-| F2 | `lucky run --workers N` | S | Fan out to N local worker processes | Planned |
-| F3 | Remote worker | M | `lucky worker --connect host:port` | Planned |
-| F4 | Basic affinity | S | Match nodes to workers by capability (GPU, filesystem) | Planned |
-| F5 | Distributed checkpoint (local FS) | M | Checkpoint to shared NFS/SMB mount | Planned |
+| F1 | Structured SDK events | M | Events carry JSON payloads with labels, costs, errors | Planned |
+| F2 | Platform-friendly event format | S | NodeStarted, ApprovalRequired, CostUpdated — designed for platform UI | Planned |
+| F3 | Cost tracking in events | S | tokens_prompt, tokens_completion, cost_usd per NodeCompleted | Planned |
+| F4 | OpenTelemetry export | M | Optional OTLP export for platforms already using OTel | Planned |
+| F5 | `lucky observe` CLI | S | Standalone TUI showing live workflow progress | Planned |
 
-### Deferred to v0.4
+### G) Distributed Runtime — 10%
 
-GVN / LICM / Inlining, Low-level IR (LIR), Binary IR (FlatBuffers), Kubernetes operator, Package registry server, AI-specific optimizer, Firecracker sandbox, confidence expressions, stream types, knowledge declarations.
+| # | Feature | Effort | Description | Status |
+|---|---|---|---|---|
+| G1 | Simple TCP coordinator | M | No NATS — just TCP + JSON. Good for 2-10 workers | Planned |
+| G2 | `lucky run --workers N` | S | Fan out to N local worker processes | Planned |
+| G3 | Remote worker | M | `lucky worker --connect host:port` | Planned |
+| G4 | Basic affinity | S | Match nodes to workers by capability (GPU, filesystem) | Planned |
+| G5 | Distributed checkpoint (local FS) | M | Checkpoint to shared NFS/SMB mount | Planned |
 
 ### Proposed Timeline
 
@@ -210,11 +217,68 @@ GVN / LICM / Inlining, Low-level IR (LIR), Binary IR (FlatBuffers), Kubernetes o
 | **M2** | 5-7 | Platform Proof: adapter CI, WorkBuddy, Windsurf, integration guide | Planned |
 | **M3** | 8-10 | Security Foundation: Docker sandbox, audit, secrets, path protection | Planned |
 | **M4** | 11-13 | Standard Library: core types, collections, ai/http/json/time/math/crypto | Planned |
-| **M5** | 14-16 | Language + Observability: reason, deploy, reactive, events, OTel, observe | Planned |
+| **M5** | 14-16 | Dynamic Sub-Agents: register, isolate, mount, agent registry + Language: reason, deploy, reactive + Observability | Planned |
 | **M6** | 17-20 | Distributed + Release: TCP coordinator, workers, affinity, polish | Planned |
 
-M1, M3, M4 run in parallel.
+M1, M3, M4 run in parallel. M5 pulls in the new Harness-inspired features.
 
 ---
 
-*Last updated: July 2026 — v0.2 complete, v0.3 in design (revised: platform-first)*
+## v0.4 — Production Scale (Planned)
+
+Full design: To be drafted based on [v0.3 outcomes and analysis](docs/analysis/harness-subagent-analysis.md)
+
+### A) Advanced Orchestration Patterns
+
+| # | Feature | Effort | Description |
+|---|---|---|---|
+| A1 | Multi-level delegation | L | Sub-agents can also use `task` tool. Runtime tracks delegation tree (not just flat DAG). `task` tool is composable. |
+| A2 | Contract enforcement | M | Runtime validates agent I/O contracts. `output ResearchBrief` — if agent returns wrong shape or low confidence, orchestrator re-delegates. |
+| A3 | Auto-rethink / adaptive workflows | M | `policy AdaptivePolicy { rethink on partial_failure; max_rethink 3; escalate_on_stuck }`. Agent can re-plan mid-workflow. |
+| A4 | Parallel sub-agent patterns | M | Built-in patterns: `split` (divide input across agents), `aggregate` (merge outputs), `vote` (majority consensus), `refine` (iterative improvement). |
+
+### B) Advanced Optimizer & IR
+
+| # | Feature | Effort | Description |
+|---|---|---|---|
+| B1 | GVN pass | M | Global Value Numbering across basic blocks. |
+| B2 | LICM pass | M | Loop Invariant Code Motion. |
+| B3 | Inlining pass | M | Inline small task/function calls (heuristic: < 10 nodes). |
+| B4 | Low-level IR (LIR) | L | Linear instruction sequence, virtual register allocation, block layout. Bridges MIR to execution. |
+| B5 | Binary IR serialization | M | `.lkr` via FlatBuffers — zero-copy, 60% smaller than JSON. |
+| B6 | AI-specific optimization | L | LLM call fusion (merge adjacent calls to same model), prompt caching hints, speculative execution. |
+| B7 | Critical path analysis | S | Compute critical path length, identify bottleneck nodes at compile time. |
+
+### C) Ecosystem & Platform
+
+| # | Feature | Effort | Description |
+|---|---|---|---|
+| C1 | Kubernetes operator | L | `lucky` CRD. Workflow-as-K8s-Job. Native K8s scaling, secrets, networking. |
+| C2 | Package registry server | L | Central OCI-based registry. `lucky pkg publish/search/install`. Ed25519 signing. Semver resolution. |
+| C3 | Lucky Cloud service | L | Managed Lucky runtime as a service. REST API: `POST /run`, `GET /events`, `POST /approve`. |
+| C4 | Confidence expressions | M | `expr confidence > threshold` → HIR/MIR → runtime Probabilistic value branching. |
+| C5 | Stream types | L | `Stream<T>`. `from_iter`, `from_channel`, map/filter/take/batch. |
+| C6 | Knowledge declarations | S | `knowledge` for RAG. Vector store integration at runtime. |
+| C7 | More platform adapters | M | Cline, Continue.dev, JetBrains AI, GitHub Copilot Extensions. |
+
+### D) Advanced Security
+
+| # | Feature | Effort | Description |
+|---|---|---|---|
+| D1 | Firecracker sandbox | L | VM-level isolation for tool execution. Linux-only. Stronger isolation than Docker. |
+| D2 | mTLS everywhere | M | Full mTLS for LTP, SDK, and inter-worker communication. Certificate management CLI. |
+| D3 | Audit SIEM integration | M | Structured audit events shipped to SIEM (Splunk, Elastic, Datadog). OTel-compatible. |
+
+### Proposed Timeline
+
+| Milestone | Weeks | Content |
+|---|---|---|
+| **M1** | 1-6 | Advanced orchestration: delegation, contracts, auto-rethink, parallel patterns |
+| **M2** | 7-12 | Optimizer + IR: GVN, LICM, inlining, LIR, binary IR, AI-specific pass |
+| **M3** | 13-16 | Ecosystem: K8s operator, package registry, Cloud service |
+| **M4** | 17-20 | Language + Security: confidence, streams, knowledge, Firecracker, mTLS, SIEM |
+| **M5** | 21-24 | Polish + platform adapters: Cline, Continue, JetBrains, GitHub Copilot + release |
+
+---
+
+*Last updated: July 2026 — v0.2 complete, v0.3 in design (revised with sub-agent features from Harness analysis), v0.4 planned*
