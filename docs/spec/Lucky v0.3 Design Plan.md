@@ -416,53 +416,226 @@ pub fn ai_ask(args: Vec<RuntimeValue>, runtime: &Runtime) -> Result<RuntimeValue
 
 ---
 
-### D) Language Completeness (15% of effort)
+### D) Dynamic Sub-Agent System (15% of effort)
+
+Based on analysis of [Solon AI Harness sub-agent patterns](../analysis/harness-subagent-analysis.md): Lucky's static compilation model needs **controlled dynamism** — agents that can be registered at runtime, executed in isolated sub-sessions, and loaded from external definitions. This closes the biggest gap between Lucky and frameworks like Harness.
+
+| # | Feature | Effort | Description |
+|---|---|---|---|
+| **D1** | `register agent` statement | M | Dynamic agent registration at runtime. `register agent Researcher { prompt "..."; tools Browser }`. Compile-time syntax verification, runtime instantiation. Agents created on-demand, released after use. |
+| **D2** | Sub-session isolation (`isolate`) | M | Explicit context scoping with `isolate` keyword. Each sub-agent gets an independent session with inherited context (opt-in via block), its own memory scope, and limited history. Replaces automatic-all-propagating context for sub-agent workflows. |
+| **D3** | External agent definitions (mount) | M | `mount agents from "./agents/"` — load agent definitions from YAML, JSON, or Markdown files on disk. Plugin-style extensibility. Third parties can contribute agents without modifying `.lk` files. |
+| **D4** | Agent registry runtime API | S | `agents()` built-in to query registered agents. `register agent from "./custom-agent.yaml"`. C SDK binding for programmatic registration. Introspection for the orchestrator. |
+
+#### D1 — Dynamic Agent Registration
+
+```lucky
+// Current Lucky — all agents must be declared at compile time
+agent Researcher
+  model DeepSeek
+  tools Browser
+  prompt "You are a technical researcher..."
+
+// Proposed: dynamic registration within a workflow
+workflow WritingPipeline
+  register agent Researcher
+    model DeepSeek
+    tools Browser
+    prompt "..."           // compiled and verified, but agent instantiated on demand
+
+  register agent Writer
+    model DeepSeek
+    tools Filesystem
+    prompt "..."
+
+  register agent Reviewer
+    model DeepSeek
+    prompt "..."
+
+  // Use them — agents created when first referenced
+  Researcher.search(topic) -> Writer.draft -> Reviewer.check
+```
+
+**Runtime contract:** The `register agent` block is parsed and type-checked at compile time, but the agent instance is created lazily — only when first invoked. After the workflow completes, the agent session can be released. This matches Harness's "on-demand, use-and-release" pattern.
+
+**C SDK binding:**
+```c
+// Dynamic agent registration from the embedding platform
+lucky_agent_def_t agent = {
+    .name = "researcher",
+    .system_prompt = "You are a technical researcher...",
+    .tools = (char*[]){"Browser", "Filesystem", NULL},
+};
+lucky_session_register_agent(session, &agent);
+```
+
+#### D2 — Sub-Session Isolation
+
+The article's key insight: "Each sub-agent needs independent mind and memory." Lucky's automatic context propagation is the opposite — everything flows everywhere. This is a problem for multi-agent systems.
+
+```lucky
+// Proposed: isolate creates an independent sub-session
+workflow WritingPipeline
+  context
+    topic: String          // inherited by all (read-only)
+    style_guide: String
+
+  Researcher.search(topic)
+    isolate                 // researcher sees: topic only. Not other agents' history.
+                            // Has its own memory scope. Session is fresh.
+    -> Writer.draft(style_guide = context.style_guide)
+    isolate                 // writer sees: topic + research output + style_guide.
+                            // Does NOT see researcher's internal conversation.
+    -> Reviewer.check
+    isolate                 // reviewer sees: topic + draft only.
+```
+
+**Design principles:**
+1. **Context inheritance is opt-in.** Without `isolate`, behavior is current (everything flows). With `isolate`, only explicitly declared context entries and the immediate predecessor's output are inherited.
+2. **Memory is scoped.** Each isolated sub-agent gets a fresh memory scope. It cannot read other agents' memories unless explicitly shared.
+3. **History is limited.** The isolated session carries only task-relevant context, not the full conversation history. This saves tokens and protects privacy.
+
+**Runtime model:**
+```
+┌──────────────────────────────────────┐
+│         Main Session                 │
+│  context: { topic, style_guide }    │
+│                                      │
+│  ┌────────────────────────────────┐  │
+│  │  Sub-Session: Researcher       │  │  isolate
+│  │  sees: topic                    │  │
+│  │  memory: fresh scope           │  │
+│  │  history: only current task    │  │
+│  └────────────┬───────────────────┘  │
+│               │ output: research     │
+│               ▼                      │
+│  ┌────────────────────────────────┐  │
+│  │  Sub-Session: Writer           │  │  isolate
+│  │  sees: topic + style_guide +    │  │
+│  │        research output          │  │
+│  │  memory: fresh scope           │  │
+│  └────────────┬───────────────────┘  │
+│               │ output: draft        │
+│               ▼                      │
+│  ┌────────────────────────────────┐  │
+│  │  Sub-Session: Reviewer         │  │  isolate
+│  │  sees: topic + draft           │  │
+│  └────────────────────────────────┘  │
+└──────────────────────────────────────┘
+```
+
+#### D3 — External Agent Definitions (Mount)
+
+The article's "mount system" loads agent definitions from the filesystem. Lucky can support this natively:
+
+```yaml
+# agents/researcher.yaml
+name: researcher
+description: "Technical research specialist"
+prompt: |
+  You are a senior technical researcher.
+  Your job is to deeply investigate a topic.
+tools:
+  - Browser
+  - Filesystem
+memory: short-term
+```
+
+```lucky
+// In .lk file — mount a directory of external agent definitions
+mount agents from "./agents"
+
+// Now `researcher`, `writer`, `reviewer` are available as if declared inline
+workflow ResearchTask
+  register agent from "./agents/fact-checker.yaml"  // one-off load
+  researcher.search("Rust async patterns")
+  fact_checker.verify(research)
+```
+
+**Supported formats:**
+- **YAML** (`*.yaml`/`.yml`) — clean, minimal declarations
+- **JSON** (`*.json`) — for programmatic generation
+- **Markdown** (`*.md`) — self-documenting agent definitions
+
+**Resolution order:** Inline `agent` > `register agent` > mounted definitions > built-in agents. This allows overriding at any level.
+
+#### D4 — Agent Registry Runtime API
+
+```lucky
+// Query available agents
+let available = agents()
+// -> ["general", "explore", "plan", "bash", "researcher", "writer", ...]
+
+// Register from external file mid-workflow
+register agent from "./agents/fact-checker.yaml"
+
+// Check if an agent exists
+if "fact-checker" in agents()
+    fact_checker.verify(article)
+else
+    // fallback to general agent
+```
+
+**C SDK binding:**
+```c
+// List registered agents
+const char** agents = lucky_session_agents(session);
+for (int i = 0; agents[i] != NULL; i++) {
+    printf("Agent: %s\n", agents[i]);
+}
+
+// Register at runtime
+lucky_session_register_from_file(session, "./agents/custom.yaml");
+```
+
+---
+
+### E) Language Completeness (10% of effort)
 
 Only the features that platforms **actually need** for real workflows. Defer anything speculative.
 
 | # | Feature | Effort | Spec Reference | Why Platforms Need It |
 |---|---|---|---|---|
-| **D1** | `reason` mode | S | LRM Ch. 41 | Platforms expose reasoning: DeepSeek R1, Claude Sonnet with thinking, OpenAI o-series. Lucky should control this. |
-| **D2** | `deploy` declaration | M | LRM Ch. 48 | Platforms need to know where output goes. `deploy Docker`, `deploy local`, `deploy cloud`. |
-| **D3** | `when` / reactive events | L | LRM Ch. 68-69 | CI/CD workflows are event-driven. "When PR opened → run security audit." This is what platforms do. |
-| **D4** | `pub` visibility | S | LRM Ch. 15 | Package reusability across projects. Platforms import community packages. |
-| **D5** | Extended pattern matching | M | LRM Ch. 30-33 | Destructuring on AI outputs. Common in agent workflows. |
-| **D6** | `transaction` blocks | M | LRM Ch. 62 | Platforms need rollback safety. Failed deploy → auto-rollback. |
-| **D7** | Custom type declarations | M | LRM Ch. 12-14 | `type ReviewResult = Approved { notes } | Rejected { reasons }`. Sum types for structured AI outputs. |
+| **E1** | `reason` mode | S | LRM Ch. 41 | Platforms expose reasoning: DeepSeek R1, Claude Sonnet with thinking, OpenAI o-series. Lucky should control this. |
+| **E2** | `deploy` declaration | M | LRM Ch. 48 | Platforms need to know where output goes. `deploy Docker`, `deploy local`, `deploy cloud`. |
+| **E3** | `when` / reactive events | L | LRM Ch. 68-69 | CI/CD workflows are event-driven. "When PR opened → run security audit." This is what platforms do. |
+| **E4** | `pub` visibility | S | LRM Ch. 15 | Package reusability across projects. Platforms import community packages. |
+| **E5** | Extended pattern matching | M | LRM Ch. 30-33 | Destructuring on AI outputs. Common in agent workflows. |
+| **E6** | `transaction` blocks | M | LRM Ch. 62 | Platforms need rollback safety. Failed deploy → auto-rollback. |
+| **E7** | Custom type declarations | M | LRM Ch. 12-14 | `type ReviewResult = Approved { notes } | Rejected { reasons }`. Sum types for structured AI outputs. |
 
 **Deferred from language (to v0.4):**
 - `confidence` expressions — interesting but platforms don't surface this today
 - Stream types — complex, no platform demand yet
 - `knowledge` declarations — needs vector DB integration, defer to v0.4
-- `ask human` interactive queries — platforms handle this differently
 
 ---
 
-### E) Observability & Telemetry (10% of effort)
+### F) Observability & Telemetry (10% of effort)
 
 Platforms need to show users what Lucky is doing. Telemetry is the window.
 
 | # | Feature | Effort | Description |
 |---|---|---|---|
-| **E1** | Structured events via SDK | M | The C SDK (A1) already fires events. These events carry structured JSON payloads. Document the event schema. |
-| **E2** | Platform-friendly event format | S | Events are designed for the platform to render: `NodeStarted { label, kind, estimated_cost }`, `ApprovalRequired { message, gate_id }`, `CostUpdated { total, remaining_budget }`. |
-| **E3** | Cost & token tracking in events | S | Every `NodeCompleted` event carries `tokens_prompt`, `tokens_completion`, `cost_usd`. Platforms can show live cost in their UI. |
-| **E4** | OpenTelemetry export | M | Optional: pipe events to OTel. For platforms that already use OTel, Lucky events become spans. |
-| **E5** | `lucky observe` CLI | S | Standalone TUI showing live workflow progress. Useful for debugging and demos. |
+| **F1** | Structured events via SDK | M | The C SDK (A1) already fires events. These events carry structured JSON payloads. Document the event schema. |
+| **F2** | Platform-friendly event format | S | Events are designed for the platform to render: `NodeStarted { label, kind, estimated_cost }`, `ApprovalRequired { message, gate_id }`, `CostUpdated { total, remaining_budget }`. |
+| **F3** | Cost & token tracking in events | S | Every `NodeCompleted` event carries `tokens_prompt`, `tokens_completion`, `cost_usd`. Platforms can show live cost in their UI. |
+| **F4** | OpenTelemetry export | M | Optional: pipe events to OTel. For platforms that already use OTel, Lucky events become spans. |
+| **F5** | `lucky observe` CLI | S | Standalone TUI showing live workflow progress. Useful for debugging and demos. |
 
 ---
 
-### F) Distributed Runtime (10% of effort)
+### G) Distributed Runtime (10% of effort)
 
 Distributed execution is useful, but not the priority. We build just enough for the common case: a coordinator that fans out to worker processes on the **same machine** (multi-core) or a small cluster (2-3 machines).
 
 | # | Feature | Effort | Description |
 |---|---|---|---|
-| **F1** | Simple TCP coordinator | M | No NATS — just TCP + JSON messages. Coordinator and workers are subprocesses. Good for 2-10 workers. |
-| **F2** | `lucky run --workers N` | S | Fan out to N local worker processes. Each worker gets its own core/thread. Useful for `swarm 50` on a single machine. |
-| **F3** | Remote worker | M | `lucky worker --connect host:port`. Register with a remote coordinator. Run on another machine. |
-| **F4** | Basic affinity | S | "This worker has GPU" / "This worker has local filesystem access." Match nodes to workers by capability. |
-| **F5** | Distributed checkpoint (local FS) | M | Checkpoint to a shared NFS or SMB mount. Coordinator writes DAG state; workers write memory snapshots. |
+| **G1** | Simple TCP coordinator | M | No NATS — just TCP + JSON messages. Coordinator and workers are subprocesses. Good for 2-10 workers. |
+| **G2** | `lucky run --workers N` | S | Fan out to N local worker processes. Each worker gets its own core/thread. Useful for `swarm 50` on a single machine. |
+| **G3** | Remote worker | M | `lucky worker --connect host:port`. Register with a remote coordinator. Run on another machine. |
+| **G4** | Basic affinity | S | "This worker has GPU" / "This worker has local filesystem access." Match nodes to workers by capability. |
+| **G5** | Distributed checkpoint (local FS) | M | Checkpoint to a shared NFS or SMB mount. Coordinator writes DAG state; workers write memory snapshots. |
 
 **What we're NOT building:**
 - NATS message bus (overkill for v0.3)
@@ -474,9 +647,9 @@ Simple TCP + subprocess workers covers the 90% use case: `swarm 50` on a beefy d
 
 ---
 
-### G) Deferred to v0.4 (5%)
+### H) Deferred to v0.4
 
-These features are designed in the spec, not implemented in v0.2, and explicitly deferred because they don't help platform adoption.
+These features are designed but explicitly deferred because they're not critical for platform adoption.
 
 | Feature | Rationale |
 |---|---|
@@ -487,13 +660,15 @@ These features are designed in the spec, not implemented in v0.2, and explicitly
 | **Package registry server** | File-system packages and `lucky pkg install ./path` work fine for v0.3. A central registry is a v0.4 service. |
 | **AI-specific optimizer** | LLM call fusion, prompt caching — clever but unproven. Let platforms do their own caching. |
 | **Firecracker sandbox** | Docker is enough for v0.3. Firecracker adds complexity (VM images, kernel config, Linux-only). |
+| **Multi-level delegation** | Sub-agents delegating to sub-agents. Powerful but complex. Defer to v0.4. |
+| **Contract enforcement** | Runtime I/O contract validation. Needs the type system to mature first. |
+| **Auto-rethink / adaptive** | Agent re-planning mid-workflow. Defer to v0.4 after sub-agent system is proven. |
 
 ---
 
 ## 4. Timeline & Milestones
 
-Total estimated effort: **16-20 weeks** (4-5 months) for 1-2 engineers.
-(Faster than the original plan because we dropped 5 complex features.)
+Total estimated effort: **18-20 weeks** (4-5 months) for 1-2 engineers.
 
 | Milestone | Weeks | Content | Dependencies |
 |---|---|---|---|
@@ -501,8 +676,8 @@ Total estimated effort: **16-20 weeks** (4-5 months) for 1-2 engineers.
 | **M2 — Platform Proof** | 5-7 | A3 (adapter CI), A4 (WorkBuddy), A5 (Windsurf/Cline), A6 (integration guide) | M1 |
 | **M3 — Security Foundation** | 8-10 | B1 (Docker sandbox), B2 (runtime audit), B3 (secrets), B5 (path traversal) | v0.2 runtime |
 | **M4 — Standard Library** | 11-13 | C1 (core types), C2 (collections), C3 (ai package), C4 (http), C5 (json/time/math/crypto), C6 (docs) | v0.2 runtime |
-| **M5 — Language + Observability** | 14-16 | D1 (reason), D2 (deploy), D3 (reactive), D4 (pub), D5-D7, E1-E4, E5 (`observe`) | M1 |
-| **M6 — Distributed + Release** | 17-20 | F1-F5 (simple distributed), E5 (`observe`), polish, docs, changelog | M3, M5 |
+| **M5 — Sub-Agents + Language** | 14-16 | D1-D4 (dynamic sub-agents), E1-E7 (language features), F1-F5 (observability) | M1 |
+| **M6 — Distributed + Release** | 17-20 | G1-G5 (distributed), A8 (adapter check), polish, docs, changelog | M3, M5 |
 
 ### Dependency Graph
 
@@ -583,8 +758,10 @@ M1, M3, and M4 are **fully parallel** — they touch different parts of the code
 | **C SDK thread safety bugs** | Medium | High | The SDK is single-threaded by design (`lucky_session_poll` is the only entry point; no concurrent access). Add AddressSanitizer to CI. |
 | **Docker sandbox breaks on Windows** | Medium | Medium | Docker Desktop on Windows supports bind mounts and resource limits. Test on Windows CI. Fallback: no sandbox (warn and continue). |
 | **Standard library scope creep** | Medium | Medium | Ship core types + `ai` package in M4. Defer `http`, `crypto`, `time` to M5 if behind. All are independent. |
+| **Sub-agent isolation leaks context** | High | High | Sub-session isolation is a new runtime concept. Add test suite: "researcher should NOT see writer's intermediate thoughts." Assert isolation at compile time where possible. |
+| **External agent definitions create dependency confusion** | Low | Medium | Mounted agents have lower priority than inline. YAML/JSON schemas validated at compile time. Hash-verified loading. |
 | **No new platform partnerships** | Low | **Critical** | If no platform wants Lucky, v0.3 fails regardless of technical quality. Mitigation: build the MCP bridge first (A7) — it makes Lucky work with every MCP client without needing a platform deal. |
-| **Over-engineering the C SDK** | Low | Medium | Keep it 10 functions, 200 LOC of C header, 500 LOC of Rust glue. If it grows beyond that, trim. |
+| **Over-engineering the C SDK** | Low | Medium | Keep it 12 functions, 250 LOC of C header, 600 LOC of Rust glue. If it grows beyond that, trim. |
 
 ### The MCP Hedge
 
@@ -605,6 +782,7 @@ This means A7 (MCP bridge) should be the **first** thing built in M1, not the la
 ### Must-Have (v0.3.0 Release)
 
 - [ ] `lucky.h` C SDK compiles on Linux, macOS, Windows. `lucky_session_poll` delivers correct events for a 5-node workflow.
+- [ ] C SDK supports dynamic agent registration: `lucky_session_register_agent()` works.
 - [ ] Python binding: `pip install lucky-sdk && python run_workflow.py` works.
 - [ ] MCP bridge: `lucky serve --mcp` is connectable from Claude Desktop. User can say "run my Lucky workflow" and see progress.
 - [ ] 3 adapters have CI pipelines that pass: Claude Code, WorkBuddy, Windsurf.
@@ -612,6 +790,10 @@ This means A7 (MCP bridge) should be the **first** thing built in M1, not the la
 - [ ] Docker sandbox: `lucky run --sandbox docker` runs tool calls in isolated containers. Basic filesystem + network + resource limits work.
 - [ ] Permission audit: runtime logs every allow/deny decision with source location.
 - [ ] Standard library: `String`, `List`, `Map`, `Int`, `Float`, `Bool` methods + `ai.ask` + `http.get` all work at runtime.
+- [ ] `register agent` compiles and executes correctly. Dynamic agents are instantiated on first use and released after workflow completion.
+- [ ] `isolate` keyword creates independent sub-sessions. Sub-agent A cannot read sub-agent B's memory or conversation history.
+- [ ] `mount agents from "./agents/"` loads YAML/JSON/MD agent definitions. Resolution order is correct (inline > registered > mounted > built-in).
+- [ ] `agents()` built-in returns correct agent list. `register agent from "./file.yaml"` works at runtime.
 - [ ] `reason deep/fast/none` controls reasoning mode on DeepSeek and OpenAI backends.
 - [ ] `deploy Docker` generates a working Dockerfile and builds an image.
 - [ ] `when file changes run workflow` triggers on file system events.
@@ -641,8 +823,10 @@ This means A7 (MCP bridge) should be the **first** thing built in M1, not the la
 | Matched platforms supporting Lucky | ≥ 5 (current adapters + new ones) |
 | Std lib method coverage vs. spec | 100% for core types, 80% for `ai`+`http` |
 | Docker sandbox isolation | Tool can't read host files outside workspace |
+| Sub-session isolation tests | 100% pass — no context leak between isolated agents |
+| External agent definitions loaded | YAML, JSON, MD all parse correctly |
 | `lucky run --workers 4` speedup vs. single-process | ≥ 3x for 20+ independent tasks |
 
 ---
 
-*Last updated: July 2026 — v0.3 Design Plan (revised with platform-first focus)*
+*Last updated: July 2026 — v0.3 Design Plan (revised with Dynamic Sub-Agent System)*
